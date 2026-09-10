@@ -1,13 +1,9 @@
-# 99Bugs_EcoBalance
-Project 5 / Team Project
+# Project 5 / Team Project
+99Bugs
 
-# 99Bugs - EcoBalance
+# EcoBalance
 
 EcoBalance is an interactive educational ecosystem simulation application that allows users to experiment with ecosystem conditions and observe how changes affect organisms, resources, and the environment over time.
-
-## Project
-
-Team Project
 
 ## Documentation
 
