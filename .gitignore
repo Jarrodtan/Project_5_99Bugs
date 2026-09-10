@@ -110,11 +110,14 @@ InitTestScene*.unity*
 Thumbs.db
 Desktop.ini
 
+# IDE settings
+.vscode/
+.idea/
+
+# Dependencies
+node_modules/
+
 # Local environment / secrets
 .env
 .env.*
 !.env.example
-
-# IDE settings
-.vscode/
-.idea/
