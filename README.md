@@ -22,12 +22,11 @@ Project documentation can be found in the [`docs/`](docs/) directory.
 ## Technology Stack
 
 - Engine: Unity
-- Programming Languages: C# / C++ (subject to technical implementation)
 - Target Platform: Mobile
-- Supported Development Environments:
-  - Windows 11
-  - macOS Tahoe
-  - Ubuntu 24.04, where applicable
+- Programming Languages: C# / C++ (subject to technical implementation)
+- Additional technologies: TBD
+
+The development and build environment will be documented once the team's technical architecture and toolchain have been finalized.
 
 ## Repository Structure
 
