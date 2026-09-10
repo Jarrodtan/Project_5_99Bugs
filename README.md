@@ -1,5 +1,5 @@
 # Project 5 / Team Project
-99Bugs
+Team Name: 99 Bugs
 
 # EcoBalance
 
