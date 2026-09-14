@@ -3,6 +3,7 @@ using UnityEngine;
 public class SimulationClock : MonoBehaviour
 {
     public EcosystemSimulator simulator;
+    public PopulationDisplay display;
     public float secondsPerTick = 2f;
     private float timer;
 
@@ -13,10 +14,7 @@ public class SimulationClock : MonoBehaviour
         {
             timer = 0f;
             simulator.Tick();
-            foreach (var kvp in simulator.populations)
-            {
-                Debug.Log($"{kvp.Key.speciesName}: {kvp.Value:F1}");
-            }
+            display.Refresh();
         }
     }
 }
