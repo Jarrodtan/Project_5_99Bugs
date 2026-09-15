@@ -11,7 +11,7 @@ public class EcosystemSimulator : MonoBehaviour
     {
         foreach (var s in species)
         {
-            populations[s] = 20f; // starting population
+            populations[s] = 1f; // starting population
         }
     }
 
