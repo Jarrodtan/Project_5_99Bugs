@@ -31,6 +31,8 @@
 
 - **Visualization/Feedback System** (RTIS-owned) — translates simulation and AI state into visible feedback: population-to-visual agent bridge, AI state → animation (e.g. fleeing state triggers flee animation), environmental visual feedback (e.g. vegetation depletion)
 - **UI** (Design-owned) — inspector panel, population graphs/timeline, contextual learning prompts
+- **Selection System** — generic click/tap picking (`ObjectSelector` + `ISelectable`); selection is tracked by handle and published on a shared `SelectionContext` asset. 
+- **Inspection Data Interface** — read-only `IInspectable` / `StatEntry` via `ISimulationQuery` and an `InspectionConfig` schema catalog. 
 
 ## Data Flow
 

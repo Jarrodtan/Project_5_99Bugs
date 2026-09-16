@@ -14,6 +14,8 @@ Project documentation can be found in the [`docs/`](docs/) directory.
 - UI/UX Design
 - Software Architecture
 - Technical Deliverables and Milestone Planning
+- [Selection System](docs/selection-system.md) — ObjectSelector, ISelectable, SelectionContext
+- [Inspection Data Interface](docs/inspection-data.md) — IInspectable, StatEntry, SimulationQuery
 
 ## Technology Stack
 
