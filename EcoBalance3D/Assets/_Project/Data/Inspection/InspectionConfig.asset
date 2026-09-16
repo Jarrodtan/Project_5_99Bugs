@@ -18,4 +18,4 @@ MonoBehaviour:
   - type: {fileID: 11400000, guid: c1000000000000000000000000000006, type: 2}
     schema: {fileID: 11400000, guid: e1000000000000000000000000000002, type: 2}
   valueFormat: F1
-  logStatsOnSelection: 1
+  logStatsOnSelection: 0

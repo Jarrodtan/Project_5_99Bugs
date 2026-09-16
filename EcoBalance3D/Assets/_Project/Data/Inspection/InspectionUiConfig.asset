@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d100000000000000000000000000000e, type: 3}
+  m_Name: InspectionUiConfig
+  m_EditorClassIdentifier: Assembly-CSharp::InspectionUiConfig
+  panelSize: {x: 320, y: 220}
+  panelAnchoredPosition: {x: 20, y: -20}
+  backgroundColor: {r: 0.08, g: 0.1, b: 0.12, a: 0.92}
+  panelPadding: 12
+  canvasSortOrder: 100
+  titleFontSize: 22
+  titleColor: {r: 1, g: 1, b: 1, a: 1}
+  font: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  rowFontSize: 16
+  labelColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+  valueColor: {r: 1, g: 1, b: 1, a: 1}
+  rowHeight: 28
+  rowSpacing: 4
+  labelColumnWidthRatio: 0.45
+  startHidden: 1
