@@ -7,8 +7,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Type-agnostic inspector content view. Binds to <see cref="SelectionContext"/> and paints
-/// <see cref="IInspectable"/> title + <see cref="StatEntry"/> rows using <see cref="InspectionUiConfig"/>.
-/// Does not implement world-follow positioning (Task 4).
+/// <see cref="IInspectable"/> stats. Placement is delegated to <see cref="IOverlayPositioner"/> modules.
 /// </summary>
 public class InspectorPanel : MonoBehaviour
 {
@@ -16,11 +15,16 @@ public class InspectorPanel : MonoBehaviour
     [SerializeField]
     SelectionContext selectionContext;
 
-    [Tooltip("All visual/layout/behaviour knobs for this panel.")]
+    [Tooltip("All visual/layout/overlay knobs for this panel.")]
     [SerializeField]
     InspectionUiConfig uiConfig;
 
-    Canvas canvas;
+    [Tooltip("Optional camera override. When empty and uiConfig.useMainCamera is true, Camera.main is used.")]
+    [SerializeField]
+    Camera cameraOverride;
+
+    Canvas screenCanvas;
+    Canvas worldCanvas;
     RectTransform panelRoot;
     Image panelBackground;
     RectTransform titleRect;
@@ -28,7 +32,34 @@ public class InspectorPanel : MonoBehaviour
     RectTransform rowsParent;
     VerticalLayoutGroup rowsLayout;
     readonly List<StatRowView> rowPool = new();
+    readonly List<IOverlayPositioner> positioners = new();
+    OverlayPositionContext overlayContext;
+    IOverlayPositioner activePositioner;
+    OverlayMode appliedMode;
+    Transform currentTarget;
     bool built;
+    bool contentVisible;
+    bool positionVisible = true;
+
+    /// <summary>
+    /// Replaces default positioner modules. Call before the first Show / LateUpdate if customizing.
+    /// </summary>
+    /// <param name="modules">Positioner implementations to use.</param>
+    public void SetPositioners(params IOverlayPositioner[] modules)
+    {
+        positioners.Clear();
+        if (modules == null)
+            return;
+
+        for (var i = 0; i < modules.Length; i++)
+        {
+            if (modules[i] != null)
+                positioners.Add(modules[i]);
+        }
+
+        if (built && uiConfig != null)
+            ApplyOverlayMode(uiConfig.overlayMode, force: true);
+    }
 
     /// <summary>
     /// Shows stats for the given handle, or hides when the handle is invalid / not inspectable.
@@ -52,7 +83,11 @@ public class InspectorPanel : MonoBehaviour
         }
 
         ApplyContent(inspectable);
-        SetPanelVisible(true);
+        currentTarget = ResolveTargetTransform(handle);
+        activePositioner?.SetTarget(currentTarget);
+        contentVisible = true;
+        positionVisible = true;
+        RefreshVisibility();
     }
 
     /// <summary>
@@ -63,11 +98,18 @@ public class InspectorPanel : MonoBehaviour
         if (!EnsureReady())
             return;
 
-        SetPanelVisible(false);
+        activePositioner?.ClearTarget();
+        currentTarget = null;
+        contentVisible = false;
+        positionVisible = false;
+        RefreshVisibility();
     }
 
     void Awake()
     {
+        if (positioners.Count == 0)
+            SetPositioners(new ScreenSpacePositioner(), new WorldSpacePositioner());
+
         EnsureReady();
     }
 
@@ -91,6 +133,25 @@ public class InspectorPanel : MonoBehaviour
     {
         if (selectionContext != null)
             selectionContext.Changed -= OnSelectionChanged;
+    }
+
+    void LateUpdate()
+    {
+        if (!built || uiConfig == null || activePositioner == null)
+            return;
+
+        if (appliedMode != uiConfig.overlayMode)
+            ApplyOverlayMode(uiConfig.overlayMode, force: false);
+
+        if (!contentVisible || currentTarget == null)
+        {
+            positionVisible = false;
+            RefreshVisibility();
+            return;
+        }
+
+        positionVisible = activePositioner.UpdatePosition();
+        RefreshVisibility();
     }
 
     void OnSelectionChanged(SelectionChange change)
@@ -119,16 +180,25 @@ public class InspectorPanel : MonoBehaviour
     {
         EnsureEventSystem();
 
-        var canvasGo = new GameObject("InspectorCanvas");
-        canvasGo.transform.SetParent(transform, false);
-        canvas = canvasGo.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = uiConfig.canvasSortOrder;
-        canvasGo.AddComponent<CanvasScaler>();
-        canvasGo.AddComponent<GraphicRaycaster>();
+        var screenGo = new GameObject("InspectorScreenCanvas");
+        screenGo.transform.SetParent(transform, false);
+        screenCanvas = screenGo.AddComponent<Canvas>();
+        screenCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        screenCanvas.sortingOrder = uiConfig.canvasSortOrder;
+        screenGo.AddComponent<CanvasScaler>();
+        screenGo.AddComponent<GraphicRaycaster>();
+
+        var worldGo = new GameObject("InspectorWorldCanvas");
+        worldGo.transform.SetParent(transform, false);
+        worldCanvas = worldGo.AddComponent<Canvas>();
+        worldCanvas.renderMode = RenderMode.WorldSpace;
+        worldCanvas.sortingOrder = uiConfig.worldSpaceSortingOrder;
+        worldGo.AddComponent<CanvasScaler>();
+        worldGo.AddComponent<GraphicRaycaster>();
+        worldGo.SetActive(false);
 
         var panelGo = new GameObject("Panel");
-        panelGo.transform.SetParent(canvasGo.transform, false);
+        panelGo.transform.SetParent(screenGo.transform, false);
         panelRoot = panelGo.AddComponent<RectTransform>();
         panelBackground = panelGo.AddComponent<Image>();
         panelBackground.raycastTarget = true;
@@ -149,37 +219,97 @@ public class InspectorPanel : MonoBehaviour
         rowsLayout.childForceExpandWidth = true;
         rowsLayout.childForceExpandHeight = false;
 
+        overlayContext = new OverlayPositionContext(
+            uiConfig,
+            panelRoot,
+            screenCanvas,
+            worldCanvas,
+            ResolveCamera);
+
         ApplyLayoutFromConfig();
         built = true;
+        ApplyOverlayMode(uiConfig.overlayMode, force: true);
 
         if (uiConfig.startHidden)
-            SetPanelVisible(false);
+            Hide();
         else
-            SetPanelVisible(true);
+        {
+            contentVisible = true;
+            positionVisible = true;
+            RefreshVisibility();
+        }
+    }
+
+    void ApplyOverlayMode(OverlayMode mode, bool force)
+    {
+        if (!force && activePositioner != null && appliedMode == mode)
+            return;
+
+        IOverlayPositioner next = null;
+        for (var i = 0; i < positioners.Count; i++)
+        {
+            if (positioners[i].Mode == mode)
+            {
+                next = positioners[i];
+                break;
+            }
+        }
+
+        if (next == null)
+        {
+            Debug.LogError($"{nameof(InspectorPanel)} has no {nameof(IOverlayPositioner)} for mode {mode}.", this);
+            return;
+        }
+
+        activePositioner = next;
+        appliedMode = mode;
+        activePositioner.Bind(overlayContext);
+        ApplyLayoutFromConfig();
+
+        if (currentTarget != null)
+            activePositioner.SetTarget(currentTarget);
+        else
+            activePositioner.ClearTarget();
+    }
+
+    Camera ResolveCamera()
+    {
+        if (cameraOverride != null)
+            return cameraOverride;
+
+        if (uiConfig != null && uiConfig.useMainCamera)
+            return Camera.main;
+
+        return null;
     }
 
     void ApplyLayoutFromConfig()
     {
-        canvas.sortingOrder = uiConfig.canvasSortOrder;
+        if (screenCanvas != null)
+            screenCanvas.sortingOrder = uiConfig.canvasSortOrder;
 
-        panelRoot.anchorMin = new Vector2(0f, 1f);
-        panelRoot.anchorMax = new Vector2(0f, 1f);
-        panelRoot.pivot = new Vector2(0f, 1f);
-        panelRoot.sizeDelta = uiConfig.panelSize;
-        panelRoot.anchoredPosition = uiConfig.panelAnchoredPosition;
+        if (panelRoot != null)
+            panelRoot.sizeDelta = uiConfig.panelSize;
 
-        panelBackground.color = uiConfig.backgroundColor;
+        if (panelBackground != null)
+            panelBackground.color = uiConfig.backgroundColor;
 
-        titleText.fontSize = uiConfig.titleFontSize;
-        titleText.color = uiConfig.titleColor;
-        if (uiConfig.font != null)
-            titleText.font = uiConfig.font;
-        titleText.alignment = TextAlignmentOptions.TopLeft;
-        titleText.textWrappingMode = TextWrappingModes.NoWrap;
-        titleText.overflowMode = TextOverflowModes.Ellipsis;
+        if (titleText != null)
+        {
+            titleText.fontSize = uiConfig.titleFontSize;
+            titleText.color = uiConfig.titleColor;
+            if (uiConfig.font != null)
+                titleText.font = uiConfig.font;
+            titleText.alignment = TextAlignmentOptions.TopLeft;
+            titleText.textWrappingMode = TextWrappingModes.NoWrap;
+            titleText.overflowMode = TextOverflowModes.Ellipsis;
+        }
 
-        rowsLayout.spacing = uiConfig.rowSpacing;
-        rowsLayout.padding = new RectOffset(0, 0, 0, 0);
+        if (rowsLayout != null)
+        {
+            rowsLayout.spacing = uiConfig.rowSpacing;
+            rowsLayout.padding = new RectOffset(0, 0, 0, 0);
+        }
 
         LayoutTitleAndRows();
 
@@ -261,10 +391,21 @@ public class InspectorPanel : MonoBehaviour
         return view;
     }
 
-    void SetPanelVisible(bool show)
+    void RefreshVisibility()
     {
-        if (panelRoot != null)
-            panelRoot.gameObject.SetActive(show);
+        if (panelRoot == null)
+            return;
+
+        panelRoot.gameObject.SetActive(contentVisible && positionVisible);
+    }
+
+    static Transform ResolveTargetTransform(SelectionHandle handle)
+    {
+        if (!SelectableRegistry.TryGet(handle, out var selectable))
+            return null;
+
+        var behaviour = selectable as Component;
+        return behaviour != null ? behaviour.transform : null;
     }
 
     static bool TryResolveInspectable(SelectionHandle handle, out IInspectable inspectable)

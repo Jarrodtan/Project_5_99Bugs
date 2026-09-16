@@ -34,6 +34,7 @@
 - **Selection System** — generic click/tap picking (`ObjectSelector` + `ISelectable`); selection is tracked by handle and published on a shared `SelectionContext` asset.
 - **Inspection Data Interface** — read-only `IInspectable` / `StatEntry` via `ISimulationQuery` and an `InspectionConfig` schema catalog. 
 - **Inspector Panel** — type-agnostic `InspectorPanel` + `StatRowView` styled by `InspectionUiConfig`; binds to `SelectionContext` and paints `IInspectable` only. 
+- **Overlay Positioning** — `IOverlayPositioner` (Screen Space + World Space) driven by `InspectionUiConfig.overlayMode`; content `Show`/`Hide` stays free of follow/billboard math. 
 
 ## Data Flow
 
