@@ -32,8 +32,9 @@
 - **Visualization/Feedback System** (RTIS-owned) — translates simulation and AI state into visible feedback: population-to-visual agent bridge, AI state → animation (e.g. fleeing state triggers flee animation), environmental visual feedback (e.g. vegetation depletion)
 - **UI** (Design-owned) — inspector panel, population graphs/timeline, contextual learning prompts
 - **Selection System** — generic click/tap picking (`ObjectSelector` + `ISelectable`); selection is tracked by handle and published on a shared `SelectionContext` asset.
-- **Inspection Data Interface** — read-only `IInspectable` / `StatEntry` via `ISimulationQuery` and an `InspectionConfig` schema catalog. 
-- **Inspector Panel** — type-agnostic `InspectorPanel` + `StatRowView` styled by `InspectionUiConfig`; binds to `SelectionContext` and paints `IInspectable` only. 
+- **Selection Highlight** — peer `SelectionHighlighter` + `ISelectionHighlightVisual` (default ground ring) driven by `SelectionHighlightConfig`; listens to `SelectionContext` only; material-independent.
+- **Inspection Data Interface** — read-only `IInspectable` / `StatEntry` via `ISimulationQuery` and an `InspectionConfig` schema catalog.
+- **Inspector Panel** — type-agnostic `InspectorPanel` + `StatRowView` styled by `InspectionUiConfig`; binds to `SelectionContext` and paints `IInspectable` only.
 - **Overlay Positioning** — `IOverlayPositioner` (Screen Space + World Space) driven by `InspectionUiConfig.overlayMode`; content `Show`/`Hide` stays free of follow/billboard math. 
 
 ## Data Flow
