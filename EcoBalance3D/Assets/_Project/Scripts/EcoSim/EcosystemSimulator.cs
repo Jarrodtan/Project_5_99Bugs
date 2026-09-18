@@ -26,7 +26,6 @@ public class EcosystemSimulator : MonoBehaviour
         foreach (var s in species)
         {
             float pop = populations[s];
-            populations[s] = pop + (pop * s.reproductionRate);
         }
     }
 }
