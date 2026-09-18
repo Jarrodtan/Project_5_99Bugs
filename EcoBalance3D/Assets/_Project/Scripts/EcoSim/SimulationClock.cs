@@ -14,7 +14,8 @@ public class SimulationClock : MonoBehaviour
         {
             timer = 0f;
             simulator.Tick();
-            display.Refresh();
+            if (display != null)
+                display.Refresh();
         }
     }
 }

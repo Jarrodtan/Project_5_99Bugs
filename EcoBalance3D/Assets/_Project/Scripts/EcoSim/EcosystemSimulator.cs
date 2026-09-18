@@ -5,6 +5,7 @@ public class EcosystemSimulator : MonoBehaviour
 {
     public List<SpeciesDefinition> species;
     public List<ResourceDefinition> resources;
+    [System.NonSerialized]
     public Dictionary<SpeciesDefinition, float> populations = new();
 
     void Start()
