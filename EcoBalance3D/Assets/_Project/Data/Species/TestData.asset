@@ -14,15 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
   speciesName: Test
   eats: []
-<<<<<<<< HEAD:EcoBalance3D/Assets/_Project/ScriptableObjects/Species/BlueSheep.asset
-  needs:
-  - {fileID: 11400000, guid: 76da2c5da0148784389995384801e63e, type: 2}
-  reproductionRate: 0.1
-  starvationThreshold: 0.2
-  visualPrefab: {fileID: 3020467311992313161, guid: 7d972c153dc5dd34aafbd165b566f681, type: 3}
-========
   needs: []
   reproductionRate: 1
   starvationThreshold: 3
   visualPrefab: {fileID: 5671125402399028125, guid: fcf28c2f06ee30c4bb63f92fa59a882b, type: 3}
->>>>>>>> main:EcoBalance3D/Assets/_Project/Data/Species/TestData.asset
