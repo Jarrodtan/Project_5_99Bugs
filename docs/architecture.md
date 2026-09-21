@@ -24,6 +24,7 @@
 ### Data/Interface Layer
 
 - **Simulation Data Tracking** — records population/resource history each tick, feeds UI graphs/timeline
+- **Simulation Data Provider** — read-only `ISimulationDataProvider` (string species/resource ids) for Displays 1–3; mock implementation for UI-first work. 
 - **Contextual Trigger System** — detects meaningful simulation changes, fires events for the UI to respond to
 - **Simulation Time Control** — play/pause/speed/reset/reconfigure
 
