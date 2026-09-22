@@ -1,9 +1,11 @@
+using UnityEditor;
 using UnityEngine;
 
 public class SimulationClock : MonoBehaviour
 {
     public EcosystemSimulator simulator;
     public PopulationDisplay display;
+    public CreatureSpawner spawner;
     public float secondsPerTick = 2f;
     private float timer;
 
@@ -14,8 +16,8 @@ public class SimulationClock : MonoBehaviour
         {
             timer = 0f;
             simulator.Tick();
-            if (display != null)
-                display.Refresh();
+            display.Refresh();
+            spawner.RefreshVisuals();
         }
     }
 }
