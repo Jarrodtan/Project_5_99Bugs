@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 5023115814898462183}
   - component: {fileID: 38825299389336037}
   m_Layer: 0
-  m_Name: Testing animal 1
+  m_Name: Testing animal
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -148,5 +148,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 889a9b7f6c658d948ac12a07bbff67ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimalBrain
-  species_data: {fileID: 11400000, guid: 4c581a9f64b97e842b5addd081514f21, type: 2}
+  species_data: {fileID: 11400000, guid: 9e7339e0fa7087f428fe373715dcf5b5, type: 2}
   curr_hunger: 100

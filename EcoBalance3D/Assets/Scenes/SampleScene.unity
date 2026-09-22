@@ -868,7 +868,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ObjectSelector
   config: {fileID: 11400000, guid: c1000000000000000000000000000003, type: 2}
   context: {fileID: 11400000, guid: c1000000000000000000000000000004, type: 2}
-  cameraOverride: {fileID: 330585545}
+  cameraOverride: {fileID: 0}
 --- !u!114 &1500000004
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -957,7 +957,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InspectorPanel
   selectionContext: {fileID: 11400000, guid: c1000000000000000000000000000004, type: 2}
   uiConfig: {fileID: 11400000, guid: e1000000000000000000000000000004, type: 2}
-  cameraOverride: {fileID: 330585545}
+  cameraOverride: {fileID: 0}
 --- !u!1 &1700000001
 GameObject:
   m_ObjectHideFlags: 0
@@ -1002,7 +1002,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1000000000000000000000000000003, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MockSimulationDataProvider
-  config: {fileID: 0}
 --- !u!1 &1749861653
 GameObject:
   m_ObjectHideFlags: 0

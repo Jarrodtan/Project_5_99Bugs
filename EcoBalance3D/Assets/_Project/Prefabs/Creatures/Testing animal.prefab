@@ -148,5 +148,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 889a9b7f6c658d948ac12a07bbff67ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimalBrain
-  species_data: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
+  species_data: {fileID: 11400000, guid: 9e7339e0fa7087f428fe373715dcf5b5, type: 2}
   curr_hunger: 100

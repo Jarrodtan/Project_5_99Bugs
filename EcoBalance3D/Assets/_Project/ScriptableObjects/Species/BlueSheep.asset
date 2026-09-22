@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd10ba53277213b4f87e228a0819a3b3, type: 3}
-  m_Name: Sheep
+  m_Name: BlueSheep
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
-  speciesName: Sheep
+  speciesName: Blue Sheep
   eats: []
   needs: []
-  reproductionRate: 0.1
+  reproductionRate: 0.5
   starvationThreshold: 0.2
   visualPrefab: {fileID: 3469608245872682355, guid: 0de39005f9360204c93f9370f6d708dd, type: 3}
