@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 7908956480700981031}
   - component: {fileID: 8132270331353638838}
   m_Layer: 0
-  m_Name: Testing animal
+  m_Name: SnowLeopardPlaceholder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -69,7 +69,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 95c5ae2ebb068f8488189796bfb36659, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -148,5 +148,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 889a9b7f6c658d948ac12a07bbff67ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimalBrain
-  species_data: {fileID: 11400000, guid: 9e7339e0fa7087f428fe373715dcf5b5, type: 2}
+  species_data: {fileID: 11400000, guid: 2829b3f512f18b14d931a7a5801afa6d, type: 2}
   curr_hunger: 100
