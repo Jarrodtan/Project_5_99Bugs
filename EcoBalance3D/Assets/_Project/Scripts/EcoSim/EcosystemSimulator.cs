@@ -10,14 +10,47 @@ public class EcosystemSimulator : MonoBehaviour
 
     void Start()
     {
+        if (!ValidateConfiguration()) return;
+
         foreach (var s in species)
         {
+            if (s == null) continue;
             populations[s] = 1f; // starting population
         }
     }
 
+    // Removes null entries and fills missing population entries so one
+    // misconfigured asset logs a warning instead of crashing the whole simulation.
+    bool ValidateConfiguration()
+    {
+        species ??= new List<SpeciesDefinition>();
+        resources ??= new List<ResourceDefinition>();
+
+        if (species.RemoveAll(s => s == null) > 0)
+            Debug.LogWarning($"[{name}] EcosystemSimulator: removed empty entries from the Species list.", this);
+        if (resources.RemoveAll(r => r == null) > 0)
+            Debug.LogWarning($"[{name}] EcosystemSimulator: removed empty entries from the Resources list.", this);
+
+        foreach (var s in species)
+        {
+            if (!populations.ContainsKey(s))
+                populations[s] = 0f;
+            if (s.eats != null && s.eats.RemoveAll(p => p == null) > 0)
+                Debug.LogWarning($"EcosystemSimulator: '{s.name}' had empty entries in its Eats list.", s);
+        }
+
+        if (species.Count == 0)
+        {
+            Debug.LogWarning($"[{name}] EcosystemSimulator has no Species assigned - nothing to simulate.", this);
+            return false;
+        }
+        return true;
+    }
+
     public void Tick()
     {
+        if (!ValidateConfiguration()) return;
+
         foreach (var r in resources)
         {
             r.currentAmount = Mathf.Min(r.maxAmount, r.currentAmount + r.regenRate);
