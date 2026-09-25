@@ -24,7 +24,8 @@
 ### Data/Interface Layer
 
 - **Simulation Data Tracking** — records population/resource history each tick, feeds UI graphs/timeline
-- **Simulation Data Provider** — read-only `ISimulationDataProvider` (string species/resource ids) for Displays 1–3; mock implementation for UI-first work. 
+- **Simulation Data Provider** — read-only `ISimulationDataProvider` (string species/resource ids) for Displays 1–2 aggregates; mock for UI-first work. 
+- **Simulation Event Provider** — separate `ISimulationEventProvider` stub for Display 3 behaviour feed (empty until T02 exposes events); 
 - **Contextual Trigger System** — detects meaningful simulation changes, fires events for the UI to respond to
 - **Simulation Time Control** — play/pause/speed/reset/reconfigure
 
