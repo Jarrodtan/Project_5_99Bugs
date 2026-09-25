@@ -51,8 +51,7 @@ public class AnimalCreator : EditorWindow
         new_data.starvationThreshold = starvation_rate;
         new_data.visualPrefab = prefab;
 
-        new_data.eats = new List<SpeciesDefinition>();
-        new_data.needs = new List<ResourceDefinition>();
+        new_data.relationships = new List<Relationship>();
 
         string path = "Assets/_Project/Data/Species/";
 
