@@ -17,26 +17,40 @@ Project documentation can be found in the [`docs/`](docs/) directory.
 
 ## Technology Stack
 
-- Engine: Unity
-- Target Platform: Mobile
-- Programming Languages: C# / C++ (subject to technical implementation)
-- Additional technologies: TBD
-
-The development and build environment will be documented once the team's technical architecture and toolchain have been finalized.
+- Engine: Unity 6000.6.0f1 (URP)
+- Target Platform: Mobile (Android)
+- Language: C#
+- Full list with reasons: [`docs/toolchain.md`](docs/toolchain.md)
 
 ## Repository Structure
 
-- `apps/mobile/` - EcoBalance mobile application
-- `docs/` - Project and design documentation
-- `packages/` - Shared packages and libraries
-- `tools/` - Project development and production tools
-- `tests/` - Testing files and documentation
-- `.github/workflows/` - CI/CD workflows
+- `EcoBalance3D/` - Unity project (all project content is in `Assets/_Project/`)
+- `docs/` - Project, design, architecture, toolchain and data-pipeline documentation
+- `.github/workflows/` - CI (tests + Android build)
 
-## Setup
+## Setup (Windows / macOS)
 
-Development environment and dependency setup instructions will be updated once the team's technical architecture and required Unity version are finalized.
+1. Install [Unity Hub](https://unity.com/download), then install Unity **6000.6.0f1** with the **Android Build Support** module.
+2. `git clone https://github.com/Jarrodtan/Project_5_99Bugs.git`
+3. In Unity Hub, choose **Add → Add project from disk** and select the `EcoBalance3D` folder.
+4. Open the project. The first import takes a few minutes.
 
-## Build and Run
+## Run
 
-Build and run instructions will be added once the initial application environment has been established.
+Open the main scene in `Assets/Scenes/` and press **Play**.
+
+## Test
+
+- **In the Editor:** open **Window → General → Test Runner → EditMode → Run All**.
+- **In CI:** tests run automatically on every push or PR to `main` (see the Actions tab).
+
+## Build
+
+- **Local:** open **File → Build Profiles → Android → Build**.
+- **CI:** every push to `main` produces an Android build artifact (`EcoBalance-Android`) in GitHub Actions.
+
+CI needs these repository secrets: `UNITY_LICENSE`, `UNITY_EMAIL` and `UNITY_PASSWORD` (see the [GameCI activation guide](https://game.ci/docs/github/activation)).
+
+## Workflow
+
+Work on a personal or feature branch, open a pull request into `main`, and merge after CI passes. Don't push directly to `main`.
