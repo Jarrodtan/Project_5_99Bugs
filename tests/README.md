@@ -9,3 +9,6 @@ How to run them:
 - **CI:** they run automatically on every push or PR to `main` (`.github/workflows/unity-ci.yml`).
 
 This folder holds test plans, testbed measurement definitions and manual test checklists.
+
+---
+*Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed and edited by Tan Wei Leong.*

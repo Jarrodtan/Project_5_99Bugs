@@ -19,3 +19,6 @@ This document is the baseline for EcoBalance's technology choices. **Any change 
 | AI tools | Unity AI Assistant, Claude Code | Used to help with code, scaffolding and documentation. All output is reviewed by a team member before merge. |
 | Data format | Unity ScriptableObject assets (`.asset`, YAML) | Designers can add or tune species and resources without code changes (T02). |
 | Exported data | CSV | Population metrics export (T05), which opens in Excel or Sheets. |
+
+---
+*Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed and edited by Tan Wei Leong.*

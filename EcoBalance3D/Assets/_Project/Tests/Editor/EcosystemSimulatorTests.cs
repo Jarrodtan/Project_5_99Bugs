@@ -1,3 +1,4 @@
+// [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
@@ -156,3 +157,4 @@ public class EcosystemSimulatorTests
         Assert.DoesNotThrow(() => sim.Tick());
     }
 }
+// [AI-GENERATED END]

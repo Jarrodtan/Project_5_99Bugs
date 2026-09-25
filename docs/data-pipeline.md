@@ -43,3 +43,6 @@ Nothing project-specific goes outside `_Project/`. Third-party and imported pack
 - `EcosystemSimulator` checks its configuration before each tick. Empty entries in Species, Resources or `eats` are removed and a warning is logged, instead of crashing the simulation.
 - Rates (`reproductionRate`, `predationRate`, `starvationThreshold`) must be ≥ 0, and `currentAmount` must be ≤ `maxAmount`.
 - EditMode tests in `Tests/Editor/` run in CI on every PR. A PR must not be merged while tests are failing.
+
+---
+*Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed and edited by Tan Wei Leong.*

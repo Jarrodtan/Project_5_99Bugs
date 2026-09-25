@@ -10,6 +10,7 @@ public class EcosystemSimulator : MonoBehaviour
 
     void Start()
     {
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
         if (!ValidateConfiguration()) return;
 
         foreach (var s in species)
@@ -17,8 +18,10 @@ public class EcosystemSimulator : MonoBehaviour
             if (s == null) continue;
             populations[s] = 1f; // starting population
         }
+        // [AI-GENERATED END]
     }
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
     // Removes null entries and fills missing population entries so one
     // misconfigured asset logs a warning instead of crashing the whole simulation.
     bool ValidateConfiguration()
@@ -46,10 +49,13 @@ public class EcosystemSimulator : MonoBehaviour
         }
         return true;
     }
+    // [AI-GENERATED END]
 
     public void Tick()
     {
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
         if (!ValidateConfiguration()) return;
+        // [AI-GENERATED END]
 
         foreach (var r in resources)
         {
