@@ -12,6 +12,7 @@ public class AnimalCreator : EditorWindow
     float starvation_rate = 0.2f;
     GameObject prefab;
 
+    [MenuItem("EcoBalance/Open Animal Creator")]
     public static void show_win()
     {
         GetWindow<AnimalCreator>("Species Creator");

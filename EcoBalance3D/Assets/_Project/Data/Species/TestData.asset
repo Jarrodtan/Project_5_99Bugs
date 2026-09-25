@@ -16,6 +16,6 @@ MonoBehaviour:
   visualPrefab: {fileID: 0}
   eats: []
   needs: []
-  reproductionRate: 1
+  reproductionRate: 2
   starvationThreshold: 3
   visualPrefab: {fileID: 5671125402399028125, guid: fcf28c2f06ee30c4bb63f92fa59a882b, type: 3}
