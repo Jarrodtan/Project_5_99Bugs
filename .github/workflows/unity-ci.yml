@@ -19,6 +19,12 @@ jobs:
     name: EditMode tests
     runs-on: ubuntu-latest
     steps:
+      # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
+      - uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+
       - uses: actions/checkout@v4
         with:
           lfs: true
@@ -48,6 +54,12 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
+      - uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: false
+
       - uses: actions/checkout@v4
         with:
           lfs: true
