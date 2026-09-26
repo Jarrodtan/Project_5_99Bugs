@@ -70,8 +70,10 @@ jobs:
       # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
       - uses: jlumbroso/free-disk-space@v1.3.1
         with:
-          tool-cache: false
-          android: false
+          # The GameCI Android image ships its own SDK/NDK, so the runner's copy
+          # (~12 GB) and tool cache can go too.
+          tool-cache: true
+          android: true
 
       - uses: actions/checkout@v4
         with:
