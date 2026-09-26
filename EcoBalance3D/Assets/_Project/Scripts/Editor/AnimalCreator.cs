@@ -9,6 +9,7 @@ public class AnimalCreator : EditorWindow
 {
     string animal_names = "Default Name";
     float reproduction_rate = 0.1f;
+    public SpeciesDefinition fileToEdit;
     float starvation_rate = 0.2f;
     GameObject prefab;
 
@@ -21,6 +22,25 @@ public class AnimalCreator : EditorWindow
     // Custom Window for the datas & values
     void OnGUI()
     {
+        GUILayout.Label("Edit Existing Species", EditorStyles.boldLabel);
+        fileToEdit = (SpeciesDefinition)EditorGUILayout.ObjectField("Load File", fileToEdit, typeof(SpeciesDefinition), false);
+
+        if (GUILayout.Button("Load Data"))
+        {
+            if (fileToEdit != null)
+            {
+                animal_names = fileToEdit.speciesName;
+                reproduction_rate = fileToEdit.reproductionRate;
+                starvation_rate = fileToEdit.starvationThreshold;
+                prefab = fileToEdit.visualPrefab;
+            }
+        }
+
+        EditorGUILayout.Space();
+        EditorGUILayout.Space();
+
+
+
         GUILayout.Label("Define New EcoBalance Species", EditorStyles.boldLabel);
 
         EditorGUILayout.Space();

@@ -26,12 +26,11 @@ public class EcosystemSimulatorTests
 
         sheep = Make<SpeciesDefinition>();
         sheep.speciesName = "BlueSheep";
-        sheep.eats = new List<SpeciesDefinition>();
         sheep.reproductionRate = 0.1f;
 
         leopard = Make<SpeciesDefinition>();
         leopard.speciesName = "SnowLeopard";
-        leopard.eats = new List<SpeciesDefinition> { sheep };
+        leopard.SetRelationship(RelationshipType.Eats, sheep);
         leopard.reproductionRate = 0.05f;
         leopard.predationRate = 0.01f;
         leopard.foodNeededPerCapita = 0.5f;
@@ -150,7 +149,7 @@ public class EcosystemSimulatorTests
     {
         sim.species.Add(null);
         sim.resources.Add(null);
-        leopard.eats.Add(null);
+        leopard.relationships.Add(null);
         sim.populations[sheep] = 10f;
         // leopard intentionally has no population entry
 

@@ -38,7 +38,7 @@ public class EcosystemSimulator : MonoBehaviour
         {
             if (!populations.ContainsKey(s))
                 populations[s] = 0f;
-            if (s.eats != null && s.eats.RemoveAll(p => p == null) > 0)
+            if (s.relationships != null && s.relationships.RemoveAll(r => r == null || r.Target == null) > 0)
                 Debug.LogWarning($"EcosystemSimulator: '{s.name}' had empty entries in its Eats list.", s);
         }
 
@@ -70,12 +70,13 @@ public class EcosystemSimulator : MonoBehaviour
 
         foreach (var s in species)
         {
-            if (s.eats == null || s.eats.Count == 0) continue;
+            List<SpeciesDefinition> prey_list = s.GetSpeciesTargets(RelationshipType.Eats);
+            if (prey_list.Count == 0) continue;
 
             float predatorPop = populations[s];
             float totalEaten = 0f;
 
-            foreach (var prey in s.eats)
+            foreach (var prey in prey_list)
             {
                 if (!populations.ContainsKey(prey)) continue;
 
@@ -107,8 +108,8 @@ public class EcosystemSimulator : MonoBehaviour
         foreach (var s in species)
         {
             float pop = populations[s];
-
-            if (s.eats != null && s.eats.Count > 0)
+            List<SpeciesDefinition> prey_list = s.GetSpeciesTargets(RelationshipType.Eats);
+            if (prey_list.Count > 0)
             {
                 float foodNeeded = pop * s.foodNeededPerCapita;
                 float ratio = foodNeeded > 0f ? foodGotten[s] / foodNeeded : 1f;

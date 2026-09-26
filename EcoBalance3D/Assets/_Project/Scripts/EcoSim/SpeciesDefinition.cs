@@ -29,13 +29,26 @@ public class SpeciesDefinition : ScriptableObject
         return false;
     }
 
+    private Dictionary<ScriptableObject, Relationship> relationship_cache;
+    public void InitializeCache()
+    {
+        relationship_cache = new Dictionary<ScriptableObject, Relationship>();
+        foreach (var r in relationships)
+        {
+            if (r != null && r.Target != null && !relationship_cache.ContainsKey(r.Target))
+            {
+                relationship_cache.Add(r.Target, r);
+            }
+        }
+    }
+
     // The relationship this species has with target, or null if there isn't one.
     public Relationship FindRelationship(ScriptableObject target)
     {
-        foreach (var r in relationships)
-        {
-            if (r != null && r.Targets(target)) return r;
-        }
+        if (relationship_cache == null) InitializeCache();
+
+        if (relationship_cache.TryGetValue(target, out Relationship rel)) return rel;
+
         return null;
     }
 
