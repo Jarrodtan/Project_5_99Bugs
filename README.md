@@ -49,7 +49,7 @@ Open the main scene in `Assets/Scenes/` and press **Play**.
 - **Local:** open **File → Build Profiles → Android → Build**.
 - **CI:** every push to `main` produces an Android build artifact (`EcoBalance-Android`) in GitHub Actions.
 
-CI needs these repository secrets: `UNITY_LICENSE`, `UNITY_EMAIL` and `UNITY_PASSWORD` (see the [GameCI activation guide](https://game.ci/docs/github/activation)).
+CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL` and `UNITY_PASSWORD` (serial-based Unity Student/Pro licence) (see the [GameCI activation guide](https://game.ci/docs/github/activation)).
 
 ## Workflow
 
