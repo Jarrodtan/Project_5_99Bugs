@@ -45,11 +45,19 @@ public class SpeciesDefinition : ScriptableObject
     // The relationship this species has with target, or null if there isn't one.
     public Relationship FindRelationship(ScriptableObject target)
     {
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+        // Null targets never match. The relationships list is public and can be edited
+        // directly (Inspector, tests), so a cache hit is re-checked and a miss rebuilds
+        // the cache once before giving up.
+        if (target == null) return null;
         if (relationship_cache == null) InitializeCache();
 
-        if (relationship_cache.TryGetValue(target, out Relationship rel)) return rel;
+        if (relationship_cache.TryGetValue(target, out Relationship rel) && rel.Targets(target) && relationships.Contains(rel))
+            return rel;
 
-        return null;
+        InitializeCache();
+        return relationship_cache.TryGetValue(target, out rel) ? rel : null;
+        // [AI-GENERATED END]
     }
 
     public List<SpeciesDefinition> GetSpeciesTargets(RelationshipType type)
@@ -98,6 +106,8 @@ public class SpeciesDefinition : ScriptableObject
 
     void OnValidate()
     {
+        relationship_cache = null; // [AI-GENERATED] Claude Code (Claude Opus 5.5): Inspector edits invalidate the lookup cache
+
         for (int i = 0; i < relationships.Count; i++)
         {
             var r = relationships[i];
