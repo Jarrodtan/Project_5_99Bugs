@@ -43,11 +43,20 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           checkName: EditMode Test Results
 
+      - name: Show Unity log and test results on failure
+        if: failure()
+        run: |
+          echo "== files in artifacts =="; find artifacts -type f 2>/dev/null || true
+          for f in $(find artifacts -name '*.log' 2>/dev/null); do echo "== $f (last 200 lines) =="; tail -n 200 "$f"; done
+          for f in $(find artifacts -name '*.xml' 2>/dev/null); do echo "== $f =="; grep -E 'test-run|result="Failed"|<message>' "$f" | head -60; done
+          for f in $(find "$PROJECT_PATH/Logs" -name '*.log' 2>/dev/null); do echo "== $f (last 100 lines) =="; tail -n 100 "$f"; done
+          grep -rhE "error CS[0-9]+|License|licen[sc]e|activation" artifacts 2>/dev/null | sort -u | head -40 || true
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results
-          path: ${{ steps.tests.outputs.artifactsPath }}
+          path: artifacts
 
   build:
     name: Build (Android)
