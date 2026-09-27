@@ -37,7 +37,9 @@
 - **Selection Highlight** — peer `SelectionHighlighter` + `ISelectionHighlightVisual` (default ground ring) driven by `SelectionHighlightConfig`; listens to `SelectionContext` only; material-independent.
 - **Inspection Data Interface** — read-only `IInspectable` / `StatEntry` via `ISimulationQuery` and an `InspectionConfig` schema catalog.
 - **Inspector Panel** — type-agnostic `InspectorPanel` + `StatRowView` styled by `InspectionUiConfig`; binds to `SelectionContext` and paints `IInspectable` only.
-- **Overlay Positioning** — `IOverlayPositioner` (Screen Space + World Space) driven by `InspectionUiConfig.overlayMode`; content `Show`/`Hide` stays free of follow/billboard math. 
+- **Overlay Positioning** — `IOverlayPositioner` (Screen Space + World Space) driven by `InspectionUiConfig.overlayMode`; content `Show`/`Hide` stays free of follow/billboard math.
+- **Island Platform** — `IslandManager` is the sole owner of the active island instance (spawn at `worldAnchor`, `centerOffset` pivot fix, swap with fade + ecosystem reset). Per-island data lives on `IslandDefinition` assets; platform knobs on `IslandPlatformConfig`. Physical/logical containment are pluggable collaborators. Implements `IOrbitTarget` for the camera. 
+- **Orbit Camera** — `OrbitCameraController` + `CameraConfig` (InputActionReferences, clamps, damping); pivots via `IOrbitTarget` only — no `Mouse.current`. See [camera.md](camera.md).
 
 ## Data Flow
 
