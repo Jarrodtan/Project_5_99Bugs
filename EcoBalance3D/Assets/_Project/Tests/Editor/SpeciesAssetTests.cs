@@ -45,5 +45,36 @@ public class SpeciesAssetTests
                 Assert.IsTrue(r != null && r.IsValid, $"{s.name}: relationship {r} is invalid ({r?.ValidationError})");
         }
     }
+    [Test]
+    public void DefaultEcosystem_StaysAlive_For300Ticks()
+    {
+        var sheep = Load<SpeciesDefinition>(SpeciesDir + "BlueSheep.asset");
+        var leopard = Load<SpeciesDefinition>(SpeciesDir + "SnowLeopard.asset");
+        var grass = Load<ResourceDefinition>(ResourceDir + "Grass.asset");
+        float savedGrass = grass.currentAmount;
+
+        var go = new UnityEngine.GameObject("Sim");
+        try
+        {
+            var sim = go.AddComponent<EcosystemSimulator>();
+            sim.species = new System.Collections.Generic.List<SpeciesDefinition> { sheep, leopard };
+            sim.resources = new System.Collections.Generic.List<ResourceDefinition> { grass };
+            sim.populations[sheep] = sheep.startingPopulation;
+            sim.populations[leopard] = leopard.startingPopulation;
+            grass.currentAmount = grass.startingAmount;
+
+            for (int i = 0; i < 300; i++)
+            {
+                sim.Tick();
+                Assert.Greater(sim.populations[sheep], 1f, $"Blue Sheep died out at tick {i}");
+                Assert.Greater(sim.populations[leopard], 1f, $"Snow Leopards died out at tick {i}");
+            }
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(go);
+            grass.currentAmount = savedGrass; // Tick() writes to the real asset
+        }
+    }
 }
 // [AI-GENERATED END]
