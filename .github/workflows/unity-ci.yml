@@ -18,6 +18,9 @@ env:
   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
   PROJECT_PATH: EcoBalance3D
 
+# No Library cache on purpose: runs that restored a cached Library were killed
+# (exit 137) while Unity reloaded assemblies; clean imports passed.
+
 jobs:
   test:
     name: EditMode tests
@@ -33,12 +36,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.PROJECT_PATH }}/Library
-          key: Library-v2-${{ hashFiles('EcoBalance3D/Assets/**', 'EcoBalance3D/Packages/**', 'EcoBalance3D/ProjectSettings/**') }}
-          restore-keys: Library-v2-
 
       - uses: game-ci/unity-test-runner@v4
         id: tests
@@ -83,12 +80,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.PROJECT_PATH }}/Library
-          key: Library-Android-v2-${{ hashFiles('EcoBalance3D/Assets/**', 'EcoBalance3D/Packages/**', 'EcoBalance3D/ProjectSettings/**') }}
-          restore-keys: Library-Android-v2-
 
       - uses: game-ci/unity-builder@v4
         with:
