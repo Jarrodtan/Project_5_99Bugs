@@ -18,6 +18,9 @@ env:
   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
   PROJECT_PATH: EcoBalance3D
 
+# No Library cache on purpose: runs that restored a cached Library were killed
+# (exit 137) while Unity reloaded assemblies; clean imports passed.
+
 jobs:
   test:
     name: EditMode tests
@@ -28,16 +31,11 @@ jobs:
         with:
           tool-cache: false
           android: true
+          swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
 
       - uses: actions/checkout@v4
         with:
           lfs: true
-
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.PROJECT_PATH }}/Library
-          key: Library-${{ hashFiles('EcoBalance3D/Assets/**', 'EcoBalance3D/Packages/**', 'EcoBalance3D/ProjectSettings/**') }}
-          restore-keys: Library-
 
       - uses: game-ci/unity-test-runner@v4
         id: tests
@@ -46,6 +44,9 @@ jobs:
           testMode: editmode
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           checkName: EditMode Test Results
+          # No GPU on the runner: skip software OpenGL, which used enough RAM to get
+          # Unity killed (exit 137) while loading assemblies.
+          customParameters: -nographics
 
       - name: Show Unity log and test results on failure
         if: failure()
@@ -70,24 +71,22 @@ jobs:
       # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
       - uses: jlumbroso/free-disk-space@v1.3.1
         with:
-          tool-cache: false
-          android: false
+          # The GameCI Android image ships its own SDK/NDK, so the runner's copy
+          # (~12 GB) and tool cache can go too.
+          tool-cache: true
+          android: true
+          swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
 
       - uses: actions/checkout@v4
         with:
           lfs: true
-
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.PROJECT_PATH }}/Library
-          key: Library-Android-${{ hashFiles('EcoBalance3D/Assets/**', 'EcoBalance3D/Packages/**', 'EcoBalance3D/ProjectSettings/**') }}
-          restore-keys: Library-Android-
 
       - uses: game-ci/unity-builder@v4
         with:
           projectPath: ${{ env.PROJECT_PATH }}
           targetPlatform: Android
           buildName: EcoBalance
+          customParameters: -nographics   # same exit-137 memory fix as the test job
 
       - uses: actions/upload-artifact@v4
         with:
