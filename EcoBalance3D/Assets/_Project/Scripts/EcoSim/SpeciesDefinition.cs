@@ -13,6 +13,15 @@ public class SpeciesDefinition : ScriptableObject
     public float reproductionRate = 0.1f;
     public float starvationThreshold = 0.2f;
 
+
+    [Tooltip("Needs this species tracks and that decay over time (e.g. Hunger, Thirst).")]
+    public List<NeedDefinition> needs = new List<NeedDefinition>();
+
+    [Tooltip("What this species can want and how urgently, in priority order. " +
+             "The goal-oriented tree scores these live each tick as basePriority * need urgency " +
+             "and runs whichever one currently wins - no code change needed to retune behavior.")]
+    public List<GoalDefinition> goals = new List<GoalDefinition>();
+
     [Tooltip("Fraction of a prey species' population this species can eat, per predator, per tick. Only relevant if 'Eats' is non-empty.")]
     public float predationRate = 0.3f;
  

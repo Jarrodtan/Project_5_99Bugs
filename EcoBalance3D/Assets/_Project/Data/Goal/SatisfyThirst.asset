@@ -9,10 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 70bb3e95ce202d344b109e1c6114ce90, type: 3}
-  m_Name: New Action Definition
-  m_EditorClassIdentifier: Assembly-CSharp::ActionDefinition
-  actionName: 
-  type: 0
-  duration: 1
-  needSatisfactionAmount: 50
+  m_Script: {fileID: 11500000, guid: ed797c480b7d2a346938ea040ea02ef0, type: 3}
+  m_Name: SatisfyThirst
+  m_EditorClassIdentifier: Assembly-CSharp::GoalDefinition
+  goalName: 
+  relatedNeed: {fileID: 0}
+  basePriority: 1
+  possibleActions: []

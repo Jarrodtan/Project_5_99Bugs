@@ -13,8 +13,8 @@ GameObject:
   - component: {fileID: 1298389706325459928}
   - component: {fileID: 1593659984032735005}
   - component: {fileID: 7908956480700981031}
-  - component: {fileID: 8132270331353638838}
   - component: {fileID: -6583949346807314657}
+  - component: {fileID: 16106919940534336}
   m_Layer: 0
   m_Name: SheepPlaceholder
   m_TagString: Untagged
@@ -137,21 +137,6 @@ NavMeshAgent:
   m_BaseOffset: 0.5
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!114 &8132270331353638838
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3469608245872682355}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 889a9b7f6c658d948ac12a07bbff67ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AnimalBrain
-  species_data: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
-  curr_hunger: 100
-  audio: {fileID: 0}
 --- !u!82 &-6583949346807314657
 AudioSource:
   m_ObjectHideFlags: 0
@@ -249,3 +234,18 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &16106919940534336
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3469608245872682355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b346922b55f62e48b0ced28f4714813, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GoalOrientedAnimalBrain
+  species_data: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
+  audio: {fileID: 0}
+  tickInterval: 0.25
