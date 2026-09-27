@@ -37,8 +37,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ${{ env.PROJECT_PATH }}/Library
-          key: Library-${{ hashFiles('EcoBalance3D/Assets/**', 'EcoBalance3D/Packages/**', 'EcoBalance3D/ProjectSettings/**') }}
-          restore-keys: Library-
+          key: Library-v2-${{ hashFiles('EcoBalance3D/Assets/**', 'EcoBalance3D/Packages/**', 'EcoBalance3D/ProjectSettings/**') }}
+          restore-keys: Library-v2-
 
       - uses: game-ci/unity-test-runner@v4
         id: tests
@@ -47,6 +47,9 @@ jobs:
           testMode: editmode
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           checkName: EditMode Test Results
+          # No GPU on the runner: skip software OpenGL, which used enough RAM to get
+          # Unity killed (exit 137) while loading assemblies.
+          customParameters: -nographics
 
       - name: Show Unity log and test results on failure
         if: failure()
