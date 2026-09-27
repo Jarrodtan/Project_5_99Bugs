@@ -28,6 +28,7 @@ jobs:
         with:
           tool-cache: false
           android: true
+          swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
 
       - uses: actions/checkout@v4
         with:
@@ -74,6 +75,7 @@ jobs:
           # (~12 GB) and tool cache can go too.
           tool-cache: true
           android: true
+          swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
 
       - uses: actions/checkout@v4
         with:
