@@ -145,6 +145,60 @@ public class EcosystemSimulatorTests
     }
 
     [Test]
+    public void Grazing_ReducesGrass_And_WellFedSheepGrow()
+    {
+        sheep.SetRelationship(RelationshipType.Eats, grass);
+        sheep.foodNeededPerCapita = 0.5f;
+        sim.populations[sheep] = 10f;
+        sim.populations[leopard] = 0f;
+
+        sim.Tick();
+
+        // grass regrows 50 -> 55, sheep eat 10 * 0.5 = 5 -> 50 ; fed -> 10 * 1.1 = 11
+        Assert.AreEqual(50f, grass.currentAmount, 1e-4f);
+        Assert.AreEqual(11f, sim.populations[sheep], 1e-4f);
+    }
+
+    [Test]
+    public void Grazing_NotEnoughGrass_SheepStarve_AndGrassHitsZero()
+    {
+        sheep.SetRelationship(RelationshipType.Eats, grass);
+        sheep.foodNeededPerCapita = 0.5f;
+        grass.regenRate = 0f;
+        grass.currentAmount = 2f;
+        sim.populations[sheep] = 10f;
+        sim.populations[leopard] = 0f;
+
+        sim.Tick();
+
+        // wanted 5, got 2 -> ratio 0.4, shortfall 0.6 -> 10 - 10 * 0.6 * 0.2 = 8.8
+        Assert.AreEqual(0f, grass.currentAmount, 1e-4f);
+        Assert.AreEqual(8.8f, sim.populations[sheep], 1e-4f);
+    }
+
+    [Test]
+    public void Grazing_ScarceGrass_IsSharedFairlyBetweenGrazers()
+    {
+        var goat = Make<SpeciesDefinition>();
+        goat.foodNeededPerCapita = 1f;
+        goat.SetRelationship(RelationshipType.Eats, grass);
+        sheep.foodNeededPerCapita = 1f;
+        sheep.SetRelationship(RelationshipType.Eats, grass);
+        sim.species.Add(goat);
+        grass.regenRate = 0f;
+        grass.currentAmount = 10f;
+        sim.populations[sheep] = 10f;
+        sim.populations[goat] = 10f;
+        sim.populations[leopard] = 0f;
+
+        sim.Tick();
+
+        // demand 20, only 10 -> both get half -> identical outcome for identical species
+        Assert.AreEqual(0f, grass.currentAmount, 1e-4f);
+        Assert.AreEqual(sim.populations[sheep], sim.populations[goat], 1e-4f);
+    }
+
+    [Test]
     public void MissingConfiguration_DoesNotThrow()
     {
         sim.species.Add(null);

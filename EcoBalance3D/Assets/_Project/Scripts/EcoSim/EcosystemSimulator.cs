@@ -97,22 +97,47 @@ public class EcosystemSimulator : MonoBehaviour
             foodGotten[s] = totalEaten;
         }
 
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+        // Pass 1b: grazing. Species that Eat a resource (Blue Sheep eats Grass) each want
+        // foodNeededPerCapita units per individual. When a resource can't cover everyone's
+        // demand, every grazer gets the same fraction of what it wanted.
+        foreach (var r in resources)
+        {
+            float demand = 0f;
+            foreach (var s in species)
+                if (s.GetResourceTargets(RelationshipType.Eats).Contains(r))
+                    demand += populations[s] * s.foodNeededPerCapita;
+            if (demand <= 0f) continue;
+
+            float share = Mathf.Min(1f, r.currentAmount / demand);
+            foreach (var s in species)
+            {
+                if (!s.GetResourceTargets(RelationshipType.Eats).Contains(r)) continue;
+                float grazed = populations[s] * s.foodNeededPerCapita * share;
+                foodGotten[s] = foodGotten.GetValueOrDefault(s, 0f) + grazed;
+            }
+            r.currentAmount = Mathf.Max(0f, r.currentAmount - demand * share);
+        }
+        // [AI-GENERATED END]
+
         // Pass 2: apply prey losses.
         foreach (var kvp in preyLosses)
         {
             populations[kvp.Key] = Mathf.Max(0f, populations[kvp.Key] - kvp.Value);
         }
 
-        // Pass 3: growth. Predators grow/shrink based on how well-fed they were;
-        // everything else keeps the simple reproductionRate growth for now.
+        // Pass 3: growth. Anything that eats (hunters and grazers) grows/shrinks based on
+        // how well-fed it was; species that eat nothing keep simple reproductionRate growth.
         foreach (var s in species)
         {
             float pop = populations[s];
-            List<SpeciesDefinition> prey_list = s.GetSpeciesTargets(RelationshipType.Eats);
-            if (prey_list.Count > 0)
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): grazers use the same fed-ratio growth as hunters
+            bool eatsSomething = s.GetSpeciesTargets(RelationshipType.Eats).Count > 0
+                              || s.GetResourceTargets(RelationshipType.Eats).Count > 0;
+            if (eatsSomething)
             {
                 float foodNeeded = pop * s.foodNeededPerCapita;
-                float ratio = foodNeeded > 0f ? foodGotten[s] / foodNeeded : 1f;
+                float ratio = foodNeeded > 0f ? foodGotten.GetValueOrDefault(s, 0f) / foodNeeded : 1f;
 
                 if (ratio >= 1f)
                 {
