@@ -16,8 +16,12 @@ public class EcosystemSimulator : MonoBehaviour
         foreach (var s in species)
         {
             if (s == null) continue;
-            populations[s] = 1f; // starting population
+            populations[s] = s.startingPopulation;
         }
+        // Resource assets keep their values between Play sessions in the Editor,
+        // so each run starts from the configured starting amount.
+        foreach (var r in resources)
+            r.currentAmount = Mathf.Min(r.startingAmount, r.maxAmount);
         // [AI-GENERATED END]
     }
 

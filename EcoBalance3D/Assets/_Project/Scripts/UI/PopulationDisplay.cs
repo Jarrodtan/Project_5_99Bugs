@@ -8,7 +8,7 @@ public class PopulationDisplay : MonoBehaviour {
 
     public void Refresh() {
         if (simulator.populations.ContainsKey(species)) {
-            text.text = $"{species.speciesName}: {simulator.populations[species]:F1}";
+            text.text = $"{species.speciesName}: {Mathf.RoundToInt(simulator.populations[species])}";
         }
     }
 }
