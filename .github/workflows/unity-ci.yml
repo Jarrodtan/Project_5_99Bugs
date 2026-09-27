@@ -1,0 +1,95 @@
+# [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+name: Unity CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write   # lets the test runner post the 'EditMode Test Results' check
+
+env:
+  UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+  UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+  UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+  PROJECT_PATH: EcoBalance3D
+
+# No Library cache on purpose: runs that restored a cached Library were killed
+# (exit 137) while Unity reloaded assemblies; clean imports passed.
+
+jobs:
+  test:
+    name: EditMode tests
+    runs-on: ubuntu-latest
+    steps:
+      # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
+      - uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
+
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: game-ci/unity-test-runner@v4
+        id: tests
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          testMode: editmode
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: EditMode Test Results
+          # No GPU on the runner: skip software OpenGL, which used enough RAM to get
+          # Unity killed (exit 137) while loading assemblies.
+          customParameters: -nographics
+
+      - name: Show Unity log and test results on failure
+        if: failure()
+        run: |
+          echo "== files in artifacts =="; find artifacts -type f 2>/dev/null || true
+          for f in $(find artifacts -name '*.log' 2>/dev/null); do echo "== $f (last 200 lines) =="; tail -n 200 "$f"; done
+          for f in $(find artifacts -name '*.xml' 2>/dev/null); do echo "== $f =="; grep -E 'test-run|result="Failed"|<message>' "$f" | head -60; done
+          for f in $(find "$PROJECT_PATH/Logs" -name '*.log' 2>/dev/null); do echo "== $f (last 100 lines) =="; tail -n 100 "$f"; done
+          grep -rhE "error CS[0-9]+|License|licen[sc]e|activation" artifacts 2>/dev/null | sort -u | head -40 || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: artifacts
+
+  build:
+    name: Build (Android)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
+      - uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          # The GameCI Android image ships its own SDK/NDK, so the runner's copy
+          # (~12 GB) and tool cache can go too.
+          tool-cache: true
+          android: true
+          swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
+
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: game-ci/unity-builder@v4
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          targetPlatform: Android
+          buildName: EcoBalance
+          customParameters: -nographics   # same exit-137 memory fix as the test job
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EcoBalance-Android
+          path: build/Android
+# [AI-GENERATED END]
