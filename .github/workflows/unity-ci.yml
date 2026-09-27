@@ -87,14 +87,15 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ${{ env.PROJECT_PATH }}/Library
-          key: Library-Android-${{ hashFiles('EcoBalance3D/Assets/**', 'EcoBalance3D/Packages/**', 'EcoBalance3D/ProjectSettings/**') }}
-          restore-keys: Library-Android-
+          key: Library-Android-v2-${{ hashFiles('EcoBalance3D/Assets/**', 'EcoBalance3D/Packages/**', 'EcoBalance3D/ProjectSettings/**') }}
+          restore-keys: Library-Android-v2-
 
       - uses: game-ci/unity-builder@v4
         with:
           projectPath: ${{ env.PROJECT_PATH }}
           targetPlatform: Android
           buildName: EcoBalance
+          customParameters: -nographics   # same exit-137 memory fix as the test job
 
       - uses: actions/upload-artifact@v4
         with:
