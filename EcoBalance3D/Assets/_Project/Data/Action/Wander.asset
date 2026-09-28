@@ -15,4 +15,7 @@ MonoBehaviour:
   actionName: 
   type: 4
   duration: 1
-  needSatisfactionAmount: 50
+  needSatisfactionAmount: 0
+  targetResource: {fileID: 0}
+  searchRadius: 20
+  resourceConsumedPerUse: 10

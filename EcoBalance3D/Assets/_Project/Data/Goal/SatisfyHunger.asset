@@ -16,4 +16,5 @@ MonoBehaviour:
   relatedNeed: {fileID: 11400000, guid: 5d16c35420270584d9818a760b72199d, type: 2}
   basePriority: 1
   possibleActions:
+  - {fileID: 11400000, guid: d08b026a38ba5bf4cbadf0541f64a27e, type: 2}
   - {fileID: 11400000, guid: 5b4e1792b2a671b49b25e617aa029a2a, type: 2}

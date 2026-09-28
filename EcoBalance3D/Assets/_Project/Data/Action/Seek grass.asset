@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70bb3e95ce202d344b109e1c6114ce90, type: 3}
   m_Name: Seek grass
   m_EditorClassIdentifier: Assembly-CSharp::ActionDefinition
-  actionName: 
+  actionName: Seek grass
   type: 0
   duration: 1
-  needSatisfactionAmount: 50
-  targetResource: {fileID: 0}
+  needSatisfactionAmount: 20
+  targetResource: {fileID: 11400000, guid: 83c3633c2b1691d4295761289b2c762f, type: 2}
   searchRadius: 20
   resourceConsumedPerUse: 10
