@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Wander
   m_EditorClassIdentifier: Assembly-CSharp::ActionDefinition
   actionName: 
-  type: 0
+  type: 4
   duration: 1
   needSatisfactionAmount: 50

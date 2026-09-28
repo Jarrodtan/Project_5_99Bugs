@@ -23,6 +23,7 @@ public class BTContext
     // ActionDefinition asset so re-entering the same action resumes cleanly.
     public readonly Dictionary<ActionDefinition, float> actionStartTime = new();
     public readonly Dictionary<ActionDefinition, Vector3> actionTarget = new();
+    public readonly Dictionary<ActionDefinition, ResourcePatch> actionPatch = new();
 }
 
 public abstract class BTNode

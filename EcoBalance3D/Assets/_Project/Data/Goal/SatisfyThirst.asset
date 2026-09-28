@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed797c480b7d2a346938ea040ea02ef0, type: 3}
   m_Name: SatisfyThirst
   m_EditorClassIdentifier: Assembly-CSharp::GoalDefinition
-  goalName: 
-  relatedNeed: {fileID: 0}
+  goalName: SatisfyThirst
+  relatedNeed: {fileID: 11400000, guid: 4da9225721a336c4296e98b8b0d6f707, type: 2}
   basePriority: 1
-  possibleActions: []
+  possibleActions:
+  - {fileID: 11400000, guid: 5b4e1792b2a671b49b25e617aa029a2a, type: 2}

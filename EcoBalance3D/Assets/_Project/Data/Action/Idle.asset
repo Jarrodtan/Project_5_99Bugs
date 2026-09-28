@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Idle
   m_EditorClassIdentifier: Assembly-CSharp::ActionDefinition
   actionName: 
-  type: 0
+  type: 5
   duration: 1
   needSatisfactionAmount: 50

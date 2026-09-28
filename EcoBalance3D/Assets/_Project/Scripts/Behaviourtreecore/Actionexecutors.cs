@@ -92,17 +92,64 @@ public class FleeExecutor : IActionExecutor
     }
 }
 
-// TODO: SeekResource needs a way to find the nearest in-world instance of a resource
-// this species Eats (SpeciesDefinition.GetResourceTargets). The sim currently tracks
-// resources as pooled amounts (ResourceDefinition.currentAmount), not world objects,
-// so there's nothing to path to yet. Wire this up once resource nodes exist in-scene
-// (e.g. tag them with the ResourceDefinition's name and FindGameObjectsWithTag here).
+// Finds the nearest edible ResourcePatch, walks to it, stands there for action.duration
+// while "eating", then takes action.resourceConsumedPerUse from it.
+// Returns Failure when nothing edible is in range - so a goal that lists Wander as its
+// next possibleAction makes the animal roam until it spots food.
+// Patches must sit on (or within 2 units of) the NavMesh.
 public class SeekResourceExecutor : IActionExecutor
 {
+    const float reachDistance = 1.2f;
+
     public NodeStatus Execute(BTContext ctx, ActionDefinition action)
     {
-        Debug.LogWarning("SeekResourceExecutor not wired to world resource instances yet.");
-        return NodeStatus.Failure;
+        if (ctx.agent == null) return NodeStatus.Failure;
+
+        ctx.actionPatch.TryGetValue(action, out var patch);
+
+        // No target yet, or it got eaten out / destroyed since last tick: look for a new one.
+        if (patch == null || !patch.IsEdible)
+        {
+            Clear(ctx, action);
+
+            var wanted = action.targetResource != null
+                ? new System.Collections.Generic.List<ResourceDefinition> { action.targetResource }
+                : ctx.species.GetResourceTargets(RelationshipType.Eats);
+
+            patch = ResourcePatch.FindNearest(ctx.transform.position, wanted, action.searchRadius);
+            if (patch == null) return NodeStatus.Failure;
+
+            if (!NavMesh.SamplePosition(patch.transform.position, out var hit, 2f, NavMesh.AllAreas))
+                return NodeStatus.Failure;
+
+            ctx.actionPatch[action] = patch;
+            ctx.agent.SetDestination(hit.position);
+        }
+
+        var flat = patch.transform.position - ctx.transform.position;
+        flat.y = 0f;
+        if (flat.magnitude > reachDistance)
+            return NodeStatus.Running; // still walking there
+
+        // Arrived: stand and eat for action.duration.
+        if (!ctx.actionStartTime.TryGetValue(action, out var start))
+        {
+            ctx.actionStartTime[action] = Time.time;
+            ctx.agent.ResetPath();
+            return NodeStatus.Running;
+        }
+        if (Time.time - start < action.duration)
+            return NodeStatus.Running;
+
+        float eaten = patch.Consume(action.resourceConsumedPerUse);
+        Clear(ctx, action);
+        return eaten > 0f ? NodeStatus.Success : NodeStatus.Failure;
+    }
+
+    static void Clear(BTContext ctx, ActionDefinition action)
+    {
+        ctx.actionPatch.Remove(action);
+        ctx.actionStartTime.Remove(action);
     }
 }
 
