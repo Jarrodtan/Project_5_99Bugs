@@ -26,6 +26,10 @@ public class CreatureSpawner : MonoBehaviour {
                 Random.Range(-spawnRadius, spawnRadius)
             );
             GameObject go = Instantiate(species.visualPrefab, pos, Quaternion.identity, transform);
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): make spawned animals findable by EcoRegistry.
+            var entity = go.GetComponent<EcoEntity>();
+            if (entity == null) entity = go.AddComponent<EcoEntity>();
+            entity.SetDefinition(species);
             spawned.Add(go);
         }
 
