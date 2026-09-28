@@ -130,4 +130,23 @@ public class EcosystemSimulator : MonoBehaviour
             }
         }
     }
+
+    public void ResetSimulation()
+    {
+        // Reset all species to starting population
+        foreach (var s in species)
+        {
+            if (s == null) continue;
+
+            populations[s] = 1f;
+        }
+
+        // Reset all resources to maximum
+        foreach (var r in resources)
+        {
+            if (r == null) continue;
+
+            r.currentAmount = r.maxAmount;
+        }
+    }
 }
