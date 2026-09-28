@@ -1,19 +1,19 @@
 # EcoBalance — Deliverables & Ownership
 
-    *Ownership assignments to be confirmed with the team; table will be updated once finalized.*
+*Owners follow the M1 Technical Deliverable plan (Txx in brackets). "Unassigned" rows need an owner, so raise them at the next team meeting.*
 
 | Deliverable                        | Owner | M1 Target                                            | M2 Target                                       | M3 Target                                 |
 | ---------------------------------- | ----- | ---------------------------------------------------- | ----------------------------------------------- | ----------------------------------------- |
-| Entity Data System                 |       | Working data model, 2 test species                   | Full species/resource set defined               | Documented, stable                        |
-| Relationship System                |       | Basic eats/needs links functional                    | Full relationship graph                         | Stable                                    |
-| Individual Agent System            |       | Per-agent hunger/thirst/health tracked               | Inspectable via tap interaction                 | Polished                                  |
-| Animal AI System                   |       | Basic seek/flee behaviour                            | Full state machine (idle/graze/flee/hunt)       | Tuned and polished                        |
-| Plants/Resources System            |       | Basic depletion/regeneration                         | Full resource loop integrated                   | Balanced/tuned                            |
-| Ecosystem Simulation Core          |       | Tick loop functional with mock data                  | Full integration across all systems             | Stable, performant                        |
-| Simulation Data Tracking           |       | Basic tick recording                                 | Feeds real UI graph                             | Polished                                  |
-| Contextual Trigger System          |       | Basic threshold detection                            | Fires real UI prompts                           | Tuned                                     |
-| Simulation Time Control            |       | Play/pause functional                                | Speed control added                             | Full reset/reconfigure                    |
-| Visualization/Feedback System      |       | Placeholder agents spawn/despawn by population count | Real IMGD models + animations wired to AI state | Polished, environmental feedback complete |
-| UI/UX (Inspector, Graphs, Prompts) |       | Wireframes complete                                  | Functional UI wired to real simulation data     | Polished                                  |
-| 3D Environment/Assets              |       | Placeholder biome                                    | Real Himalayan environment assets               | Polished                                  |
-| Animal Models/Animations           |       | Placeholder models                                   | Real sheep/leopard models + core animation set  | Full animation set complete               |
+| Entity Data System                 | Li Juan, Yusuf (T02) | Working data model, 2 test species                   | Full species/resource set defined               | Documented, stable                        |
+| Relationship System                | Zhi Jie (T01) | Basic eats/needs links functional                    | Full relationship graph                         | Stable                                    |
+| Individual Agent System            | Yusuf | Per-agent hunger/thirst/health tracked               | Inspectable via tap interaction                 | Polished                                  |
+| Animal AI System                   | Zhi Jie, Reginald (T07) | Basic seek/flee behaviour                            | Full state machine (idle/graze/flee/hunt)       | Tuned and polished                        |
+| Plants/Resources System            | Wei Leong (T03) | Basic depletion/regeneration                         | Full resource loop integrated                   | Balanced/tuned                            |
+| Ecosystem Simulation Core          | Wei Leong, Reginald (T03) | Tick loop functional with mock data                  | Full integration across all systems             | Stable, performant                        |
+| Simulation Data Tracking           | Yan De, Dillon (T04/T05) | Basic tick recording                                 | Feeds real UI graph                             | Polished                                  |
+| Contextual Trigger System          | Unassigned | Basic threshold detection                            | Fires real UI prompts                           | Tuned                                     |
+| Simulation Time Control            | Reginald (T03) | Play/pause functional                                | Speed control added                             | Full reset/reconfigure                    |
+| Visualization/Feedback System      | Wei Leong | Placeholder agents spawn/despawn by population count | Real IMGD models + animations wired to AI state | Polished, environmental feedback complete |
+| UI/UX (Inspector, Graphs, Prompts) | Dillon, Nomitha, Shu Min | Wireframes complete                                  | Functional UI wired to real simulation data     | Polished                                  |
+| 3D Environment/Assets              | Yan De | Placeholder biome                                    | Real Himalayan environment assets               | Polished                                  |
+| Animal Models/Animations           | Unassigned | Placeholder models                                   | Real sheep/leopard models + core animation set  | Full animation set complete               |

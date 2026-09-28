@@ -9,11 +9,14 @@ public class AnimalBrain : MonoBehaviour
     public float curr_hunger = 100f;
     private NavMeshAgent agent;
     private float wander_timer = 0f;
+    public AudioSource audio;
+    private float footstep_timer = 0f;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+        audio = GetComponent<AudioSource>();
 
         // Find collider to determine where is the flor
         Collider col = GetComponentInChildren<Collider>();
@@ -39,6 +42,18 @@ public class AnimalBrain : MonoBehaviour
             Roam();
             wander_timer = Random.Range(3f, 6f);
         }
+
+        if (agent.velocity.magnitude > 0.1f)
+        {
+            footstep_timer -= Time.deltaTime;
+            if (footstep_timer <= 0f) {
+                if (audio != null && audio.clip != null && AudioManager.Instance != null) {
+                    AudioManager.Instance.Play3DSound(audio, audio.clip);
+                }
+                footstep_timer = Random.Range(0.4f, 0.6f);
+            }
+        }
+     
     }
 
     // Allow the object to 'walk' around
