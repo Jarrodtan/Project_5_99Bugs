@@ -45,6 +45,8 @@ flowchart TB
         POP["PopulationDisplay<br/>on-screen counts"]
         SEL["Selection system<br/>ObjectSelector → SelectionContext"]
         INSP["InspectorPanel<br/>tap-to-inspect stats"]
+        ISL["IslandManager<br/>island swap + orbit pivot"]
+        CAM["OrbitCameraController"]
     end
 
     subgraph TOOLS["Editor tools & pipeline"]
@@ -144,6 +146,8 @@ There is no server or database. EcoBalance is a single offline mobile app.
 - **Inspection Data Interface:** read-only `IInspectable` / `StatEntry` via `ISimulationQuery` and an `InspectionConfig` schema catalog.
 - **Inspector Panel:** type-agnostic `InspectorPanel` + `StatRowView`, styled by `InspectionUiConfig`.
 - **Overlay Positioning:** `IOverlayPositioner` (Screen Space + World Space) driven by `InspectionUiConfig.overlayMode`.
+- **Island Platform:** `IslandManager` owns the active island instance (spawn at `worldAnchor`, `centerOffset` pivot fix, swap with fade + ecosystem reset). Per-island data lives on `IslandDefinition` assets; platform knobs on `IslandPlatformConfig`. Implements `IOrbitTarget` for the camera.
+- **Orbit Camera:** `OrbitCameraController` + `CameraConfig` (InputActionReferences, clamps, damping); pivots via `IOrbitTarget` only. 
 
 ## 7. Design principles
 

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3000000000000000000000000000002, type: 3}
+  m_Name: IslandPlatformConfig
+  m_EditorClassIdentifier: Assembly-CSharp::IslandPlatformConfig
+  islands:
+  - {fileID: 11400000, guid: a4000000000000000000000000000003, type: 2}
+  - {fileID: 11400000, guid: a4000000000000000000000000000004, type: 2}
+  defaultIsland: {fileID: 11400000, guid: a4000000000000000000000000000003, type: 2}
+  worldAnchor: {x: 0, y: 0, z: 0}
+  transitionDurationSeconds: 0.4
+  wallSegmentCount: 16
+  wallHeight: 4
+  wallThickness: 0.5
+  enforceLogicalBounds: 1
+  logIslandLookups: 0
+  drawAnchorGizmos: 1
+  gizmoPivotRadius: 0.15
+  gizmoCenterRadius: 0.25
