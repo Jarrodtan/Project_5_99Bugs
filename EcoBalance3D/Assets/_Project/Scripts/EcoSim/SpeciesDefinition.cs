@@ -6,6 +6,11 @@ public class SpeciesDefinition : ScriptableObject
 {
     public string speciesName;
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    [Tooltip("How many of this species exist when the simulation starts (F01 Configure Starting Ecosystem).")]
+    [Min(0f)] public float startingPopulation = 10f;
+    // [AI-GENERATED END]
+
     // What this species eats / needs / affects. Replaces the old eats and needs lists.
     [Tooltip("e.g. Blue Sheep: Eats Grass, Needs Water. Snow Leopard: Eats Blue Sheep.")]
     public List<Relationship> relationships = new List<Relationship>();

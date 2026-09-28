@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Grass
   m_EditorClassIdentifier: Assembly-CSharp::ResourceDefinition
   resourceName: Grass
-  regenRate: 1
+  regenRate: 20
   maxAmount: 100
+  startingAmount: 100
   currentAmount: 100

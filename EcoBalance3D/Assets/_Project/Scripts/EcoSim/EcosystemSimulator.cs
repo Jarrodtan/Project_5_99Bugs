@@ -1,7 +1,11 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class EcosystemSimulator : MonoBehaviour
+/// <summary>
+/// Tick-based ecosystem core. Also implements <see cref="IEcosystemReset"/> for island swaps
+/// (full population re-init — no entity remapping).
+/// </summary>
+public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
 {
     public List<SpeciesDefinition> species;
     public List<ResourceDefinition> resources;
@@ -10,14 +14,25 @@ public class EcosystemSimulator : MonoBehaviour
 
     void Start()
     {
-        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-        if (!ValidateConfiguration()) return;
+        ResetEcosystem();
+    }
+
+    /// <inheritdoc />
+    public void ResetEcosystem()
+    {
+        populations.Clear();
+        if (!ValidateConfiguration())
+            return;
 
         foreach (var s in species)
         {
             if (s == null) continue;
-            populations[s] = 1f; // starting population
+            populations[s] = s.startingPopulation;
         }
+        // Resource assets keep their values between Play sessions in the Editor,
+        // so each run starts from the configured starting amount.
+        foreach (var r in resources)
+            r.currentAmount = Mathf.Min(r.startingAmount, r.maxAmount);
         // [AI-GENERATED END]
     }
 

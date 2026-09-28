@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 /// <summary>
 /// Orchestrates selection: pointer → caster → rules → <see cref="SelectionContext"/>.
@@ -72,7 +71,7 @@ public class ObjectSelector : MonoBehaviour
         if (!pointerSource.TryGetPress(out var screenPosition))
             return;
 
-        if (config.ignorePointerOverUI && IsPointerOverUI())
+        if (config.ignorePointerOverUI && PointerOverUI.IsOver())
             return;
 
         var camera = ResolveCamera();
@@ -102,10 +101,5 @@ public class ObjectSelector : MonoBehaviour
             return Camera.main;
 
         return null;
-    }
-
-    static bool IsPointerOverUI()
-    {
-        return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
     }
 }
