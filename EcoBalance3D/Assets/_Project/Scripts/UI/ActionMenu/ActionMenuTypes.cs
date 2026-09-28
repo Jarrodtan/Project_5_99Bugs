@@ -85,6 +85,9 @@ public class ActionMenuCategory
     [Tooltip("Optional icon. Leave empty to hide the icon image.")]
     public Sprite icon;
 
+    [Tooltip("When false, this category and its options stay in the hub but are hidden.")]
+    public bool enabled = true;
+
     [Tooltip("Static options for handlers that do not build a list from another catalog.")]
     public List<ActionMenuOption> options = new();
 

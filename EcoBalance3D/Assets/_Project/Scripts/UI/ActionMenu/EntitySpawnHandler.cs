@@ -170,6 +170,9 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
                 continue;
             }
 
+            if (footprint.size.x <= 0.001f || footprint.size.z <= 0.001f)
+                continue;
+
             RememberNormalized(tracked, tracked.instance.transform.position, footprint);
         }
     }
@@ -257,26 +260,63 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
         if (root == null)
             return false;
 
-        var renderers = root.GetComponentsInChildren<Renderer>();
+        var filters = root.GetComponentsInChildren<MeshFilter>(true);
         var found = false;
-        for (var i = 0; i < renderers.Length; i++)
+        for (var i = 0; i < filters.Length; i++)
         {
-            var renderer = renderers[i];
-            if (renderer == null)
+            var filter = filters[i];
+            if (filter == null || filter.sharedMesh == null)
                 continue;
 
+            var world = FootprintBounds(root, filter);
             if (!found)
             {
-                footprint = renderer.bounds;
+                footprint = world;
                 found = true;
             }
             else
             {
-                footprint.Encapsulate(renderer.bounds);
+                footprint.Encapsulate(world);
             }
         }
 
         return found;
+    }
+
+    static Bounds FootprintBounds(Transform root, MeshFilter filter)
+    {
+        var mesh = filter.sharedMesh.bounds;
+        var localCenter = ToRootLocal(root, filter.transform, mesh.center, includePosition: true);
+        var extentX = ToRootLocal(root, filter.transform, new Vector3(mesh.extents.x, 0f, 0f), includePosition: false);
+        var extentY = ToRootLocal(root, filter.transform, new Vector3(0f, mesh.extents.y, 0f), includePosition: false);
+        var extentZ = ToRootLocal(root, filter.transform, new Vector3(0f, 0f, mesh.extents.z), includePosition: false);
+        var extents = new Vector3(
+            Mathf.Abs(extentX.x) + Mathf.Abs(extentY.x) + Mathf.Abs(extentZ.x),
+            Mathf.Abs(extentX.y) + Mathf.Abs(extentY.y) + Mathf.Abs(extentZ.y),
+            Mathf.Abs(extentX.z) + Mathf.Abs(extentY.z) + Mathf.Abs(extentZ.z));
+        var worldCenter = root.position + root.rotation * localCenter;
+        var axisX = root.rotation * new Vector3(extents.x, 0f, 0f);
+        var axisY = root.rotation * new Vector3(0f, extents.y, 0f);
+        var axisZ = root.rotation * new Vector3(0f, 0f, extents.z);
+        extents.x = Mathf.Abs(axisX.x) + Mathf.Abs(axisY.x) + Mathf.Abs(axisZ.x);
+        extents.y = Mathf.Abs(axisX.y) + Mathf.Abs(axisY.y) + Mathf.Abs(axisZ.y);
+        extents.z = Mathf.Abs(axisX.z) + Mathf.Abs(axisY.z) + Mathf.Abs(axisZ.z);
+        return new Bounds(worldCenter, extents * 2f);
+    }
+
+    static Vector3 ToRootLocal(Transform root, Transform meshTransform, Vector3 point, bool includePosition)
+    {
+        var current = point;
+        var transform = meshTransform;
+        while (transform != null && transform != root)
+        {
+            current = transform.localRotation * Vector3.Scale(transform.localScale, current);
+            if (includePosition)
+                current += transform.localPosition;
+            transform = transform.parent;
+        }
+
+        return current;
     }
 
     static SpeciesDefinition FindSpecies(ActionMenuCategory category, string optionId)

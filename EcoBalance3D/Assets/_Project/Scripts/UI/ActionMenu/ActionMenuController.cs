@@ -170,6 +170,7 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
             return;
 
         var step = config.bubbleDiameter + config.stackSpacing;
+        var visibleIndex = 0;
         for (var i = 0; i < config.categories.Count; i++)
         {
             var category = config.categories[i];
@@ -180,6 +181,13 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
             if (bubble == null)
                 continue;
 
+            if (!category.enabled)
+            {
+                bubble.gameObject.SetActive(false);
+                continue;
+            }
+
+            bubble.gameObject.SetActive(true);
             bubble.ApplyLabel(category.label);
             bubble.ApplyIcon(category.icon);
             bubble.ApplyDot(config.prototypeDotColor, config.prototypeDotSize);
@@ -189,7 +197,8 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
             bubbleRect.anchorMin = Vector2.right;
             bubbleRect.anchorMax = Vector2.right;
             bubbleRect.pivot = new Vector2(0.5f, 0.5f);
-            bubbleRect.anchoredPosition = new Vector2(-config.fabMargin.x, config.fabMargin.y + (i + 1) * step);
+            bubbleRect.anchoredPosition = new Vector2(-config.fabMargin.x, config.fabMargin.y + (visibleIndex + 1) * step);
+            visibleIndex++;
 
             var handler = FindHandler(category.id);
             var options = handler != null ? handler.GetOptions() : new List<ActionMenuOption>();

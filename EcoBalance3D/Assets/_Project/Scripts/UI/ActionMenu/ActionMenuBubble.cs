@@ -47,15 +47,13 @@ public class ActionMenuBubble : MonoBehaviour
             label.text = text ?? string.Empty;
     }
 
-    /// <summary>Sizes and colors the prototype dot from the hub.</summary>
+    /// <summary>Hides the prototype dot. Color and size stay on the hub for a later pass.</summary>
     public void ApplyDot(Color color, float size)
     {
         if (dot == null)
             return;
 
-        dot.color = color;
-        var rect = dot.rectTransform;
-        rect.sizeDelta = new Vector2(size, size);
+        dot.enabled = false;
     }
 
     /// <summary>Shows <paramref name="sprite"/> when assigned; hides the icon image otherwise.</summary>
