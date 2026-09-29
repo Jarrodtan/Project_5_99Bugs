@@ -209,5 +209,82 @@ public class EcosystemSimulatorTests
 
         Assert.DoesNotThrow(() => sim.Tick());
     }
+
+    // ---- Events mode ----
+
+    [Test]
+    public void Events_Tick_OnlyRegrowsResources_PopulationsUnchanged()
+    {
+        sim.mode = EcosystemSimulator.SimulationMode.Events;
+        sim.eventRegenPerTick = 3f;
+        sim.populations[sheep] = 10f;
+        sim.populations[leopard] = 2f;
+
+        sim.Tick();
+
+        Assert.AreEqual(10f, sim.populations[sheep]);
+        Assert.AreEqual(2f, sim.populations[leopard]);
+        Assert.AreEqual(53f, grass.currentAmount, 1e-4f);
+    }
+
+    [Test]
+    public void Events_Predation_SheepMinusOne_LeopardPlusOne()
+    {
+        sim.populations[sheep] = 10f;
+        sim.populations[leopard] = 2f;
+
+        sim.RecordPredation(leopard, sheep);
+
+        Assert.AreEqual(9f, sim.populations[sheep]);
+        Assert.AreEqual(3f, sim.populations[leopard]);
+    }
+
+    [Test]
+    public void Events_Predation_WithNoPreyLeft_ChangesNothing()
+    {
+        sim.populations[sheep] = 0f;
+        sim.populations[leopard] = 2f;
+
+        sim.RecordPredation(leopard, sheep);
+
+        Assert.AreEqual(0f, sim.populations[sheep]);
+        Assert.AreEqual(2f, sim.populations[leopard]);
+    }
+
+    [Test]
+    public void Events_Eat_UsesResource_AndSpeciesPlusOne()
+    {
+        sim.populations[sheep] = 10f;
+
+        bool ate = sim.RecordEat(sheep, grass, 20f);
+
+        Assert.IsTrue(ate);
+        Assert.AreEqual(11f, sim.populations[sheep]);
+        Assert.AreEqual(30f, grass.currentAmount, 1e-4f);
+    }
+
+    [Test]
+    public void Events_Eat_NotEnoughResource_ChangesNothing()
+    {
+        sim.populations[sheep] = 10f;
+        grass.currentAmount = 5f;
+
+        bool ate = sim.RecordEat(sheep, grass, 20f);
+
+        Assert.IsFalse(ate);
+        Assert.AreEqual(10f, sim.populations[sheep]);
+        Assert.AreEqual(5f, grass.currentAmount, 1e-4f);
+    }
+
+    [Test]
+    public void Events_Starvation_MinusOne_NeverBelowZero()
+    {
+        sim.populations[leopard] = 1f;
+
+        sim.RecordStarvation(leopard);
+        sim.RecordStarvation(leopard);
+
+        Assert.AreEqual(0f, sim.populations[leopard]);
+    }
 }
 // [AI-GENERATED END]
