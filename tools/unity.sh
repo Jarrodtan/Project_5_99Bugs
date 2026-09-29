@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-# EcoBalance helper for Ubuntu 24.04 / macOS / Windows (Git Bash).
+# EcoBalance3D helper for Ubuntu 24.04 / macOS / Windows (Git Bash).
 #
 #   tools/unity.sh open            open the project in the Unity Editor
 #   tools/unity.sh test            run all EditMode tests headless -> test-results.xml

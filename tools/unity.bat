@@ -1,6 +1,6 @@
 @echo off
 rem [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-rem EcoBalance helper for Windows 11 (same commands as tools/unity.sh):
+rem EcoBalance3D helper for Windows 11 (same commands as tools/unity.sh):
 rem   tools\unity.bat open | test | build [android^|windows] | clean
 rem Double-click it for a menu instead.
 rem Unity is found in the default Unity Hub folder; override with: set UNITY=C:\path\to\Unity.exe
