@@ -58,6 +58,26 @@ public class InspectionUiConfig : ScriptableObject
     [Tooltip("When true, the panel starts hidden until the first valid Show.")]
     public bool startHidden = true;
 
+    [Tooltip("Seconds between stat re-reads while something is selected, so values stay live. Zero reads only on selection.")]
+    public float liveRefreshIntervalSeconds = 0.5f;
+
+    [Header("Tab")]
+    [Tooltip("Label for the Inspect tab when the panel is hosted by TabbedStatsPanel.")]
+    public string tabLabel = "Inspect";
+
+    [Tooltip("Shared labeled-stat list style used when hosted as the Inspect tab, so rows match the Population tab. Empty keeps the overlay styling above.")]
+    public StatListStyle tabListStyle;
+
+    [Tooltip("On deselect: HideTab (team decision) removes the Inspect tab and returns to the previous tab; KeepLastSelection keeps the last object's stats, frozen and marked stale.")]
+    public InspectTabDeselectBehaviour tabDeselectBehaviour = InspectTabDeselectBehaviour.HideTab;
+
+    [Tooltip("KeepLastSelection only: heading while showing stale data. {0} = last object's display name.")]
+    public string staleTitleFormat = "{0} (deselected)";
+
+    [Tooltip("KeepLastSelection only: row opacity while showing stale data (0–1).")]
+    [Range(0f, 1f)]
+    public float staleRowsAlpha = 0.5f;
+
     [Header("Overlay")]
     [Tooltip("Active placement module. Change at runtime to hot-swap without re-selection.")]
     public OverlayMode overlayMode = OverlayMode.ScreenSpace;
