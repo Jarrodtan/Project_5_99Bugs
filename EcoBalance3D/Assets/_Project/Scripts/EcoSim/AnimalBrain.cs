@@ -12,6 +12,7 @@ public class AnimalBrain : MonoBehaviour
     public AudioSource audio;
     private float footstep_timer = 0f;
 
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
