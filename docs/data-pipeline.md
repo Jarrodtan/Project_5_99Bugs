@@ -17,11 +17,10 @@ EcoBalance is data-driven. Species and resources are **ScriptableObject assets**
 | `Data/` | Config assets for other systems (Inspection, Selection, SimulationData) |
 | `Prefabs/Creatures/` | Animal prefabs referenced by a species' `visualPrefab` |
 | `Prefabs/UI/` | UI prefabs |
-| `Art/`, `Audio/` | Imported models, textures, materials and sounds |
-| `Scenes/` | Game scenes. Personal test scenes are named `<Initials>_Test_<Topic>` |
+| `Audio/` (and `Art/` when models/textures are added) | Imported sounds, models, textures, materials |
 | `Tests/Editor/` | App EditMode tests (core tests are in the package) |
 
-Nothing project-specific goes outside `_Project/`. Third-party and imported packages stay in their own folders.
+Scenes live in `Assets/Scenes/` (referenced by Build Settings); personal test scenes are named `<Initials>_Test_<Topic>`. Nothing else project-specific goes outside `_Project/`. Third-party and imported packages stay in their own folders.
 
 ## Naming conventions
 
