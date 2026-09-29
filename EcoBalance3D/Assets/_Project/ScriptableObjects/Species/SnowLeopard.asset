@@ -9,6 +9,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a3000000000000000000000000000004, type: 3}
+  m_Script: {fileID: 11500000, guid: bd10ba53277213b4f87e228a0819a3b3, type: 3}
   m_Name: SnowLeopard
-  m_EditorClassIdentifier: Assembly-CSharp::SpeciesRosterModule
+  m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
+  speciesName: SnowLeopard
+  startingPopulation: 5
+  relationships:
+  - type: 0
+    targetSpecies: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
+    targetResource: {fileID: 0}
+  reproductionRate: 0.1
+  starvationThreshold: 0.1
+  predationRate: 0.01
+  foodNeededPerCapita: 0.4
+  visualPrefab: {fileID: 3469608245872682355, guid: d10a8095e5c3c704fa9591b436895623, type: 3}

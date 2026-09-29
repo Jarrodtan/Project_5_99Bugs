@@ -71,12 +71,19 @@ public class FleeExecutor : IActionExecutor
             start = Time.time;
             ctx.actionStartTime[action] = start;
 
-            // TODO: replace with a real nearest-predator lookup once predator instances
-            // are queryable (e.g. via a shared spatial registry populated by CreatureSpawner).
-            var threat = GameObject.FindGameObjectWithTag("Predator");
-            var awayDir = threat != null
-                ? (ctx.transform.position - threat.transform.position).normalized
-                : Random.insideUnitSphere;
+            // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+            // Nearest animal whose species Eats ours (T01 relationships), via EcoRegistry.
+            // Nothing dangerous in range -> Failure, so the tree falls through to other goals.
+            var threat = EcoRegistry.NearestPredator(ctx.species, ctx.transform.position, ActionSearch.Range(action));
+            if (threat == null)
+            {
+                ctx.actionStartTime.Remove(action);
+                return NodeStatus.Failure;
+            }
+            var awayDir = ctx.transform.position - threat.position;
+            awayDir.y = 0f;
+            awayDir = awayDir.sqrMagnitude > 0.0001f ? awayDir.normalized : Random.insideUnitSphere;
+            // [AI-GENERATED END]
 
             var fleeTarget = ctx.transform.position + awayDir * 8f;
             if (NavMesh.SamplePosition(fleeTarget, out var hit, 8f, NavMesh.AllAreas))
@@ -153,17 +160,67 @@ public class SeekResourceExecutor : IActionExecutor
     }
 }
 
-// TODO: same gap as SeekResource, but for GetSpeciesTargets(Eats) - needs a way to find
-// the nearest live instance of prey (probably a registry the prey's own brain registers
-// itself into on spawn, since CreatureSpawner only tracks visuals per-species right now).
+// [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+// Chases the nearest animal this species Eats (EcoRegistry.NearestPrey), re-pathing as it
+// moves. On reaching it, stands for action.duration ("eating") and succeeds, which satisfies
+// the related need. Population numbers stay with EcosystemSimulator - this is the visible
+// behaviour only. No prey in range -> Failure, so a following Wander lets it roam and search.
 public class HuntTargetExecutor : IActionExecutor
 {
+    const float catchDistance = 1.5f;
+    const float repathDistance = 0.5f;
+
     public NodeStatus Execute(BTContext ctx, ActionDefinition action)
     {
-        Debug.LogWarning("HuntTargetExecutor not wired to world prey instances yet.");
-        return NodeStatus.Failure;
+        if (ctx.agent == null) return NodeStatus.Failure;
+
+        var prey = EcoRegistry.NearestPrey(ctx.species, ctx.transform.position, ActionSearch.Range(action));
+        if (prey == null)
+        {
+            ctx.actionStartTime.Remove(action);
+            ctx.actionTarget.Remove(action);
+            return NodeStatus.Failure;
+        }
+
+        var flat = prey.position - ctx.transform.position;
+        flat.y = 0f;
+
+        if (flat.magnitude > catchDistance)
+        {
+            // Still chasing: re-path now and then, not every tick.
+            ctx.actionStartTime.Remove(action);
+            if (!ctx.actionTarget.TryGetValue(action, out var last) || (last - prey.position).sqrMagnitude > repathDistance * repathDistance)
+            {
+                if (NavMesh.SamplePosition(prey.position, out var hit, 2f, NavMesh.AllAreas))
+                    ctx.agent.SetDestination(hit.position);
+                ctx.actionTarget[action] = prey.position;
+            }
+            return NodeStatus.Running;
+        }
+
+        // Caught: stop and "eat" for action.duration.
+        if (!ctx.actionStartTime.TryGetValue(action, out var start))
+        {
+            ctx.actionStartTime[action] = Time.time;
+            ctx.agent.ResetPath();
+            return NodeStatus.Running;
+        }
+        if (Time.time - start < action.duration)
+            return NodeStatus.Running;
+
+        ctx.actionStartTime.Remove(action);
+        ctx.actionTarget.Remove(action);
+        return NodeStatus.Success;
     }
 }
+
+// Shared by Flee and Hunt: ActionDefinition.searchRadius, where 0 means unlimited.
+static class ActionSearch
+{
+    public static float Range(ActionDefinition action)
+        => action != null && action.searchRadius > 0f ? action.searchRadius : float.PositiveInfinity;
+}
+// [AI-GENERATED END]
 
 // TODO: decide what "Reproduce" should actually do at the per-instance visual level -
 // the population-level sim (EcosystemSimulator.Tick) already handles reproduction rate
