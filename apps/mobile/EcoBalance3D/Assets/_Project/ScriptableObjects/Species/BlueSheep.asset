@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd10ba53277213b4f87e228a0819a3b3, type: 3}
+  m_Name: BlueSheep
+  m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
+  speciesName: Blue Sheep
+  footstep: {fileID: 8300000, guid: 0d060756bae59d445ae864e4e045b17e, type: 3}
+  idle: {fileID: 8300000, guid: 7d59bd7e7c4ae914f97bdd4bba45d438, type: 3}
+  eat: {fileID: 0}
+  death: {fileID: 0}
+  startingPopulation: 50
+  relationships:
+  - type: 0
+    targetSpecies: {fileID: 0}
+    targetResource: {fileID: 11400000, guid: 76da2c5da0148784389995384801e63e, type: 2}
+  - type: 1
+    targetSpecies: {fileID: 0}
+    targetResource: {fileID: 11400000, guid: f6b50b4acdcea254cb9ed2f6fa536c22, type: 2}
+  reproductionRate: 0.1
+  starvationThreshold: 0.2
+  needs:
+  - {fileID: 11400000, guid: 5d16c35420270584d9818a760b72199d, type: 2}
+  - {fileID: 11400000, guid: 4da9225721a336c4296e98b8b0d6f707, type: 2}
+  goals:
+  - {fileID: 11400000, guid: c3b0773c45a103640a516f6b2e2c6c79, type: 2}
+  - {fileID: 11400000, guid: ac1490c2df6480a4d86201c5100861f3, type: 2}
+  - {fileID: 11400000, guid: 7fa8ff7390681fd4cb706cedbb391f3d, type: 2}
+  predationRate: 0.3
+  foodNeededPerCapita: 0.5
+  visualPrefab: {fileID: 9037334413921091483, guid: 9cba128355e7bb54ea64e2f91c31ea72, type: 3}

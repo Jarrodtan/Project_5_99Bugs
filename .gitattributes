@@ -8,6 +8,11 @@
 *.meta    text eol=lf
 *.cs      text diff=csharp
 
+# Scripts: shell scripts must stay LF (Ubuntu/macOS), batch files CRLF (Windows)
+*.sh      text eol=lf
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+
 # Binary assets
 *.png  binary
 *.jpg  binary
