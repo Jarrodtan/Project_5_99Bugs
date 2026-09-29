@@ -39,4 +39,17 @@ public class CreatureSpawner : MonoBehaviour {
             spawned.RemoveAt(last);
         }
     }
+
+    public void ResetVisuals()
+    {
+        foreach (GameObject creature in spawned)
+        {
+            if (creature != null)
+                Destroy(creature);
+        }
+
+        spawned.Clear();
+
+        RefreshVisuals();
+    }
 }

@@ -171,4 +171,9 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
             }
         }
     }
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Kept for Reginald's Reset button (F02). Uses the same full reset as island swaps,
+    // so every species returns to its startingPopulation and resources to startingAmount.
+    public void ResetSimulation() => ResetEcosystem();
+    // [AI-GENERATED END]
 }
