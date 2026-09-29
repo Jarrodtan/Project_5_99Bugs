@@ -183,7 +183,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6772571439495030781}
@@ -249,6 +249,12 @@ MonoBehaviour:
   species_data: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
   curr_hunger: 100
   audio: {fileID: 0}
+  huntRadius: 12
+  fleeRadius: 7
+  catchDistance: 1.5
+  eatDuration: 2
+  chaseSpeedMultiplier: 1.4
+  fleeSpeedMultiplier: 1.25
 --- !u!82 &1049992325530015973
 AudioSource:
   m_ObjectHideFlags: 0
