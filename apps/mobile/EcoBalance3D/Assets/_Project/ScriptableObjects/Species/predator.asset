@@ -13,9 +13,13 @@ MonoBehaviour:
   m_Name: predator
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
   speciesName: 
+  footstep: {fileID: 0}
+  idle: {fileID: 0}
+  eat: {fileID: 0}
+  death: {fileID: 0}
   startingPopulation: 10
   relationships: []
-  reproductionRate: 0.1
+  reproductionRate: 0.5
   starvationThreshold: 0.2
   needs: []
   goals: []
