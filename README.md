@@ -91,7 +91,7 @@ Open `Assets/Scenes/SampleScene` and press **Play**. Use **Play / Pause / Reset*
 - **Editor:** **File → Build Profiles → Android → Build**.
 - **Command line** (Editor closed): `tools/unity.sh build android` or `tools\unity.bat build android`
   (also `windows`, and `macos` / `linux` with `unity.sh`). Output: `apps/mobile/EcoBalance3D/Build/<Platform>/`.
-- **CI:** every push to `main` produces the Android build artifact **`EcoBalance-Android`** (GitHub → Actions → run → Artifacts).
+- **CI:** every push to `main` produces the Android build artifact **`EcoBalance3D-Android`** (GitHub → Actions → run → Artifacts).
 
 CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL`, `UNITY_PASSWORD`
 (serial-based Unity licence; see the [GameCI activation guide](https://game.ci/docs/github/activation)).

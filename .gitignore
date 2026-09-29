@@ -125,6 +125,7 @@ node_modules/
 # Local test run output (tools/unity.sh test)
 test-results.xml
 
+# [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 # Unity cache/generated folders ANYWHERE in the repo. Protects against opening the wrong folder
 # in Unity (repo root or apps/) and against switching between old-layout and new-layout branches.
 **/[Ll]ibrary/
@@ -144,3 +145,4 @@ test-results.xml
 /*.sln
 /*.slnx
 /.vsconfig
+# [AI-GENERATED END]
