@@ -1,10 +1,11 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 /// <summary>
 /// Scrolls an option row while the pointer stays over this edge. Speed and direction come from the hub and this component.
 /// </summary>
-public class ActionMenuEdgeScroll : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class ActionMenuEdgeScroll : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerClickHandler
 {
     [Tooltip("Action menu hub. Scroll speed is read from here.")]
     [SerializeField]
@@ -24,6 +25,8 @@ public class ActionMenuEdgeScroll : MonoBehaviour, IPointerEnterHandler, IPointe
 
     bool _hover;
 
+    static readonly List<RaycastResult> RaycastHits = new();
+
     /// <summary>Starts scrolling while the pointer is over this edge.</summary>
     public void OnPointerEnter(PointerEventData eventData)
     {
@@ -34,6 +37,35 @@ public class ActionMenuEdgeScroll : MonoBehaviour, IPointerEnterHandler, IPointe
     public void OnPointerExit(PointerEventData eventData)
     {
         _hover = false;
+    }
+
+    /// <summary>
+    /// Keeps this click on the edge. The edge is a child of the category bubble, so an unhandled press opens that bubble's settings.
+    /// </summary>
+    public void OnPointerDown(PointerEventData eventData)
+    {
+    }
+
+    /// <summary>Runs the option under this edge when the press landed on an option bubble.</summary>
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (EventSystem.current == null)
+            return;
+
+        RaycastHits.Clear();
+        EventSystem.current.RaycastAll(eventData, RaycastHits);
+        for (var i = 0; i < RaycastHits.Count; i++)
+        {
+            if (RaycastHits[i].gameObject == gameObject)
+                continue;
+
+            var bubble = RaycastHits[i].gameObject.GetComponentInParent<ActionMenuBubble>();
+            if (bubble == null || bubble.Role != ActionMenuBubbleRole.Option || bubble.Button == null)
+                continue;
+
+            bubble.Button.onClick.Invoke();
+            return;
+        }
     }
 
     void Update()
