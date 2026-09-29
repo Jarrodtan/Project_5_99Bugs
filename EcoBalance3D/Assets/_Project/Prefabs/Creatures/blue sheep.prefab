@@ -165,6 +165,7 @@ GameObject:
   - component: {fileID: 5372906650820145570}
   - component: {fileID: 7960127166656185812}
   - component: {fileID: 1049992325530015973}
+  - component: {fileID: -1853422331891634858}
   m_Layer: 0
   m_Name: blue sheep
   m_TagString: Untagged
@@ -240,7 +241,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9037334413921091483}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 889a9b7f6c658d948ac12a07bbff67ad, type: 3}
   m_Name: 
@@ -345,3 +346,19 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &-1853422331891634858
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9037334413921091483}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b346922b55f62e48b0ced28f4714813, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GoalOrientedAnimalBrain
+  species_data: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
+  audio: {fileID: 0}
+  tickInterval: 0.25
+  showDebugLabel: 1

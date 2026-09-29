@@ -31,8 +31,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5d16c35420270584d9818a760b72199d, type: 2}
   - {fileID: 11400000, guid: 4da9225721a336c4296e98b8b0d6f707, type: 2}
   goals:
-  - {fileID: 11400000, guid: ac1490c2df6480a4d86201c5100861f3, type: 2}
   - {fileID: 11400000, guid: c3b0773c45a103640a516f6b2e2c6c79, type: 2}
+  - {fileID: 11400000, guid: ac1490c2df6480a4d86201c5100861f3, type: 2}
   - {fileID: 11400000, guid: 7fa8ff7390681fd4cb706cedbb391f3d, type: 2}
   predationRate: 0.3
   foodNeededPerCapita: 0.5
