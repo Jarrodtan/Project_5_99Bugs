@@ -13,6 +13,10 @@ MonoBehaviour:
   m_Name: BlueSheep
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
   speciesName: Blue Sheep
+  footstep: {fileID: 8300000, guid: 0d060756bae59d445ae864e4e045b17e, type: 3}
+  idle: {fileID: 8300000, guid: 7d59bd7e7c4ae914f97bdd4bba45d438, type: 3}
+  eat: {fileID: 0}
+  death: {fileID: 0}
   startingPopulation: 50
   relationships:
   - type: 0
@@ -32,4 +36,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7fa8ff7390681fd4cb706cedbb391f3d, type: 2}
   predationRate: 0.3
   foodNeededPerCapita: 0.5
-  visualPrefab: {fileID: 3469608245872682355, guid: 0de39005f9360204c93f9370f6d708dd, type: 3}
+  visualPrefab: {fileID: 9037334413921091483, guid: 9cba128355e7bb54ea64e2f91c31ea72, type: 3}
