@@ -6,6 +6,11 @@ public class SpeciesDefinition : ScriptableObject
 {
     public string speciesName;
 
+    public AudioClip footstep;
+    public AudioClip idle;
+    public AudioClip eat;
+    public AudioClip death;
+
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
     [Tooltip("How many of this species exist when the simulation starts (F01 Configure Starting Ecosystem).")]
     [Min(0f)] public float startingPopulation = 10f;

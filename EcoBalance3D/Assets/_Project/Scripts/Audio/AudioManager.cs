@@ -12,15 +12,33 @@ public class AudioManager : MonoBehaviour
     public AudioSource bgm;
     public AudioSource ambience;
 
-    void Awake()
+    public AudioClip starting;
+    public AudioClip game;
+       
+
+    public void Awake()
     {
         if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        else { Destroy(gameObject);  return; }
+    }
+
+    public void Start()
+    {
+        if (bgm != null && game != null)
+        {
+            bgm.clip = game;
+            bgm.loop = true;
+            bgm.Play();
+        }
     }
 
     public void SwitchToSimu()
     {
         simu.TransitionTo(2.0f);
+        if (bgm != null && game != null) {
+            bgm.clip = game;
+            bgm.Play();
+        }
     }
 
     public void Play3DSound(AudioSource source, AudioClip clip)
