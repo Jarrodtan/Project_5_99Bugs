@@ -20,7 +20,7 @@ public class CreatureSpawner : MonoBehaviour {
         if (species.visualPrefab == null) return;
 
         float pop = simulator.populations[species];
-        int targetCount = Mathf.Min(maxVisible, Mathf.CeilToInt(pop / populationPerVisual));
+        int targetCount = Mathf.Min(maxVisible, Mathf.RoundToInt(pop / populationPerVisual)); // [AI-GENERATED] Claude Code (Claude Opus 5.5): round like PopulationDisplay so models match the label
 
         while (spawned.Count < targetCount) {
             Vector3 pos = new Vector3(
