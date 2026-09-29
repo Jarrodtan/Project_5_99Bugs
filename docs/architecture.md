@@ -43,9 +43,10 @@ The core never depends on the app (arrows into `packages/ecosim` are calls throu
 flowchart TB
     BTN["Speed buttons<br/>Play / Pause / Reset, x1-x8"]
     CLK["SimulationClock"]
-    ECO["EcosystemSimulator<br/>regrow, graze, predation, growth"]
+    ECO["EcosystemSimulator<br/>Formula: regrow, graze, predation, growth<br/>Events: regrow only"]
     POP["PopulationDisplay<br/>on-screen counts"]
     SPN["CreatureSpawner<br/>3D animals"]
+    BRN["Animals (AnimalBrain)<br/>eat, catch, starve"]
 
     BTN --> CLK
     CLK -- "1. Tick()" --> ECO
@@ -53,7 +54,18 @@ flowchart TB
     CLK -- "3. RefreshVisuals()" --> SPN
     ECO -- "populations" --> POP
     ECO -- "populations" --> SPN
+    SPN --> BRN
+    BRN -. "Events mode: +1 / -1" .-> ECO
 ```
+
+The simulator has two modes (`EcosystemSimulator.mode`):
+
+| Mode | How populations change | Used by |
+|---|---|---|
+| **Formula** (default) | Each `Tick()`: predation = rate × predators × prey; grazers share grass; well-fed species grow, underfed ones starve. Deterministic. | EditMode tests, balancing |
+| **Events** | Only from what the 3D animals do: leopard catches sheep → sheep −1, leopard +1; sheep eats grass / drinks water → +1; no food for 15 s (sheep) / 20 s (leopard) → −1. `Tick()` only regrows grass and water (+3). | SampleScene demo |
+
+In both modes the numbers live in the simulator and `CreatureSpawner` keeps one model per animal; the animal that was caught or starved is the one removed.
 
 ### 2.3 Animal AI — one animal
 
@@ -76,7 +88,7 @@ Solid box `packages/ecosim` = reusable core; everything in `apps/mobile` depends
 
 **How the parts communicate**
 - **Tick loop:** `SimulationClock.Update()` calls `EcosystemSimulator.Tick()`, then `PopulationDisplay.Refresh()` and `CreatureSpawner.RefreshVisuals()`. Play / Pause / Reset / speed (x1-x8) are on the clock, driven by `SimulationSpeedController` buttons. Reset calls `ResetEcosystem()` (starting populations).
-- **Agents:** `CreatureSpawner` keeps the number of 3D animals in line with the population and registers each one in `EcoRegistry`. Each animal's `GoalOrientedAnimalBrain` scores its goals by need urgency and runs behaviour-tree actions: Seek finds the nearest `ResourcePatch`, Flee and Hunt ask `EcoRegistry` for the nearest predator / prey (from the Eats relationships).
+- **Agents:** `CreatureSpawner` keeps the number of 3D animals in line with the population (one model per animal, rounded like the label) and registers each one in `EcoRegistry`. In SampleScene each animal runs `AnimalBrain`: flee > hunt > go to grass/water > wander, with a hunger timer; in Events mode it reports `RecordPredation` / `RecordEat` / `RecordStarvation` to the simulator. Each animal's `GoalOrientedAnimalBrain` scores its goals by need urgency and runs behaviour-tree actions: Seek finds the nearest `ResourcePatch`, Flee and Hunt ask `EcoRegistry` for the nearest predator / prey (from the Eats relationships).
 - **Data in:** the simulator and AI read `SpeciesDefinition` / `ResourceDefinition` assets. Prey comes from `SpeciesDefinition.GetSpeciesTargets(RelationshipType.Eats)`.
 - **Data out:** population counts live in `EcosystemSimulator.populations` (a dictionary keyed by species asset). The UI reads them directly for M1. From M2 the UI reads through `ISimulationDataProvider`, so it never depends on simulation internals.
 - **Selection → inspection:** `ObjectSelector` publishes the selected object on the shared `SelectionContext` asset, and `InspectorPanel` listens to it and shows `IInspectable` stats.
@@ -87,7 +99,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 
 | Component | Key scripts / assets | Deliverable | Owner(s) | M1 status |
 |---|---|---|---|---|
-| Ecosystem Simulation Core | `packages/ecosim`: `EcosystemSimulator`, `EcoRegistry`; app: `SimulationClock` | T03 | Wei Leong, Reginald | Done: predation + grazing tick loop, registry, Play/Pause/Reset/speed; tested |
+| Ecosystem Simulation Core | `packages/ecosim`: `EcosystemSimulator`, `EcoRegistry`; app: `SimulationClock` | T03 | Wei Leong, Reginald | Done: Formula + Events modes (eat / catch / starve), registry, Play/Pause/Reset/speed; tested |
 | Relationship System | `Relationship`, `SpeciesDefinition.relationships` | T01 | Zhi Jie | Done (Eats / Needs / Affects), with tests |
 | Entity Data System | `SpeciesDefinition`, `ResourceDefinition`, Need/Goal/ActionDefinition, species assets | T02 | Li Juan, Yusuf | Done: data-only species incl. needs/goals, audio, 3D model |
 | Species authoring tool | `Editor/AnimalCreator` | T02 | Li Juan | Create + edit species from an Editor window |
