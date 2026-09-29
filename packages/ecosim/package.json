@@ -1,0 +1,8 @@
+{
+  "name": "com.99bugs.ecosim",
+  "version": "0.1.0",
+  "displayName": "EcoSim (EcoBalance simulation core)",
+  "description": "Data-driven, tick-based ecosystem simulation: species/resource definitions, relationships (Eats/Needs/Affects), population simulator and a world registry. No dependency on the EcoBalance app.",
+  "unity": "6000.6",
+  "author": { "name": "99 Bugs (DigiPen CSD3401)" }
+}

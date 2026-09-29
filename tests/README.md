@@ -2,7 +2,8 @@
 
 Unity only compiles test code inside the project, so the automated tests live in:
 
-- **EditMode tests:** `apps/mobile/EcoBalance3D/Assets/_Project/Tests/Editor/`
+- **Simulation core (package):** `packages/ecosim/Tests/Editor/` (simulator, relationships, registry)
+- **App:** `apps/mobile/EcoBalance3D/Assets/_Project/Tests/Editor/` (species assets, goal-oriented AI)
 
 How to run them:
 - **Editor:** open **Window → General → Test Runner → EditMode → Run All**.
