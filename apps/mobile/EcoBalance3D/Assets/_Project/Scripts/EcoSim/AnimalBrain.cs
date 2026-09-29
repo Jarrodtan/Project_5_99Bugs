@@ -30,6 +30,14 @@ public class AnimalBrain : MonoBehaviour
     public float fleeSpeedMultiplier = 1.25f;
 
     private float base_speed;
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Set when a predator catches this animal. CreatureSpawner removes caught animals first when the
+    // population drops, so the sheep that was eaten is the one that disappears.
+    public float CaughtTime { get; private set; } = -1f;
+    public bool IsCaught => CaughtTime >= 0f && Time.time - CaughtTime < 5f; // freed again if not removed within 5 s
+    public void MarkCaught() => CaughtTime = Time.time;
+    // [AI-GENERATED END]
     private float eat_timer = 0f;
     // [AI-GENERATED END]
 
@@ -70,6 +78,13 @@ public class AnimalBrain : MonoBehaviour
         }
 
         agent.isStopped = false;
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a caught animal stays still while it is being eaten.
+        if (IsCaught)
+        {
+            agent.isStopped = true;
+            return;
+        }
 
         float speed = 1f;
 
@@ -150,7 +165,9 @@ public class AnimalBrain : MonoBehaviour
 
         if (Vector3.Distance(transform.position, prey.position) <= catchDistance)
         {
-            // Visual only: population numbers come from EcosystemSimulator, so the sheep is not destroyed here.
+            // Population numbers come from EcosystemSimulator, so the sheep is not destroyed here.
+            // It is marked as caught; CreatureSpawner removes it first when the sheep population drops.
+            if (prey.TryGetComponent(out AnimalBrain preyBrain)) preyBrain.MarkCaught();
             eat_timer = eatDuration;
             agent.ResetPath();
             return true;
