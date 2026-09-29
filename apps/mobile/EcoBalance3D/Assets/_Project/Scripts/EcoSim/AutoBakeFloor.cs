@@ -16,5 +16,8 @@ public class AutoBakeFloor : MonoBehaviour
     {
         GetComponent<NavMeshSurface>().BuildNavMesh();
         Debug.Log("Succesfully created.");
+
+        SimulationClock clock = FindAnyObjectByType<SimulationClock>();
+        if (clock != null) clock.enabled = true;
     }
 }

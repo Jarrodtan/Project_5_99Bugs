@@ -39,7 +39,7 @@ public class AnimalBrain : MonoBehaviour
         base_speed = agent.speed;
         audio = GetComponent<AudioSource>();
 
-        simulationController = FindFirstObjectByType<SimulationSpeedController>();
+        simulationController = FindAnyObjectByType<SimulationSpeedController>();
 
         // Find collider to determine where is the floor
         Collider col = GetComponentInChildren<Collider>();
