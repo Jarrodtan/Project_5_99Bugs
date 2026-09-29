@@ -121,3 +121,6 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Local test run output (tools/unity.sh test)
+test-results.xml
