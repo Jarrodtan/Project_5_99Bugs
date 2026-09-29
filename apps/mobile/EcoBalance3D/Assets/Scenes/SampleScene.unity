@@ -1311,8 +1311,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CreatureSpawner
   species: {fileID: 11400000, guid: 2829b3f512f18b14d931a7a5801afa6d, type: 2}
   simulator: {fileID: 933990895}
-  maxVisible: 20
-  spawnRadius: 3
+  maxVisible: 100
+  spawnRadius: 6
+  populationPerVisual: 1
 --- !u!4 &502627226
 Transform:
   m_ObjectHideFlags: 0
@@ -1788,8 +1789,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CreatureSpawner
   species: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
   simulator: {fileID: 933990895}
-  maxVisible: 20
-  spawnRadius: 3
+  maxVisible: 100
+  spawnRadius: 6
+  populationPerVisual: 1
 --- !u!4 &977121266
 Transform:
   m_ObjectHideFlags: 0
