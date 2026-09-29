@@ -17,70 +17,59 @@ See also: [toolchain.md](toolchain.md) (technology choices), [data-pipeline.md](
 
 ## 2. Architecture diagram
 
+Split into three small diagrams so each stays readable on GitHub.
+
+### 2.1 Overview — main blocks
+
+```mermaid
+flowchart LR
+    DATA["Data assets<br/>Species, Resources"]
+    CORE["Simulation core<br/>packages/ecosim"]
+    APP["Unity app<br/>apps/mobile/EcoBalance3D"]
+    CI["Tests + CI<br/>GitHub Actions"]
+
+    DATA -- "read by" --> CORE
+    CORE -- "populations" --> APP
+    APP -- "Tick / Reset" --> CORE
+    CI -- "tests + APK" --> CORE
+    CI -- "builds" --> APP
+```
+
+The core never depends on the app (arrows into `packages/ecosim` are calls through its public API; see §7).
+
+### 2.2 Simulation loop — every tick
+
 ```mermaid
 flowchart TB
-    subgraph PKG["packages/ecosim (com.99bugs.ecosim) - simulation core, no app dependency"]
-        subgraph DATA["Data types (ScriptableObjects)"]
-            SD["SpeciesDefinition<br/>BlueSheep, SnowLeopard"]
-            RD["ResourceDefinition<br/>Grass, Water"]
-            REL["Relationship<br/>Eats / Needs / Affects"]
-            NGA["Need / Goal / ActionDefinition<br/>Hunger, SatisfyHunger, Seek grass"]
-            SD --- REL
-            SD --- NGA
-        end
-        ECO["EcosystemSimulator<br/>Tick(): regrowth, predation, grazing, growth"]
-        REG["EcoRegistry + EcoEntity<br/>nearest food / prey / predator"]
-        RST["IEcosystemReset"]
-        ECO -. implements .-> RST
-    end
+    BTN["Speed buttons<br/>Play / Pause / Reset, x1-x8"]
+    CLK["SimulationClock"]
+    ECO["EcosystemSimulator<br/>regrow, graze, predation, growth"]
+    POP["PopulationDisplay<br/>on-screen counts"]
+    SPN["CreatureSpawner<br/>3D animals"]
 
-    subgraph APP["apps/mobile/EcoBalance3D (Unity app)"]
-        subgraph CTRL["Simulation control"]
-            CLK["SimulationClock<br/>tick timer, Play/Pause/Reset, speed"]
-            SPD["SimulationSpeedController<br/>UI buttons x1-x8"]
-        end
-        subgraph AIL["Animal AI (per agent, NavMesh)"]
-            BRN["GoalOrientedAnimalBrain<br/>needs to goal selector"]
-            BT["Behaviour tree actions<br/>Wander, Seek, Flee, Hunt, Idle"]
-            PATCH["ResourcePatch<br/>grass that shrinks and regrows"]
-            BRN --> BT
-        end
-        subgraph PRES["Presentation"]
-            SPN["CreatureSpawner<br/>population to agents"]
-            POP["PopulationDisplay<br/>on-screen counts"]
-            SEL["Selection + InspectorPanel<br/>tap-to-inspect"]
-            ISL["IslandManager + OrbitCamera"]
-            AUD["AudioManager<br/>BGM + SFX"]
-        end
-        PROV["ISimulationDataProvider / IInspectable<br/>read-only interfaces for UI"]
-    end
-
-    subgraph TOOLS["Tools and pipeline"]
-        AC["AnimalCreator window"]
-        TEST["EditMode tests<br/>25 package + 8 app"]
-        CI["GitHub Actions<br/>tests + Android build"]
-    end
-
-    SD --> ECO
-    RD --> ECO
-    SPD --> CLK
-    CLK -- "Tick()" --> ECO
-    CLK -- "Refresh()" --> POP
-    CLK -- "RefreshVisuals()" --> SPN
+    BTN --> CLK
+    CLK -- "1. Tick()" --> ECO
+    CLK -- "2. Refresh()" --> POP
+    CLK -- "3. RefreshVisuals()" --> SPN
     ECO -- "populations" --> POP
     ECO -- "populations" --> SPN
+```
+
+### 2.3 Animal AI — one animal
+
+```mermaid
+flowchart TB
+    SPN["CreatureSpawner"]
+    BRN["Animal brain<br/>picks most urgent goal"]
+    ACT["Actions<br/>Wander, Seek, Flee, Hunt, Idle"]
+    REG["EcoRegistry<br/>nearest prey / predator"]
+    PATCH["ResourcePatch<br/>grass, water"]
+
     SPN -- "spawns + registers" --> REG
     SPN --> BRN
-    BT -- "Flee / Hunt" --> REG
-    BT -- "Seek" --> PATCH
-    NGA --> BRN
-    ISL -- "ResetEcosystem()" --> RST
-    ECO -.-> PROV
-    PROV --> SEL
-    AC -- "writes .asset" --> SD
-    TEST -- "exercises" --> ECO
-    TEST -- "exercises" --> REG
-    CI -- "runs" --> TEST
+    BRN --> ACT
+    ACT -- "Flee / Hunt" --> REG
+    ACT -- "Seek" --> PATCH
 ```
 
 Solid box `packages/ecosim` = reusable core; everything in `apps/mobile` depends on it, never the reverse (see §7).
@@ -162,10 +151,47 @@ There is no server or database. EcoBalance is a single offline mobile app.
 ## 7. Repository and module structure
 
 ```
-apps/mobile/EcoBalance3D/   Unity app: scenes, art, audio, prefabs, app scripts (UI, island, camera,
-                            clock, spawners, animal brains / behaviour tree), app tests
-packages/ecosim/            Unity package com.99bugs.ecosim: simulation core + tests
-docs/  tests/  tools/  .github/workflows/
+Project_5_99Bugs/
+├── apps/
+│   └── mobile/
+│       └── EcoBalance3D/                  # Unity app (assembly: Assembly-CSharp)
+│           ├── Assets/
+│           │   ├── Scenes/                # SampleScene (M1 demo), IslandPlatform, T02_Test
+│           │   └── _Project/
+│           │       ├── Audio/             # BGM + SFX
+│           │       ├── Data/              # app assets: AI needs/goals/actions, islands, camera, UI config
+│           │       ├── Prefabs/           # creatures, islands
+│           │       ├── ScriptableObjects/ # Species (BlueSheep, SnowLeopard), Resources (Grass, Water)
+│           │       ├── Scripts/
+│           │       │   ├── Audio/             # AudioManager
+│           │       │   ├── Behaviourtreecore/ # behaviour tree + action executors (Wander, Seek, Flee, Hunt)
+│           │       │   ├── Camera/            # orbit camera
+│           │       │   ├── Creatures/         # CreatureSpawner
+│           │       │   ├── EcoSim/            # SimulationClock, speed controller, animal brains
+│           │       │   ├── Editor/            # BuildScript, AnimalCreator window
+│           │       │   ├── Inspection/        # IInspectable, inspector data
+│           │       │   ├── IslandPlatform/    # IslandManager, island swap
+│           │       │   ├── Resources/         # ResourcePatch
+│           │       │   ├── Selection/         # tap-to-select
+│           │       │   ├── SimulationData/    # ISimulationDataProvider (UI read interface)
+│           │       │   └── UI/                # PopulationDisplay, InspectorPanel
+│           │       └── Tests/             # app EditMode tests
+│           ├── Packages/manifest.json     # loads com.99bugs.ecosim from packages/ecosim
+│           └── ProjectSettings/
+├── packages/
+│   └── ecosim/                            # Unity package com.99bugs.ecosim
+│       ├── package.json
+│       ├── Runtime/                       # assembly: EcoSim (no app dependency)
+│       │   ├── EcosystemSimulator.cs      # tick: regrow, graze, predation, growth
+│       │   ├── SpeciesDefinition.cs  Relationship.cs
+│       │   ├── EcoRegistry.cs  EcoEntity.cs   # nearest food / prey / predator
+│       │   ├── IEcosystemReset.cs         # implemented by the app (island swap)
+│       │   └── Definitions/               # Resource, Need, Goal, Action definitions
+│       └── Tests/Editor/                  # assembly: EcoSim.Tests.Editor (simulator, relationships, registry)
+├── docs/                                  # proposal, design, architecture, deliverables
+├── tests/                                 # test plans, manual checklists
+├── tools/                                 # unity.sh / unity.bat: open, test, build, clean
+└── .github/workflows/unity-ci.yml         # CI: EditMode tests + Android build
 ```
 
 | Module | Assembly | May depend on | Must not depend on |
@@ -188,4 +214,4 @@ stays in the app because it depends on scenes, TextMeshPro, NavMesh and teammate
 - **Testable core:** the simulation logic runs in EditMode tests without a scene, and CI runs those tests on every PR.
 
 ---
-*Diagram and component/owner tables drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed by Tan Wei Leong. Layer descriptions in §6 written by the team.*
+*Diagram and component/owner tables drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed by Tan Wei Leong. Section 6 (Layers) written by the team.*
