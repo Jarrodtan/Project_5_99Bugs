@@ -13,13 +13,13 @@ using UnityEngine;
 /// </summary>
 public static class BuildScript
 {
-    public static void BuildAndroid() => Build(BuildTarget.Android, "Build/Android/EcoBalance.apk");
+    public static void BuildAndroid() => Build(BuildTarget.Android, "Build/Android/EcoBalance3D.apk");
 
-    public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64, "Build/Windows/EcoBalance.exe");
+    public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64, "Build/Windows/EcoBalance3D.exe");
 
-    public static void BuildMacOS() => Build(BuildTarget.StandaloneOSX, "Build/macOS/EcoBalance.app");
+    public static void BuildMacOS() => Build(BuildTarget.StandaloneOSX, "Build/macOS/EcoBalance3D.app");
 
-    public static void BuildLinux() => Build(BuildTarget.StandaloneLinux64, "Build/Linux/EcoBalance.x86_64");
+    public static void BuildLinux() => Build(BuildTarget.StandaloneLinux64, "Build/Linux/EcoBalance3D.x86_64");
 
     static void Build(BuildTarget target, string outputPath)
     {

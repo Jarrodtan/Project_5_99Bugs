@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 /// <summary>
 /// Spawns optional ground and placeholder selectables for Play-mode verification.
@@ -57,7 +58,7 @@ public class SelectionDemoRig : MonoBehaviour
 
         var renderer = ground.GetComponent<Renderer>();
         if (renderer != null)
-            renderer.material.color = demoConfig.groundColor;
+            ApplyColor(renderer, demoConfig.groundColor);
     }
 
     void SpawnEntityPlaceholder()
@@ -107,8 +108,20 @@ public class SelectionDemoRig : MonoBehaviour
 
         var renderer = go.GetComponent<Renderer>();
         if (renderer != null)
-            renderer.material.color = color;
+            ApplyColor(renderer, color);
 
         return go;
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // CreatePrimitive gives the built-in default material, which URP cannot draw in a player build
+    // (shows magenta on Android). Swap in the pipeline's default material (URP Lit) before tinting.
+    static void ApplyColor(Renderer renderer, Color color)
+    {
+        var pipeline = GraphicsSettings.currentRenderPipeline;
+        if (pipeline != null && pipeline.defaultMaterial != null)
+            renderer.sharedMaterial = new Material(pipeline.defaultMaterial);
+        renderer.material.color = color;
+    }
+    // [AI-GENERATED END]
 }

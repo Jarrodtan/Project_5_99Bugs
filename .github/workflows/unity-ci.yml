@@ -85,11 +85,11 @@ jobs:
         with:
           projectPath: ${{ env.PROJECT_PATH }}
           targetPlatform: Android
-          buildName: EcoBalance
+          buildName: EcoBalance3D
           customParameters: -nographics   # same exit-137 memory fix as the test job
 
       - uses: actions/upload-artifact@v4
         with:
-          name: EcoBalance-Android
+          name: EcoBalance3D-Android
           path: build/Android
 # [AI-GENERATED END]
