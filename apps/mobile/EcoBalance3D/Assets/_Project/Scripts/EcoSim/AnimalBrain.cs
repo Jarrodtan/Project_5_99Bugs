@@ -29,8 +29,32 @@ public class AnimalBrain : MonoBehaviour
     public float chaseSpeedMultiplier = 1.4f;
     public float fleeSpeedMultiplier = 1.25f;
 
+    [Header("Eat / starve (simulator Events mode)")]
+    [Tooltip("Plant-eaters die if they haven't eaten or drunk for this many seconds (scaled by sim speed).")]
+    public float preyStarveAfterSeconds = 15f;
+    [Tooltip("Predators die if they haven't caught prey for this many seconds (scaled by sim speed).")]
+    public float predatorStarveAfterSeconds = 20f;
+    [Tooltip("Plant-eaters look for grass / water within this distance.")]
+    public float forageRadius = 20f;
+    [Tooltip("Amount taken from a grass / water patch per visit.")]
+    public float biteSize = 20f;
+
     private float base_speed;
     private float eat_timer = 0f;
+    private float hunger_time = 0f;
+    private ResourcePatch forage_target;
+    private readonly System.Collections.Generic.List<ResourceDefinition> wanted_resources = new();
+    private EcosystemSimulator simulator;
+
+    bool EventsMode => simulator != null && simulator.mode == EcosystemSimulator.SimulationMode.Events;
+    bool IsPredator => species_data != null && species_data.GetSpeciesTargets(RelationshipType.Eats).Count > 0;
+    float StarveAfter => IsPredator ? predatorStarveAfterSeconds : preyStarveAfterSeconds;
+
+    // Set when this animal is caught or starves. CreatureSpawner removes marked animals first when the
+    // population drops, so the sheep that was eaten (or the one that starved) is the one that disappears.
+    public float CaughtTime { get; private set; } = -1f;
+    public bool IsCaught => CaughtTime >= 0f && Time.time - CaughtTime < 5f; // freed again if not removed within 5 s
+    public void MarkCaught() => CaughtTime = Time.time;
     // [AI-GENERATED END]
 
     void Start()
@@ -40,6 +64,7 @@ public class AnimalBrain : MonoBehaviour
         audio = GetComponent<AudioSource>();
 
         simulationController = FindAnyObjectByType<SimulationSpeedController>();
+        simulator = FindAnyObjectByType<EcosystemSimulator>(); // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
         // Find collider to determine where is the floor
         Collider col = GetComponentInChildren<Collider>();
@@ -57,6 +82,9 @@ public class AnimalBrain : MonoBehaviour
         if (species_data != null)
         {
             gameObject.name = species_data.speciesName;
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): resources this animal eats (Grass) or needs (Water).
+            wanted_resources.AddRange(species_data.GetResourceTargets(RelationshipType.Eats));
+            wanted_resources.AddRange(species_data.GetResourceTargets(RelationshipType.Needs));
         }
     }
 
@@ -71,6 +99,13 @@ public class AnimalBrain : MonoBehaviour
 
         agent.isStopped = false;
 
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a caught animal stays still while it is being eaten.
+        if (IsCaught)
+        {
+            agent.isStopped = true;
+            return;
+        }
+
         float speed = 1f;
 
         if (simulationController != null)
@@ -79,13 +114,27 @@ public class AnimalBrain : MonoBehaviour
         }
 
         // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-        // Priority: eat (after a catch) > flee from predator > hunt prey > roam.
+        // Events mode: starve (-1) if nothing eaten for too long. The starved animal is marked so it is the one removed.
+        if (EventsMode && species_data != null)
+        {
+            hunger_time += Time.deltaTime * speed;
+            if (hunger_time >= StarveAfter)
+            {
+                hunger_time = 0f;
+                simulator.RecordStarvation(species_data);
+                MarkCaught();
+                agent.isStopped = true;
+                return;
+            }
+        }
+
+        // Priority: eat (after a catch / bite) > flee from predator > hunt prey > go to grass/water > roam.
         if (eat_timer > 0f)
         {
             eat_timer -= Time.deltaTime * speed;
             agent.isStopped = true;
         }
-        else if (!Flee(speed) && !Hunt(speed))
+        else if (!Flee(speed) && !Hunt(speed) && !Forage(speed))
         {
             agent.speed = base_speed * speed;
 
@@ -94,7 +143,11 @@ public class AnimalBrain : MonoBehaviour
 
             if (wander_timer <= 0f)
             {
-                Roam();
+                // Hungry plant-eaters head for grass / water; otherwise wander.
+                if (wanted_resources.Count > 0 && (!EventsMode || hunger_time > StarveAfter * 0.3f || Random.value < 0.3f))
+                    forage_target = ResourcePatch.FindNearest(transform.position, wanted_resources, forageRadius);
+                if (forage_target == null)
+                    Roam();
                 wander_timer = Random.Range(3f, 6f);
             }
         }
@@ -141,6 +194,30 @@ public class AnimalBrain : MonoBehaviour
         return true;
     }
 
+    // Walk to the chosen grass / water patch and take a bite (Events mode: +1 if the resource had enough).
+    bool Forage(float speed)
+    {
+        if (forage_target == null) return false;
+        if (!forage_target.IsEdible) { forage_target = null; return false; }
+
+        Vector3 to = forage_target.transform.position - transform.position;
+        to.y = 0f;
+        if (to.magnitude <= catchDistance + 0.5f)
+        {
+            forage_target.Consume(biteSize);
+            if (EventsMode) simulator.RecordEat(species_data, forage_target.Resource, biteSize);
+            hunger_time = 0f;
+            forage_target = null;
+            eat_timer = eatDuration;
+            agent.ResetPath();
+            return true;
+        }
+
+        agent.speed = base_speed * speed;
+        agent.SetDestination(forage_target.transform.position);
+        return true;
+    }
+
     // Chase the nearest prey; stop to eat when caught. Returns false when no prey is in range.
     bool Hunt(float speed)
     {
@@ -148,9 +225,19 @@ public class AnimalBrain : MonoBehaviour
         Transform prey = EcoRegistry.NearestPrey(species_data, transform.position, huntRadius);
         if (prey == null) return false;
 
+        prey.TryGetComponent(out AnimalBrain preyBrain);
+        if (preyBrain != null && preyBrain.IsCaught) return false; // already being eaten
+
         if (Vector3.Distance(transform.position, prey.position) <= catchDistance)
         {
-            // Visual only: population numbers come from EcosystemSimulator, so the sheep is not destroyed here.
+            // The sheep is not destroyed here. It is marked as caught; CreatureSpawner removes it first
+            // when the sheep population drops (Events mode: right now, via RecordPredation).
+            if (preyBrain != null)
+            {
+                preyBrain.MarkCaught();
+                if (EventsMode) simulator.RecordPredation(species_data, preyBrain.species_data);
+            }
+            hunger_time = 0f;
             eat_timer = eatDuration;
             agent.ResetPath();
             return true;

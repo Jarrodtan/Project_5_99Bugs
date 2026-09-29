@@ -1677,11 +1677,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e1579ea8083b1842ab59119dca6bc6b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EcosystemSimulator
+  mode: 1
+  eventRegenPerTick: 3
   species:
   - {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
   - {fileID: 11400000, guid: 2829b3f512f18b14d931a7a5801afa6d, type: 2}
   resources:
   - {fileID: 11400000, guid: 76da2c5da0148784389995384801e63e, type: 2}
+  - {fileID: 11400000, guid: f6b50b4acdcea254cb9ed2f6fa536c22, type: 2}
 --- !u!4 &933990896
 Transform:
   m_ObjectHideFlags: 0
@@ -3628,10 +3631,82 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &1900000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1900000002}
+  - component: {fileID: 1900000003}
+  - component: {fileID: 1900000004}
+  m_Layer: 0
+  m_Name: ResourcePatches
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1900000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1900000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1900000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1900000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 188f1090d05042fc811ddc2233e7769a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ResourcePatchSpawner
+  resource: {fileID: 11400000, guid: 76da2c5da0148784389995384801e63e, type: 2}
+  count: 8
+  radius: 7
+  minRadius: 2
+  shape: 3
+  size: {x: 1.2, y: 0.25, z: 1.2}
+  color: {r: 0.3, g: 0.75, b: 0.3, a: 1}
+--- !u!114 &1900000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1900000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 188f1090d05042fc811ddc2233e7769a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ResourcePatchSpawner
+  resource: {fileID: 11400000, guid: f6b50b4acdcea254cb9ed2f6fa536c22, type: 2}
+  count: 3
+  radius: 7
+  minRadius: 3
+  shape: 2
+  size: {x: 2.5, y: 0.05, z: 2.5}
+  color: {r: 0.2, g: 0.5, b: 0.95, a: 1}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 1900000002}
   - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 832575519}

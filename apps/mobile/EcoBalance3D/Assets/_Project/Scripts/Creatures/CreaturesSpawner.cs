@@ -20,7 +20,7 @@ public class CreatureSpawner : MonoBehaviour {
         if (species.visualPrefab == null) return;
 
         float pop = simulator.populations[species];
-        int targetCount = Mathf.Min(maxVisible, Mathf.CeilToInt(pop / populationPerVisual));
+        int targetCount = Mathf.Min(maxVisible, Mathf.RoundToInt(pop / populationPerVisual)); // [AI-GENERATED] Claude Code (Claude Opus 5.5): round like PopulationDisplay so models match the label
 
         while (spawned.Count < targetCount) {
             Vector3 pos = new Vector3(
@@ -46,11 +46,31 @@ public class CreatureSpawner : MonoBehaviour {
         }
 
         while (spawned.Count > targetCount) {
-            int last = spawned.Count - 1;
-            Destroy(spawned[last]);
-            spawned.RemoveAt(last);
+            int index = IndexToRemove(); // [AI-GENERATED] Claude Code (Claude Opus 5.5): caught animals go first
+            Destroy(spawned[index]);
+            spawned.RemoveAt(index);
         }
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Which model to remove when the population drops: the most recently caught animal (so the one a
+    // predator just ate disappears), otherwise the last spawned one (e.g. starvation).
+    int IndexToRemove()
+    {
+        int best = spawned.Count - 1;
+        float bestTime = -1f;
+        for (int i = 0; i < spawned.Count; i++)
+        {
+            if (spawned[i] == null) return i;
+            if (spawned[i].TryGetComponent(out AnimalBrain brain) && brain.CaughtTime > bestTime)
+            {
+                bestTime = brain.CaughtTime;
+                best = i;
+            }
+        }
+        return best;
+    }
+    // [AI-GENERATED END]
 
     public void ResetVisuals()
     {
