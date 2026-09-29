@@ -17,7 +17,7 @@ MonoBehaviour:
   idle: {fileID: 8300000, guid: 7d59bd7e7c4ae914f97bdd4bba45d438, type: 3}
   eat: {fileID: 0}
   death: {fileID: 0}
-  startingPopulation: 50
+  startingPopulation: 20
   relationships:
   - type: 0
     targetSpecies: {fileID: 0}

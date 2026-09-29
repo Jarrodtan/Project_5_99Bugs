@@ -29,8 +29,17 @@ public class AnimalBrain : MonoBehaviour
     public float chaseSpeedMultiplier = 1.4f;
     public float fleeSpeedMultiplier = 1.25f;
 
+    [Tooltip("Plant-eaters look for grass / water within this distance.")]
+    public float forageRadius = 15f;
+    [Tooltip("Chance (0-1) that a roaming animal heads to food or water instead of a random spot.")]
+    [Range(0f, 1f)] public float forageChance = 0.6f;
+    [Tooltip("Amount taken from a patch per visit.")]
+    public float biteSize = 20f;
+
     private float base_speed;
     private float eat_timer = 0f;
+    private ResourcePatch forage_target;
+    private readonly System.Collections.Generic.List<ResourceDefinition> wanted_resources = new();
     // [AI-GENERATED END]
 
     void Start()
@@ -57,6 +66,9 @@ public class AnimalBrain : MonoBehaviour
         if (species_data != null)
         {
             gameObject.name = species_data.speciesName;
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): resources this animal eats (Grass) or needs (Water).
+            wanted_resources.AddRange(species_data.GetResourceTargets(RelationshipType.Eats));
+            wanted_resources.AddRange(species_data.GetResourceTargets(RelationshipType.Needs));
         }
     }
 
@@ -79,13 +91,13 @@ public class AnimalBrain : MonoBehaviour
         }
 
         // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-        // Priority: eat (after a catch) > flee from predator > hunt prey > roam.
+        // Priority: eat (after a catch / bite) > flee from predator > hunt prey > go to grass/water > roam.
         if (eat_timer > 0f)
         {
             eat_timer -= Time.deltaTime * speed;
             agent.isStopped = true;
         }
-        else if (!Flee(speed) && !Hunt(speed))
+        else if (!Flee(speed) && !Hunt(speed) && !Forage(speed))
         {
             agent.speed = base_speed * speed;
 
@@ -94,7 +106,10 @@ public class AnimalBrain : MonoBehaviour
 
             if (wander_timer <= 0f)
             {
-                Roam();
+                if (Random.value < forageChance)
+                    forage_target = ResourcePatch.FindNearest(transform.position, wanted_resources, forageRadius);
+                if (forage_target == null)
+                    Roam();
                 wander_timer = Random.Range(3f, 6f);
             }
         }
@@ -138,6 +153,28 @@ public class AnimalBrain : MonoBehaviour
         agent.speed = base_speed * fleeSpeedMultiplier * speed;
         agent.SetDestination(hit.position);
         wander_timer = 0.5f;
+        return true;
+    }
+
+    // Walk to the chosen grass/water patch and take a bite. Returns false when there is no target.
+    bool Forage(float speed)
+    {
+        if (forage_target == null) return false;
+        if (!forage_target.IsEdible) { forage_target = null; return false; }
+
+        Vector3 to = forage_target.transform.position - transform.position;
+        to.y = 0f;
+        if (to.magnitude <= catchDistance)
+        {
+            forage_target.Consume(biteSize);
+            forage_target = null;
+            eat_timer = eatDuration;
+            agent.ResetPath();
+            return true;
+        }
+
+        agent.speed = base_speed * speed;
+        agent.SetDestination(forage_target.transform.position);
         return true;
     }
 

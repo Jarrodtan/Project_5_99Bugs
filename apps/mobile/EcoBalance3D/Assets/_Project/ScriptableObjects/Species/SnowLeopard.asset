@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SnowLeopard
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
   speciesName: SnowLeopard
-  startingPopulation: 5
+  startingPopulation: 3
   relationships:
   - type: 0
     targetSpecies: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
