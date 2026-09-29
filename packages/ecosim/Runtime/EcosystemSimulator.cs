@@ -29,6 +29,16 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
     [System.NonSerialized]
     public Dictionary<SpeciesDefinition, float> populations = new();
 
+    /// <summary>
+    /// Starting counts picked on the Configuration screen, keyed by species asset name.
+    /// A species listed here starts (and resets) at this count instead of its startingPopulation.
+    /// </summary>
+    public static readonly Dictionary<string, float> StartingPopulationOverrides = new();
+
+    // Domain reload is off in this project, so statics survive between Play sessions: start each one empty.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ClearStartingPopulationOverrides() => StartingPopulationOverrides.Clear();
+
     void Start()
     {
         ResetEcosystem();
@@ -44,7 +54,9 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
         foreach (var s in species)
         {
             if (s == null) continue;
-            populations[s] = s.startingPopulation;
+            populations[s] = StartingPopulationOverrides.TryGetValue(s.name, out float chosen)
+                ? chosen
+                : s.startingPopulation;
         }
         // Resource assets keep their values between Play sessions in the Editor,
         // so each run starts from the configured starting amount.
