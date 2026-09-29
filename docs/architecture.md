@@ -99,7 +99,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Audio | `Audio/AudioManager` | — | Li Juan | Setup in progress |
 | Metrics & Data Logging | *(planned)* | T05 (optional) | Unassigned | Not started |
 | Weather & Hazard Events | *(planned)* | T06 (optional) | Unassigned | Not started |
-| CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `Tests/Editor/*` | #4, #5 | Wei Leong | Done: tests + Android build green on `main` |
+| CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `packages/ecosim/Tests/Editor/*`, `Assets/_Project/Tests/Editor/*` | #4, #5 | Wei Leong | Done: tests + Android build green on `main` |
 | UI/UX design | Figma / `docs/design/ui-ux` | — | Nomitha, Shu Min (Design) | Wireframes / mockups |
 
 ## 4. Data stores
@@ -149,10 +149,32 @@ There is no server or database. EcoBalance is a single offline mobile app.
 - **Island Platform:** `IslandManager` owns the active island instance (spawn at `worldAnchor`, `centerOffset` pivot fix, swap with fade + ecosystem reset). Per-island data lives on `IslandDefinition` assets; platform knobs on `IslandPlatformConfig`. Implements `IOrbitTarget` for the camera.
 - **Orbit Camera:** `OrbitCameraController` + `CameraConfig` (InputActionReferences, clamps, damping); pivots via `IOrbitTarget` only. 
 
-## 7. Design principles
+## 7. Repository and module structure
+
+```
+apps/mobile/EcoBalance3D/   Unity app: scenes, art, audio, prefabs, app scripts (UI, island, camera,
+                            clock, spawners, animal brains / behaviour tree), app tests
+packages/ecosim/            Unity package com.99bugs.ecosim: simulation core + tests
+docs/  tests/  tools/  .github/workflows/
+```
+
+| Module | Assembly | May depend on | Must not depend on |
+|---|---|---|---|
+| `packages/ecosim/Runtime` | `EcoSim` | UnityEngine only | Any app code |
+| `packages/ecosim/Tests/Editor` | `EcoSim.Tests.Editor` | `EcoSim`, NUnit | App code |
+| `apps/mobile/EcoBalance3D/Assets` | `Assembly-CSharp` (+ `-Editor`) | `EcoSim` (auto-referenced) | — |
+
+**Why this split:** the simulation core (species/resource data, relationships, `EcosystemSimulator`,
+`EcoRegistry`, AI data types) is the part we most want to keep correct and reusable, so it is a separate
+Unity package with its own assembly and tests. The compiler now enforces the one-way dependency
+(the core cannot see UI or scene code). When the core needs something from the app it defines an
+interface that the app implements (`IEcosystemReset`, used by the island swap). App-specific behaviour
+stays in the app because it depends on scenes, TextMeshPro, NavMesh and teammates' systems.
+
+## 8. Design principles
 
 - **Data-driven:** new organisms, resources or relationships are added as data assets, without new simulation code. This has been validated conceptually on two domains (Himalayan blue sheep/snow leopard, and a tree/paper resource cycle).
-- **Layered, one-way dependencies:** the simulation never references UI. The UI reads simulation state (through interfaces from M2).
+- **Layered, one-way dependencies:** the simulation never references UI; this is enforced by the `EcoSim` package assembly (§7). The UI reads simulation state (through interfaces from M2).
 - **Testable core:** the simulation logic runs in EditMode tests without a scene, and CI runs those tests on every PR.
 
 ---

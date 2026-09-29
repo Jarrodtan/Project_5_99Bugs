@@ -2,11 +2,16 @@
 
 EcoBalance is data-driven. Species and resources are **ScriptableObject assets**, not hardcoded values. Every team member must follow the rules below.
 
-## Folder structure (`EcoBalance3D/Assets/_Project/`)
+## Where code lives
+
+- **Simulation core** (data types, relationships, simulator, registry): `packages/ecosim/Runtime/`, tests in `packages/ecosim/Tests/Editor/`. It must not reference app code.
+- **Everything app-specific** (UI, island, camera, spawners, animal brains, audio): `apps/mobile/EcoBalance3D/Assets/_Project/Scripts/`.
+
+## Folder structure (`apps/mobile/EcoBalance3D/Assets/_Project/`)
 
 | Folder | Contents |
 |---|---|
-| `Scripts/<System>/` | C# code grouped by system (`EcoSim`, `Selection`, `Inspection`, `Creatures`) |
+| `Scripts/<System>/` | App C# code grouped by system (`EcoSim` clock/brains, `Behaviourtreecore`, `Selection`, `Inspection`, `Creatures`, `UI`) |
 | `ScriptableObjects/Species/` | `SpeciesDefinition` assets (e.g. `BlueSheep`, `SnowLeopard`) |
 | `ScriptableObjects/Resources/` | `ResourceDefinition` assets (e.g. `Grass`, `Water`) |
 | `Data/` | Config assets for other systems (Inspection, Selection, SimulationData) |
@@ -14,7 +19,7 @@ EcoBalance is data-driven. Species and resources are **ScriptableObject assets**
 | `Prefabs/UI/` | UI prefabs |
 | `Art/`, `Audio/` | Imported models, textures, materials and sounds |
 | `Scenes/` | Game scenes. Personal test scenes are named `<Initials>_Test_<Topic>` |
-| `Tests/Editor/` | EditMode unit tests |
+| `Tests/Editor/` | App EditMode tests (core tests are in the package) |
 
 Nothing project-specific goes outside `_Project/`. Third-party and imported packages stay in their own folders.
 
@@ -42,7 +47,7 @@ Nothing project-specific goes outside `_Project/`. Third-party and imported pack
 
 - `EcosystemSimulator` checks its configuration before each tick. Empty entries in Species, Resources or `eats` are removed and a warning is logged, instead of crashing the simulation.
 - Rates (`reproductionRate`, `predationRate`, `starvationThreshold`) must be ≥ 0, and `currentAmount` must be ≤ `maxAmount`.
-- EditMode tests in `Tests/Editor/` run in CI on every PR. A PR must not be merged while tests are failing.
+- EditMode tests (package + app) run in CI on every PR. A PR must not be merged while tests are failing.
 
 ---
 *Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed and edited by Tan Wei Leong.*
