@@ -12,8 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ffe421207378a645a5018406cf9c6c2, type: 3}
   m_Name: Water
   m_EditorClassIdentifier: Assembly-CSharp::ResourceDefinition
-  resourceName: Water
-  regenRate: 10
+  resourceName: 
+  regenRate: 1
   maxAmount: 100
   currentAmount: 100
-  startingAmount: 100

@@ -124,19 +124,3 @@ node_modules/
 
 # Local test run output (tools/unity.sh test)
 test-results.xml
-
-# [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-# Guard: files Unity creates if someone opens the REPO ROOT instead of apps/mobile/EcoBalance3D.
-# The real project lives in apps/mobile/EcoBalance3D; nothing Unity-generated belongs at the root.
-/Assets/
-/ProjectSettings/
-/UserSettings/
-/packages/manifest.json
-/packages/packages-lock.json
-/Packages/manifest.json
-/Packages/packages-lock.json
-/*.csproj
-/*.sln
-/*.slnx
-/.vsconfig
-# [AI-GENERATED END]

@@ -46,16 +46,6 @@ public class ResourcePatch : MonoBehaviour
         UpdateVisual();
     }
 
-    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-    // Sets the resource for a patch created from code (see ResourcePatchSpawner) and refills it.
-    public void Configure(ResourceDefinition value)
-    {
-        resource = value;
-        amount = MaxAmount * startFill;
-        UpdateVisual();
-    }
-    // [AI-GENERATED END]
-
     void OnEnable() => All.Add(this);
     void OnDisable() => All.Remove(this);
 

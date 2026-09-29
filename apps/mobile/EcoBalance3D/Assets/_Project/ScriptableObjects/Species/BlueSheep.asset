@@ -17,7 +17,7 @@ MonoBehaviour:
   idle: {fileID: 8300000, guid: 7d59bd7e7c4ae914f97bdd4bba45d438, type: 3}
   eat: {fileID: 0}
   death: {fileID: 0}
-  startingPopulation: 2
+  startingPopulation: 50
   relationships:
   - type: 0
     targetSpecies: {fileID: 0}
@@ -25,7 +25,7 @@ MonoBehaviour:
   - type: 1
     targetSpecies: {fileID: 0}
     targetResource: {fileID: 11400000, guid: f6b50b4acdcea254cb9ed2f6fa536c22, type: 2}
-  reproductionRate: 0.5
+  reproductionRate: 0.1
   starvationThreshold: 0.2
   needs:
   - {fileID: 11400000, guid: 5d16c35420270584d9818a760b72199d, type: 2}
