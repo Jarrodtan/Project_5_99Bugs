@@ -12,8 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd10ba53277213b4f87e228a0819a3b3, type: 3}
   m_Name: TestData
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
-  speciesName: Blue Sheep
-  visualPrefab: {fileID: 0}
+  speciesName: Test
   eats: []
   needs: []
   reproductionRate: 2
