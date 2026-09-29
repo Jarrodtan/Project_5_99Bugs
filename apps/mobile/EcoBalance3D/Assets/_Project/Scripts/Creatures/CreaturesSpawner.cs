@@ -1,11 +1,14 @@
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.AI;
 
 public class CreatureSpawner : MonoBehaviour {
     public SpeciesDefinition species;
     public EcosystemSimulator simulator;
     public int maxVisible = 10;
     public float spawnRadius = 8f;
+
+
     // [AI-GENERATED] Claude Code (Claude Opus 5.5): one visual per N animals, so the number of
     // visible agents follows real populations (e.g. 50 sheep) instead of sitting at maxVisible.
     [Min(1f)] public float populationPerVisual = 5f;
@@ -25,12 +28,21 @@ public class CreatureSpawner : MonoBehaviour {
                 0.5f,
                 Random.Range(-spawnRadius, spawnRadius)
             );
-            GameObject go = Instantiate(species.visualPrefab, pos, Quaternion.identity, transform);
-            // [AI-GENERATED] Claude Code (Claude Opus 5.5): make spawned animals findable by EcoRegistry.
-            var entity = go.GetComponent<EcoEntity>();
-            if (entity == null) entity = go.AddComponent<EcoEntity>();
-            entity.SetDefinition(species);
-            spawned.Add(go);
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(pos, out hit, 4f, NavMesh.AllAreas))
+            {
+                GameObject go = Instantiate(species.visualPrefab, hit.position, Quaternion.identity, transform);
+
+                var entity = go.GetComponent<EcoEntity>();
+                if (entity == null) entity = go.AddComponent<EcoEntity>();
+                entity.SetDefinition(species);
+
+                spawned.Add(go);
+            }
+            else
+            {
+                break;
+            }
         }
 
         while (spawned.Count > targetCount) {

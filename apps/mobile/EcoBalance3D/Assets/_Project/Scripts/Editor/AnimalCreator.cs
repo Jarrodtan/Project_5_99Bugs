@@ -53,6 +53,7 @@ public class AnimalCreator : EditorWindow
 
         EditorGUILayout.Space();
         GUILayout.Label("Visuals", EditorStyles.boldLabel);
+        prefab = (GameObject)EditorGUILayout.ObjectField("Visual Prefab", prefab, typeof(GameObject), false);
 
         EditorGUILayout.Space();
 
