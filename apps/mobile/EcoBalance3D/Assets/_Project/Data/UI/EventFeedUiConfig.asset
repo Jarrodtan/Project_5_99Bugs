@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db830c500773488e8fd2f94130b9211b, type: 3}
+  m_Name: EventFeedUiConfig
+  m_EditorClassIdentifier: Assembly-CSharp::EventFeedUiConfig
+  panelWidth: 300
+  panelAnchor: {x: 0, y: 0}
+  panelAnchoredPosition: {x: 20, y: 20}
+  backgroundColor: {r: 0.08, g: 0.1, b: 0.12, a: 0.92}
+  panelPadding: 12
+  canvasSortOrder: 92
+  titleText: Events
+  titleFontSize: 22
+  titleColor: {r: 1, g: 1, b: 1, a: 1}
+  font: {fileID: 0}
+  maxVisibleEntries: 8
+  rowFontSize: 15
+  rowMinHeight: 22
+  rowSpacing: 2
+  rowTextInset: 6
+  entryFormat: '{0}'
+  noDataText: "Waiting for simulation events\u2026"
+  textColor: {r: 0.92, g: 0.92, b: 0.92, a: 1}
+  oldestEntryAlpha: 0.45
+  rowBackgroundColor: {r: 1, g: 1, b: 1, a: 0}
+  unavailableTextColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
+  newEntryHighlightColor: {r: 0.35, g: 0.7, b: 1, a: 0.35}
+  highlightDurationSeconds: 1.2
+  pollIntervalSeconds: 0.25

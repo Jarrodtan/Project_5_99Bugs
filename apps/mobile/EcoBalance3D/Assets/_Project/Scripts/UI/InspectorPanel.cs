@@ -7,9 +7,11 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Type-agnostic inspector content view. Binds to <see cref="SelectionContext"/> and paints
-/// <see cref="IInspectable"/> stats. Placement is delegated to <see cref="IOverlayPositioner"/> modules.
+/// <see cref="IInspectable"/> stats. Placement is delegated to <see cref="IOverlayPositioner"/> modules,
+/// unless the panel is hosted as the contextual Inspect tab of <see cref="TabbedStatsPanel"/>; then it sits in
+/// the tab content area and its tab is available only while a valid inspectable is selected.
 /// </summary>
-public class InspectorPanel : MonoBehaviour
+public class InspectorPanel : MonoBehaviour, ITabbedPanelContent
 {
     [Tooltip("Shared selection session to listen to.")]
     [SerializeField]
@@ -40,6 +42,46 @@ public class InspectorPanel : MonoBehaviour
     bool built;
     bool contentVisible;
     bool positionVisible = true;
+    readonly TabContentFrame frame = new();
+    readonly List<LabeledStatRowView> listRowPool = new();
+    CanvasGroup rowsGroup;
+    bool isStale;
+    SelectionHandle currentHandle;
+    int visibleRowCount;
+    float nextLiveRefreshTime;
+    bool reportedTabAvailable;
+
+    /// <inheritdoc />
+    public string TabLabel => uiConfig != null && !string.IsNullOrEmpty(uiConfig.tabLabel) ? uiConfig.tabLabel : name;
+
+    /// <inheritdoc />
+    public bool IsTabAvailable => contentVisible;
+
+    /// <inheritdoc />
+    public event System.Action TabAvailabilityChanged;
+
+    /// <inheritdoc />
+    public event System.Action TabFocusRequested;
+
+    // Hosted as the Inspect tab with a shared list style: rows render like the Population tab.
+    StatListStyle ListStyle => frame.IsEmbedded && uiConfig != null ? uiConfig.tabListStyle : null;
+
+    /// <inheritdoc />
+    public void EmbedIn(RectTransform host)
+    {
+        if (!frame.EmbedIn(host))
+            return;
+
+        // Hosted: the tab bar owns placement, so the overlay canvases and positioners sit idle.
+        activePositioner?.ClearTarget();
+        screenCanvas.gameObject.SetActive(false);
+        worldCanvas.gameObject.SetActive(false);
+        ApplyLayoutFromConfig();
+        RefreshVisibility();
+    }
+
+    /// <inheritdoc />
+    public void SetShown(bool isShown) => frame.SetShown(isShown);
 
     /// <summary>
     /// Replaces default positioner modules. Call before the first Show / LateUpdate if customizing.
@@ -82,9 +124,13 @@ public class InspectorPanel : MonoBehaviour
             return;
         }
 
+        currentHandle = handle;
+        nextLiveRefreshTime = Time.unscaledTime + uiConfig.liveRefreshIntervalSeconds;
+        SetStale(false);
         ApplyContent(inspectable);
         currentTarget = ResolveTargetTransform(handle);
-        activePositioner?.SetTarget(currentTarget);
+        if (!frame.IsEmbedded)
+            activePositioner?.SetTarget(currentTarget);
         contentVisible = true;
         positionVisible = true;
         RefreshVisibility();
@@ -100,6 +146,8 @@ public class InspectorPanel : MonoBehaviour
 
         activePositioner?.ClearTarget();
         currentTarget = null;
+        currentHandle = SelectionHandle.None;
+        SetStale(false);
         contentVisible = false;
         positionVisible = false;
         RefreshVisibility();
@@ -137,7 +185,12 @@ public class InspectorPanel : MonoBehaviour
 
     void LateUpdate()
     {
-        if (!built || uiConfig == null || activePositioner == null)
+        if (!built || uiConfig == null)
+            return;
+
+        TickLiveRefresh();
+
+        if (frame.IsEmbedded || activePositioner == null)
             return;
 
         if (appliedMode != uiConfig.overlayMode)
@@ -159,7 +212,11 @@ public class InspectorPanel : MonoBehaviour
         if (change.Current.IsValid)
             Show(change.Current);
         else
-            Hide();
+            HideOrKeepStale();
+
+        // Every new inspectable selection pulls the tab host to Inspect, not just the first reveal.
+        if (change.Current.IsValid && contentVisible)
+            TabFocusRequested?.Invoke();
     }
 
     bool EnsureReady()
@@ -200,6 +257,7 @@ public class InspectorPanel : MonoBehaviour
         var panelGo = new GameObject("Panel");
         panelGo.transform.SetParent(screenGo.transform, false);
         panelRoot = panelGo.AddComponent<RectTransform>();
+        frame.AttachRoot(panelRoot);
         panelBackground = panelGo.AddComponent<Image>();
         panelBackground.raycastTarget = true;
 
@@ -242,6 +300,9 @@ public class InspectorPanel : MonoBehaviour
 
     void ApplyOverlayMode(OverlayMode mode, bool force)
     {
+        if (frame.IsEmbedded)
+            return;
+
         if (!force && activePositioner != null && appliedMode == mode)
             return;
 
@@ -289,7 +350,17 @@ public class InspectorPanel : MonoBehaviour
             screenCanvas.sortingOrder = uiConfig.canvasSortOrder;
 
         if (panelRoot != null)
-            panelRoot.sizeDelta = uiConfig.panelSize;
+        {
+            if (frame.IsEmbedded)
+            {
+                frame.ApplyPlacement(Vector2.zero, Vector2.zero, 0f);
+                panelRoot.sizeDelta = new Vector2(0f, EmbeddedHeight());
+            }
+            else
+            {
+                panelRoot.sizeDelta = uiConfig.panelSize;
+            }
+        }
 
         if (panelBackground != null)
             panelBackground.color = uiConfig.backgroundColor;
@@ -315,6 +386,17 @@ public class InspectorPanel : MonoBehaviour
 
         for (var i = 0; i < rowPool.Count; i++)
             rowPool[i].ApplyStyle(uiConfig);
+
+        var listStyle = ListStyle;
+        if (listStyle != null)
+        {
+            StatListStyling.ApplyPanel(listStyle, panelBackground, null);
+            StatListStyling.ApplyTitle(listStyle, titleText);
+            if (rowsLayout != null)
+                rowsLayout.spacing = listStyle.rowSpacing;
+            for (var i = 0; i < listRowPool.Count; i++)
+                listRowPool[i].ApplyStyle(listStyle);
+        }
     }
 
     void LayoutTitleAndRows()
@@ -322,8 +404,10 @@ public class InspectorPanel : MonoBehaviour
         if (titleRect == null || rowsParent == null)
             return;
 
-        var pad = uiConfig.panelPadding;
-        var titleHeight = uiConfig.titleFontSize + uiConfig.rowSpacing;
+        var listStyle = ListStyle;
+        var pad = listStyle != null ? listStyle.panelPadding : uiConfig.panelPadding;
+        var rowSpacing = listStyle != null ? listStyle.rowSpacing : uiConfig.rowSpacing;
+        var titleHeight = listStyle != null ? StatListStyling.TitleHeight(listStyle) : uiConfig.titleFontSize + uiConfig.rowSpacing;
 
         titleRect.anchorMin = new Vector2(0f, 1f);
         titleRect.anchorMax = new Vector2(1f, 1f);
@@ -334,17 +418,25 @@ public class InspectorPanel : MonoBehaviour
         rowsParent.anchorMin = new Vector2(0f, 0f);
         rowsParent.anchorMax = new Vector2(1f, 1f);
         rowsParent.offsetMin = new Vector2(pad, pad);
-        rowsParent.offsetMax = new Vector2(-pad, -pad - titleHeight - uiConfig.rowSpacing);
+        rowsParent.offsetMax = new Vector2(-pad, -pad - titleHeight - rowSpacing);
     }
 
     void ApplyContent(IInspectable inspectable)
     {
+        var stats = inspectable.GetStats();
+        var count = stats != null ? stats.Count : 0;
+        visibleRowCount = count;
+
         ApplyLayoutFromConfig();
 
         titleText.text = inspectable.GetDisplayName() ?? string.Empty;
 
-        var stats = inspectable.GetStats();
-        var count = stats != null ? stats.Count : 0;
+        if (ListStyle != null)
+        {
+            BindListRows(stats, count);
+            return;
+        }
+
         EnsureRowCount(count);
 
         for (var i = 0; i < rowPool.Count; i++)
@@ -396,7 +488,95 @@ public class InspectorPanel : MonoBehaviour
         if (panelRoot == null)
             return;
 
-        panelRoot.gameObject.SetActive(contentVisible && positionVisible);
+        // Hosted: no positioner, so only content decides; the tab host handles show/hide.
+        panelRoot.gameObject.SetActive(contentVisible && (frame.IsEmbedded || positionVisible));
+
+        if (reportedTabAvailable != contentVisible)
+        {
+            reportedTabAvailable = contentVisible;
+            TabAvailabilityChanged?.Invoke();
+        }
+    }
+
+    void TickLiveRefresh()
+    {
+        if (!contentVisible || isStale || uiConfig.liveRefreshIntervalSeconds <= 0f || Time.unscaledTime < nextLiveRefreshTime)
+            return;
+
+        nextLiveRefreshTime = Time.unscaledTime + uiConfig.liveRefreshIntervalSeconds;
+        if (TryResolveInspectable(currentHandle, out var inspectable))
+            ApplyContent(inspectable);
+        else
+            HideOrKeepStale();
+    }
+
+    // Deselect policy for the Inspect tab (InspectionUiConfig.tabDeselectBehaviour). The floating overlay always hides.
+    void HideOrKeepStale()
+    {
+        var keep = frame.IsEmbedded
+                   && contentVisible
+                   && uiConfig.tabDeselectBehaviour == InspectTabDeselectBehaviour.KeepLastSelection;
+        if (!keep)
+        {
+            Hide();
+            return;
+        }
+
+        // Tab stays available; content freezes and is visibly marked as the last-seen object.
+        var lastName = isStale ? null : titleText.text;
+        currentHandle = SelectionHandle.None;
+        SetStale(true);
+        if (lastName != null)
+            titleText.text = string.Format(uiConfig.staleTitleFormat ?? "{0}", lastName);
+    }
+
+    void SetStale(bool stale)
+    {
+        isStale = stale;
+        if (rowsParent == null)
+            return;
+
+        if (rowsGroup == null)
+        {
+            if (!stale)
+                return;
+            rowsGroup = rowsParent.gameObject.AddComponent<CanvasGroup>();
+        }
+
+        rowsGroup.alpha = stale ? uiConfig.staleRowsAlpha : 1f;
+    }
+
+    void BindListRows(IReadOnlyList<StatEntry> stats, int count)
+    {
+        for (var i = 0; i < rowPool.Count; i++)
+            rowPool[i].SetVisible(false);
+
+        while (listRowPool.Count < count)
+            listRowPool.Add(LabeledStatRowView.Create(rowsParent, ListStyle));
+
+        for (var i = 0; i < listRowPool.Count; i++)
+        {
+            if (i < count)
+            {
+                listRowPool[i].Bind(stats[i]);
+                listRowPool[i].SetVisible(true);
+            }
+            else
+            {
+                listRowPool[i].SetVisible(false);
+            }
+        }
+    }
+
+    float EmbeddedHeight()
+    {
+        if (ListStyle != null)
+            return StatListStyling.PanelHeight(ListStyle, visibleRowCount);
+
+        var pad = uiConfig.panelPadding;
+        var titleHeight = uiConfig.titleFontSize + uiConfig.rowSpacing;
+        var rows = visibleRowCount * uiConfig.rowHeight + Mathf.Max(0, visibleRowCount - 1) * uiConfig.rowSpacing;
+        return pad * 2f + titleHeight + uiConfig.rowSpacing + rows;
     }
 
     static Transform ResolveTargetTransform(SelectionHandle handle)

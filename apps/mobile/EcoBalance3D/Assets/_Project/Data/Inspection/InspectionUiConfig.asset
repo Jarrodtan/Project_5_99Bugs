@@ -27,6 +27,12 @@ MonoBehaviour:
   rowSpacing: 4
   labelColumnWidthRatio: 0.45
   startHidden: 1
+  liveRefreshIntervalSeconds: 0.5
+  tabLabel: Inspect
+  tabListStyle: {fileID: 11400000, guid: 44ef2797f075c7d4f946e5724d92f8e8, type: 2}
+  tabDeselectBehaviour: 0
+  staleTitleFormat: '{0} (deselected)'
+  staleRowsAlpha: 0.5
   overlayMode: 0
   worldAnchorOffset: {x: 0, y: 1.5, z: 0}
   screenPixelOffset: {x: 0, y: 40}

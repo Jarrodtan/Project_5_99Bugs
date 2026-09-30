@@ -3,6 +3,7 @@ using UnityEngine;
 public class SimulationSpeedController : MonoBehaviour
 {
     public SimulationClock[] clocks;
+    public AudioSource[] audioSources;
 
     public bool IsRunning { get; private set; } = true;
     public float CurrentSpeed { get; private set; } = 1f;
@@ -31,10 +32,13 @@ public class SimulationSpeedController : MonoBehaviour
     {
         CurrentSpeed = speed;
 
-        foreach (SimulationClock clock in clocks)
+        if (clocks != null)
         {
-            if (clock != null)
-                clock.SetSpeed(speed);
+            foreach (SimulationClock clock in clocks)
+            {
+                if (clock != null)
+                    clock.SetSpeed(speed);
+            }
         }
     }
 
@@ -42,10 +46,24 @@ public class SimulationSpeedController : MonoBehaviour
     {
         IsRunning = true;
 
-        foreach (SimulationClock clock in clocks)
+        // Resume simulation clocks
+        if (clocks != null)
         {
-            if (clock != null)
-                clock.Play();
+            foreach (SimulationClock clock in clocks)
+            {
+                if (clock != null)
+                    clock.Play();
+            }
+        }
+
+        // Resume audio
+        if (audioSources != null)
+        {
+            foreach (AudioSource audio in audioSources)
+            {
+                if (audio != null)
+                    audio.UnPause();
+            }
         }
     }
 
@@ -53,22 +71,50 @@ public class SimulationSpeedController : MonoBehaviour
     {
         IsRunning = false;
 
-        foreach (SimulationClock clock in clocks)
+        // Pause simulation clocks
+        if (clocks != null)
         {
-            if (clock != null)
-                clock.Pause();
+            foreach (SimulationClock clock in clocks)
+            {
+                if (clock != null)
+                    clock.Pause();
+            }
+        }
+
+        // Pause audio
+        if (audioSources != null)
+        {
+            foreach (AudioSource audio in audioSources)
+            {
+                if (audio != null)
+                    audio.Pause();
+            }
         }
     }
 
     public void Reset()
     {
-        CurrentSpeed = 1f;
         IsRunning = true;
+        CurrentSpeed = 1f;
 
-        foreach (SimulationClock clock in clocks)
+        // Reset simulation clocks
+        if (clocks != null)
         {
-            if (clock != null)
-                clock.Reset();
+            foreach (SimulationClock clock in clocks)
+            {
+                if (clock != null)
+                    clock.Reset();
+            }
+        }
+
+        // Resume audio
+        if (audioSources != null)
+        {
+            foreach (AudioSource audio in audioSources)
+            {
+                if (audio != null)
+                    audio.UnPause();
+            }
         }
     }
 }

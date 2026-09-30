@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a096eba0c3da4ad494d87ea7d8d474f2, type: 3}
+  m_Name: TabbedStatsUiConfig
+  m_EditorClassIdentifier: Assembly-CSharp::TabbedStatsUiConfig
+  panelWidth: 300
+  panelAnchoredPosition: {x: 20, y: -20}
+  canvasSortOrder: 90
+  defaultTabIndex: 0
+  focusTabWhenRevealed: 1
+  tabHeight: 34
+  tabSpacing: 2
+  tabFontSize: 16
+  tabMinFontSize: 11
+  tabLabelPadding: 4
+  font: {fileID: 0}
+  activeTabColor: {r: 0.08, g: 0.1, b: 0.12, a: 0.92}
+  inactiveTabColor: {r: 0.04, g: 0.05, b: 0.06, a: 0.75}
+  hoverTabColor: {r: 0.12, g: 0.15, b: 0.18, a: 0.85}
+  activeTextColor: {r: 1, g: 1, b: 1, a: 1}
+  inactiveTextColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
+  tabColorFadeSeconds: 0.08
