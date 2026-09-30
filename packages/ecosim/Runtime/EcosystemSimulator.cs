@@ -7,6 +7,23 @@ using System.Collections.Generic;
 /// </summary>
 public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
 {
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    /// <summary>How populations change.</summary>
+    public enum SimulationMode
+    {
+        /// <summary>Tick() applies predation / grazing / growth formulas (deterministic, used by the tests).</summary>
+        Formula,
+        /// <summary>Populations change only from animal events (eat, catch, starve); Tick() only regrows resources.</summary>
+        Events,
+    }
+
+    [Tooltip("Formula: populations follow the tick formulas. Events: +1/-1 from what the 3D animals do.")]
+    public SimulationMode mode = SimulationMode.Formula;
+
+    [Tooltip("Events mode: amount each resource regrows per tick.")]
+    [Min(0f)] public float eventRegenPerTick = 3f;
+    // [AI-GENERATED END]
+
     public List<SpeciesDefinition> species;
     public List<ResourceDefinition> resources;
     [System.NonSerialized]
@@ -70,6 +87,14 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
     {
         // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
         if (!ValidateConfiguration()) return;
+
+        if (mode == SimulationMode.Events)
+        {
+            // Populations change only through RecordPredation / RecordEat / RecordStarvation.
+            foreach (var r in resources)
+                r.currentAmount = Mathf.Min(r.maxAmount, r.currentAmount + eventRegenPerTick);
+            return;
+        }
         // [AI-GENERATED END]
 
         foreach (var r in resources)
@@ -175,5 +200,43 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
     // Kept for Reginald's Reset button (F02). Uses the same full reset as island swaps,
     // so every species returns to its startingPopulation and resources to startingAmount.
     public void ResetSimulation() => ResetEcosystem();
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // ---- Events mode: called by the animals in the scene ----
+
+    /// <summary>A predator caught and ate one prey: prey -1, predator +1.</summary>
+    public void RecordPredation(SpeciesDefinition predator, SpeciesDefinition prey)
+    {
+        if (predator == null || prey == null) return;
+        if (!populations.ContainsKey(prey) || populations[prey] < 1f) return;
+        AddPopulation(prey, -1f);
+        AddPopulation(predator, +1f);
+    }
+
+    /// <summary>
+    /// An animal ate/drank <paramref name="amount"/> of a resource. If that much is available,
+    /// the resource goes down and the species +1. Returns false (no change) if there wasn't enough.
+    /// </summary>
+    public bool RecordEat(SpeciesDefinition eater, ResourceDefinition resource, float amount)
+    {
+        if (eater == null || resource == null || !populations.ContainsKey(eater)) return false;
+        if (resource.currentAmount < amount) return false;
+        resource.currentAmount -= amount;
+        AddPopulation(eater, +1f);
+        return true;
+    }
+
+    /// <summary>One animal starved: species -1.</summary>
+    public void RecordStarvation(SpeciesDefinition species)
+    {
+        if (species == null || !populations.ContainsKey(species)) return;
+        AddPopulation(species, -1f);
+    }
+
+    void AddPopulation(SpeciesDefinition s, float delta)
+    {
+        populations[s] = Mathf.Max(0f, populations.GetValueOrDefault(s, 0f) + delta);
+    }
     // [AI-GENERATED END]
 }
