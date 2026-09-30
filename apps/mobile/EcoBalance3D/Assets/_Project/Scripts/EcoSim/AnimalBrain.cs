@@ -163,7 +163,8 @@ public class AnimalBrain : MonoBehaviour
 
     void Update()
     {
-        if (agent == null)
+        // Yande (7bee8ba3): skip while the agent is off the NavMesh, e.g. during an island swap.
+        if (agent == null || !agent.enabled || !agent.isOnNavMesh)
             return;
 
         // Stop animal AI when simulation is paused.
