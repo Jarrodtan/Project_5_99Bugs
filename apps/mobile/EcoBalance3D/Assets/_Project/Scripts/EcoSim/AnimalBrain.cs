@@ -12,6 +12,7 @@ public class AnimalBrain : MonoBehaviour
     private float wander_timer = 0f;
     public AudioSource audio;
     private float footstep_timer = 0f;
+    private float idle_time = 0f;
 
     private SimulationSpeedController simulationController;
 
@@ -156,14 +157,26 @@ public class AnimalBrain : MonoBehaviour
         if (agent.velocity.magnitude > 0.1f)
         {
             footstep_timer -= Time.deltaTime;
-            if (footstep_timer <= 0f) {
-                if (audio != null && audio.clip != null && AudioManager.Instance != null) {
+            if (footstep_timer <= 0f)
+            {
+                if (audio != null && audio.clip != null && AudioManager.Instance != null)
+                {
                     AudioManager.Instance.Play3DSound(audio, audio.clip);
                 }
                 footstep_timer = Random.Range(0.4f, 0.6f);
             }
         }
-     
+        else
+        {
+            idle_time -= Time.deltaTime;
+            if (idle_time < 0f) {
+                if (audio != null && species_data != null && species_data.idle != null && AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.Play3DSound(audio, species_data.idle);
+                }
+                idle_time = Random.Range(3f, 8f);
+            }
+        }
     }
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
