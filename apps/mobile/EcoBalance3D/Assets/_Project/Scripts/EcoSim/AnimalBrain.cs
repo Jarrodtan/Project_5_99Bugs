@@ -90,6 +90,9 @@ public class AnimalBrain : MonoBehaviour
 
     void Update()
     {
+        if (agent == null || !agent.enabled || !agent.isOnNavMesh)
+            return;
+
         // Stop animal AI when simulation is paused
         if (simulationController != null && !simulationController.IsRunning)
         {
