@@ -71,6 +71,22 @@ public class ActionMenuField
 }
 
 /// <summary>
+/// A visual spawned from a category that does not use the species list.
+/// </summary>
+[Serializable]
+public class ActionMenuPrefabOption
+{
+    [Tooltip("Stable id matched to a placed option bubble.")]
+    public string id = string.Empty;
+
+    [Tooltip("Label shown on the option bubble.")]
+    public string label = string.Empty;
+
+    [Tooltip("Visual spawned when this option is chosen.")]
+    public GameObject prefab;
+}
+
+/// <summary>
 /// One category in the action menu hub: identity, static options, species refs, and modal fields.
 /// </summary>
 [Serializable]
@@ -93,6 +109,9 @@ public class ActionMenuCategory
 
     [Tooltip("Species used by the entity handler when its category id matches this entry.")]
     public List<SpeciesDefinition> species = new();
+
+    [Tooltip("Prefab options used when this category has no species. The entity handler spawns these the same way.")]
+    public List<ActionMenuPrefabOption> prefabOptions = new();
 
     [Tooltip("Settings modal controls, in display order.")]
     public List<ActionMenuField> fields = new();
