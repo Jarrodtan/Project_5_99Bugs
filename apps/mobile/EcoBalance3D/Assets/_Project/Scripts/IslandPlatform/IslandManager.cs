@@ -107,6 +107,28 @@ public class IslandManager : MonoBehaviour, IOrbitTarget
         return true;
     }
 
+    IEnumerator SwapRoutine(IslandDefinition next)
+    {
+        try
+        {
+            if (_transition != null && _islandRoot != null && config != null)
+                yield return _transition.Transition(_islandRoot, false, config);
+
+            DespawnCurrent();
+
+            _ecosystemReset?.ResetEcosystem();
+
+            SpawnIsland(next, notifyListeners: true);
+
+            if (_transition != null && _islandRoot != null && config != null)
+                yield return _transition.Transition(_islandRoot, true, config);
+        }
+        finally
+        {
+            _swapRoutine = null;
+        }
+    }
+
     /// <summary>
     /// Requests a swap by catalog id. Resolves via <see cref="IslandPlatformConfig.TryGetIsland"/>.
     /// </summary>
@@ -132,23 +154,6 @@ public class IslandManager : MonoBehaviour, IOrbitTarget
             if (swapListenerBehaviours[i] is IIslandSwapListener listener)
                 _listeners.Add(listener);
         }
-    }
-
-    IEnumerator SwapRoutine(IslandDefinition next)
-    {
-        if (_transition != null && _islandRoot != null && config != null)
-            yield return _transition.Transition(_islandRoot, false, config);
-
-        DespawnCurrent();
-
-        _ecosystemReset?.ResetEcosystem();
-
-        SpawnIsland(next, notifyListeners: true);
-
-        if (_transition != null && _islandRoot != null && config != null)
-            yield return _transition.Transition(_islandRoot, true, config);
-
-        _swapRoutine = null;
     }
 
     void RememberPlacedIslands()
