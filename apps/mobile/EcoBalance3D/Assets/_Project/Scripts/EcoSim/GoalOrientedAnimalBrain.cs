@@ -71,7 +71,7 @@ public class GoalOrientedAnimalBrain : MonoBehaviour
             tickTimer = tickInterval;
         }
 
-        if (agent.velocity.magnitude > 0.1f)
+        if (agent != null && agent.enabled && agent.isOnNavMesh && agent.velocity.magnitude > 0.1f)
         {
             footstep_timer -= Time.deltaTime;
             if (footstep_timer <= 0f)
