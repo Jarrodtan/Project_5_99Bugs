@@ -29,6 +29,16 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
     [System.NonSerialized]
     public Dictionary<SpeciesDefinition, float> populations = new();
 
+    /// <summary>
+    /// Starting counts picked on the Configuration screen, keyed by species asset name.
+    /// A species listed here starts (and resets) at this count instead of its startingPopulation.
+    /// </summary>
+    public static readonly Dictionary<string, float> StartingPopulationOverrides = new();
+
+    // Domain reload is off in this project, so statics survive between Play sessions: start each one empty.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ClearStartingPopulationOverrides() => StartingPopulationOverrides.Clear();
+
     void Start()
     {
         ResetEcosystem();
@@ -44,7 +54,9 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
         foreach (var s in species)
         {
             if (s == null) continue;
-            populations[s] = s.startingPopulation;
+            populations[s] = StartingPopulationOverrides.TryGetValue(s.name, out float chosen)
+                ? chosen
+                : s.startingPopulation;
         }
         // Resource assets keep their values between Play sessions in the Editor,
         // so each run starts from the configured starting amount.
@@ -205,6 +217,15 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
     // ---- Events mode: called by the animals in the scene ----
 
+    /// <summary>Raised after <see cref="RecordPredation"/> changes populations: (predator, prey).</summary>
+    public event System.Action<SpeciesDefinition, SpeciesDefinition> PredationRecorded;
+
+    /// <summary>Raised after <see cref="RecordEat"/> succeeds: (eater, resource).</summary>
+    public event System.Action<SpeciesDefinition, ResourceDefinition> EatRecorded;
+
+    /// <summary>Raised after <see cref="RecordStarvation"/> changes the population.</summary>
+    public event System.Action<SpeciesDefinition> StarvationRecorded;
+
     /// <summary>A predator caught and ate one prey: prey -1, predator +1.</summary>
     public void RecordPredation(SpeciesDefinition predator, SpeciesDefinition prey)
     {
@@ -212,6 +233,7 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
         if (!populations.ContainsKey(prey) || populations[prey] < 1f) return;
         AddPopulation(prey, -1f);
         AddPopulation(predator, +1f);
+        PredationRecorded?.Invoke(predator, prey);
     }
 
     /// <summary>
@@ -224,6 +246,7 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
         if (resource.currentAmount < amount) return false;
         resource.currentAmount -= amount;
         AddPopulation(eater, +1f);
+        EatRecorded?.Invoke(eater, resource);
         return true;
     }
 
@@ -232,6 +255,7 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
     {
         if (species == null || !populations.ContainsKey(species)) return;
         AddPopulation(species, -1f);
+        StarvationRecorded?.Invoke(species);
     }
 
     void AddPopulation(SpeciesDefinition s, float delta)
