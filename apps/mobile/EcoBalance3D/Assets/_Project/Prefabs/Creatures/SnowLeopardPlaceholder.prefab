@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 7908956480700981031}
   - component: {fileID: 8132270331353638838}
   - component: {fileID: -400361134093648745}
+  - component: {fileID: -555589414124071071}
   m_Layer: 0
   m_Name: SnowLeopardPlaceholder
   m_TagString: Untagged
@@ -152,6 +153,16 @@ MonoBehaviour:
   species_data: {fileID: 0}
   curr_hunger: 100
   audio: {fileID: 0}
+  huntRadius: 12
+  fleeRadius: 7
+  catchDistance: 1.5
+  eatDuration: 2
+  chaseSpeedMultiplier: 1.4
+  fleeSpeedMultiplier: 1.25
+  preyStarveAfterSeconds: 15
+  predatorStarveAfterSeconds: 20
+  forageRadius: 20
+  biteSize: 20
 --- !u!82 &-400361134093648745
 AudioSource:
   m_ObjectHideFlags: 0
@@ -249,3 +260,15 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &-555589414124071071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3469608245872682355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69d5ba30c04d9b44597a1597cec12b47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalSelectable
