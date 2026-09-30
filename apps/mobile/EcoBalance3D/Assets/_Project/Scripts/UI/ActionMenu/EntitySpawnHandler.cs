@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Collections.Generic;
+using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -34,6 +36,7 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
 
     readonly List<TrackedSpawn> _spawned = new();
     Transform _staging;
+    Coroutine _settle;
 
     /// <inheritdoc />
     public string CategoryId => categoryId;
@@ -114,6 +117,72 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
         return _staging;
     }
 
+    void RebuildWalkSurface()
+    {
+        var surface = islandManager != null ? islandManager.GetComponent<NavMeshSurface>() : null;
+        if (surface == null)
+            return;
+
+        var agents = FindObjectsByType<NavMeshAgent>(FindObjectsInactive.Include);
+        for (var i = 0; i < agents.Length; i++)
+        {
+            var agent = agents[i];
+            if (agent == null)
+                continue;
+
+            agent.enabled = false;
+            var modifier = agent.GetComponent<NavMeshModifier>();
+            if (modifier == null)
+                modifier = agent.gameObject.AddComponent<NavMeshModifier>();
+            modifier.ignoreFromBuild = true;
+            modifier.applyToChildren = true;
+        }
+
+        surface.BuildNavMesh();
+
+        for (var i = 0; i < agents.Length; i++)
+        {
+            var agent = agents[i];
+            if (agent == null)
+                continue;
+
+            PlaceAgentOnMesh(agent, agent.transform.position);
+        }
+    }
+
+    static void PlaceOnWalkSurface(GameObject instance, Vector3 position)
+    {
+        var agent = instance.GetComponent<NavMeshAgent>();
+        if (agent == null)
+        {
+            instance.transform.position = position;
+            return;
+        }
+
+        PlaceAgentOnMesh(agent, position);
+    }
+
+    static void PlaceAgentOnMesh(NavMeshAgent agent, Vector3 position)
+    {
+        if (agent == null)
+            return;
+
+        agent.enabled = false;
+        if (!NavMesh.SamplePosition(position, out var hit, 4f, NavMesh.AllAreas))
+        {
+            agent.transform.position = position;
+            return;
+        }
+
+        agent.transform.position = hit.position;
+        agent.enabled = true;
+        if (!agent.isOnNavMesh)
+            return;
+
+        agent.Warp(hit.position);
+        agent.ResetPath();
+    }
+
     static bool HasNavMesh()
     {
         var triangulation = NavMesh.CalculateTriangulation();
@@ -138,6 +207,7 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
             return;
 
         var lift = config != null ? config.spawnSurfaceOffset : 0f;
+        var placements = new List<TrackedSpawn>(_spawned.Count);
         for (var i = _spawned.Count - 1; i >= 0; i--)
         {
             var tracked = _spawned[i];
@@ -151,8 +221,36 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
             position.x = AxisOnFootprint(footprint.min.x, footprint.size.x, footprint.center.x, tracked.normalizedX);
             position.z = AxisOnFootprint(footprint.min.z, footprint.size.z, footprint.center.z, tracked.normalizedZ);
             position.y = footprint.max.y + lift;
+            tracked.pendingPosition = position;
             tracked.instance.transform.position = position;
+            placements.Add(tracked);
         }
+
+        if (_settle != null)
+            StopCoroutine(_settle);
+        _settle = StartCoroutine(SettleOnNewIsland(islandRoot, placements));
+    }
+
+    IEnumerator SettleOnNewIsland(Transform islandRoot, List<TrackedSpawn> placements)
+    {
+        yield return null;
+        var wait = 0f;
+        while (islandRoot != null && islandRoot.localScale.x < 0.99f && wait < 2f)
+        {
+            wait += Time.deltaTime;
+            yield return null;
+        }
+
+        RebuildWalkSurface();
+        for (var i = 0; i < placements.Count; i++)
+        {
+            var tracked = placements[i];
+            if (tracked.instance == null)
+                continue;
+            PlaceOnWalkSurface(tracked.instance, tracked.pendingPosition);
+        }
+
+        _settle = null;
     }
 
     /// <inheritdoc />
@@ -350,5 +448,6 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
         public GameObject instance;
         public float normalizedX = 0.5f;
         public float normalizedZ = 0.5f;
+        public Vector3 pendingPosition;
     }
 }

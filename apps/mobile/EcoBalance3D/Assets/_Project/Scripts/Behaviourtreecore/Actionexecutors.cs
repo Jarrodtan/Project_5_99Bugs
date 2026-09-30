@@ -12,7 +12,8 @@ public class WanderExecutor : IActionExecutor
 
     public NodeStatus Execute(BTContext ctx, ActionDefinition action)
     {
-        if (ctx.agent == null) return NodeStatus.Failure;
+        if (ctx.agent == null || !ctx.agent.isOnNavMesh)
+            return NodeStatus.Failure;
 
         if (!ctx.actionTarget.ContainsKey(action))
         {
@@ -46,7 +47,8 @@ public class IdleExecutor : IActionExecutor
         {
             start = Time.time;
             ctx.actionStartTime[action] = start;
-            if (ctx.agent != null) ctx.agent.ResetPath();
+            if (ctx.agent != null && ctx.agent.isOnNavMesh)
+                ctx.agent.ResetPath();
         }
 
         if (Time.time - start >= action.duration)
