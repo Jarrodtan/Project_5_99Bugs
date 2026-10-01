@@ -24,16 +24,17 @@ Scenes live in `Assets/Scenes/` (referenced by Build Settings); personal test sc
 
 ## Naming conventions
 
-- **Assets:** PascalCase, no spaces: `BlueSheep.asset`, `SnowLeopard.prefab`, `Grass.asset`.
+- **Assets:** new assets use PascalCase with no spaces: `BlueSheep.asset`, `Grass.asset`. Some imported files (e.g. `blue sheep.prefab`, `snow leopard.fbx`, audio clips) still have spaces; they will be renamed inside the Editor after M1 so references are kept.
 - **Scripts:** the file name matches the class name. Interfaces are prefixed with `I` (`ISelectable`).
 - **Textures and materials:** `T_<Name>_<Map>` (e.g. `T_Sheep_Albedo`) and `M_<Name>`.
 - **Branches:** `<name>` or `feature/<short-topic>`, merged into `main` by pull request.
 
 ## Adding a new species (no code needed)
 
-1. Right-click in `ScriptableObjects/Species/` and choose **Create → EcoSim → Species**.
-2. Fill in `speciesName`, `eats` (prey species), `needs` (resources), the rates and `visualPrefab`.
-3. Add the asset to the `Species` list on the scene's `EcosystemSimulator`.
+1. Open the **Animal Creator** window (**EcoBalance → Open Animal Creator**), or right-click in `ScriptableObjects/Species/` and choose **Create → EcoSim → Species**.
+2. Fill in `speciesName`, the rates, `startingPopulation` and `visualPrefab`.
+3. In **Relationships**, add one entry per link: type (**Eats / Needs / Affects**) and target (a species or resource asset), e.g. *Eats → BlueSheep*.
+4. Add the asset to the `Species` list on the scene's `EcosystemSimulator`.
 
 ## Import / export
 
@@ -44,7 +45,7 @@ Scenes live in `Assets/Scenes/` (referenced by Build Settings); personal test sc
 
 ## Validation rules
 
-- `EcosystemSimulator` checks its configuration before each tick. Empty entries in Species, Resources or `eats` are removed and a warning is logged, instead of crashing the simulation.
+- `EcosystemSimulator` checks its configuration on reset and before each tick. Empty entries in Species, Resources or a species' Relationships are removed and a warning is logged, instead of crashing the simulation.
 - Rates (`reproductionRate`, `predationRate`, `starvationThreshold`) must be ≥ 0, and `currentAmount` must be ≤ `maxAmount`.
 - EditMode tests (package + app) run in CI on every PR. A PR must not be merged while tests are failing.
 
