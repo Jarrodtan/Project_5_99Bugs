@@ -22,6 +22,10 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
 
     [Tooltip("Events mode: amount each resource regrows per tick.")]
     [Min(0f)] public float eventRegenPerTick = 3f;
+
+    [Tooltip("Events mode: eating (grass, or prey for predators) adds +1 to the eater's population, as a simple " +
+             "stand-in for reproduction. Off until the reproduction system exists, so eating only feeds the animal.")]
+    public bool eatingAddsOffspring = false;
     // [AI-GENERATED END]
 
     public List<SpeciesDefinition> species;
@@ -226,26 +230,27 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
     /// <summary>Raised after <see cref="RecordStarvation"/> changes the population.</summary>
     public event System.Action<SpeciesDefinition> StarvationRecorded;
 
-    /// <summary>A predator caught and ate one prey: prey -1, predator +1.</summary>
+    /// <summary>A predator caught and ate one prey: prey -1 (predator +1 only if <see cref="eatingAddsOffspring"/>).</summary>
     public void RecordPredation(SpeciesDefinition predator, SpeciesDefinition prey)
     {
         if (predator == null || prey == null) return;
         if (!populations.ContainsKey(prey) || populations[prey] < 1f) return;
         AddPopulation(prey, -1f);
-        AddPopulation(predator, +1f);
+        if (eatingAddsOffspring) AddPopulation(predator, +1f);
         PredationRecorded?.Invoke(predator, prey);
     }
 
     /// <summary>
     /// An animal ate/drank <paramref name="amount"/> of a resource. If that much is available,
-    /// the resource goes down and the species +1. Returns false (no change) if there wasn't enough.
+    /// the resource goes down (and the species +1 only if <see cref="eatingAddsOffspring"/>).
+    /// Returns false (no change) if there wasn't enough.
     /// </summary>
     public bool RecordEat(SpeciesDefinition eater, ResourceDefinition resource, float amount)
     {
         if (eater == null || resource == null || !populations.ContainsKey(eater)) return false;
         if (resource.currentAmount < amount) return false;
         resource.currentAmount -= amount;
-        AddPopulation(eater, +1f);
+        if (eatingAddsOffspring) AddPopulation(eater, +1f);
         EatRecorded?.Invoke(eater, resource);
         return true;
     }

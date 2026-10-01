@@ -55,7 +55,7 @@ flowchart TB
     ECO -- "populations" --> POP
     ECO -- "populations" --> SPN
     SPN --> BRN
-    BRN -. "Events mode: +1 / -1" .-> ECO
+    BRN -. "Events mode: caught / starved -1" .-> ECO
 ```
 
 The simulator has two modes (`EcosystemSimulator.mode`):
@@ -63,7 +63,7 @@ The simulator has two modes (`EcosystemSimulator.mode`):
 | Mode | How populations change | Used by |
 |---|---|---|
 | **Formula** (default) | Each `Tick()`: predation = rate × predators × prey; grazers share grass; well-fed species grow, underfed ones starve. Deterministic. | EditMode tests, balancing |
-| **Events** | Only from what the 3D animals do: leopard catches sheep → sheep −1, leopard +1; sheep eats grass / drinks water → +1; no food for 15 s (sheep) / 20 s (leopard) → −1. `Tick()` only regrows grass and water (+3). | SampleScene demo |
+| **Events** | Only from what the 3D animals do: leopard catches sheep → sheep −1; no food for 15 s (sheep) / 20 s (leopard) → −1. Eating only feeds the animal: there is **no reproduction yet** (the `eatingAddsOffspring` switch, off by default, would add +1 per meal as a stand-in until the reproduction system exists). `Tick()` only regrows grass and water (+3). | SampleScene demo |
 
 In both modes the numbers live in the simulator and `CreatureSpawner` keeps one model per animal; the animal that was caught or starved is the one removed.
 
