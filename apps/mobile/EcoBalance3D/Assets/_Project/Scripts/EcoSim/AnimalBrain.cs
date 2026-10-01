@@ -558,7 +558,18 @@ public class AnimalBrain : MonoBehaviour
 
         wander_timer = 0.5f;
 
-        return true;
+        if (Vector3.Distance(transform.position, prey.position) <= catchDistance) {
+            eat_timer = eatDuration;
+            agent.ResetPath();
+
+            if (audio != null && species_data != null && species_data.eat != null && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.Play3DSound(audio, species_data.eat);
+            }
+            return true;
+        }
+
+            return true;
     }
 
     // ---------------------------------------------------------
@@ -590,4 +601,14 @@ public class AnimalBrain : MonoBehaviour
                 hit.position);
         }
     }
+
+
+    public void DeathSound()
+    {
+        if (species_data != null && species_data.death != null)
+        {
+            AudioSource.PlayClipAtPoint(species_data.death, transform.position);
+        }
+    }
+
 }
