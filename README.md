@@ -74,7 +74,10 @@ Supported development environments: **Windows 11, macOS Tahoe, Ubuntu 24.04**.
 
 ## Run
 
-Open `Assets/Scenes/SampleScene` and press **Play**. Use **Play / Pause / Reset** and **x1 / x2 / x4** to control the simulation.
+Open `Assets/Scenes/HomeScreen` and press **Play**. From the home screen go to the configuration screen, set the starting numbers of blue sheep and snow leopards, and press **Start**.
+Use **Play / Pause / Reset** and **x1 / x2 / x4 / x8** to control the simulation.
+
+The built app starts from the first scene in Build Settings (HomeScreen).
 
 ## Test
 
