@@ -7,6 +7,7 @@
 #   tools/unity.sh build android   build APK   -> apps/mobile/EcoBalance3D/Build/Android/
 #   tools/unity.sh build windows   build EXE   -> .../Build/Windows/   (also: macos, linux)
 #   tools/unity.sh clean           delete generated folders (Library, Temp, Logs, obj, Build)
+#   tools/unity.sh zip [name]      submission zip of committed files -> ../<name>.zip
 #
 # Unity 6000.6.0f1 is found in the default Unity Hub location; override with UNITY=/path/to/Unity.
 # Close the Editor before test/build (a project can only be open once).
@@ -64,8 +65,17 @@ case "${1:-help}" in
     rm -f "$ROOT/test-results.xml"
     echo "Clean. The next open re-imports everything (a few minutes)."
     ;;
+  zip)
+    # Packs exactly what is committed (HEAD): no Library cache, .git, UserSettings or build output.
+    OUT="$(cd "$ROOT/.." && pwd)/${2:-EcoBalance_TechFiles}.zip"
+    if [ -n "$(git -C "$ROOT" status --porcelain)" ]; then
+      echo "WARNING: you have uncommitted changes - they are NOT in the zip."
+    fi
+    git -C "$ROOT" archive --format=zip -o "$OUT" HEAD
+    echo "ZIP OK: $OUT"
+    ;;
   *)
-    sed -n '3,12p' "$0"
+    sed -n '3,13p' "$0"
     ;;
 esac
 # [AI-GENERATED END]
