@@ -133,6 +133,7 @@ There is no server or database. EcoBalance is a single offline mobile app.
 | GitHub + GitHub Actions (GameCI Docker images) | Source control, PRs, automated tests and Android builds |
 | Unity Licensing (serial activation in CI) | Activating the Unity editor on CI runners |
 | Jira | Backlog, epics per feature/deliverable, individual task tracking |
+| Self-hosted Gitea (team21 VM) | Private repository copy, reachable only through an SSH tunnel; not used by CI. See [infra/gitea-rebuild.md](infra/gitea-rebuild.md) |
 
 ## 6. Layers (detail)
 

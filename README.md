@@ -16,6 +16,7 @@ EcoBalance is an interactive, educational 3D ecosystem simulation. Players set u
 | [`docs/deliverables.md`](docs/deliverables.md) | Technical deliverables, ownership, M1/M2/M3 targets |
 | [`docs/toolchain.md`](docs/toolchain.md) | Technology stack and why |
 | [`docs/data-pipeline.md`](docs/data-pipeline.md) | How content/data is authored, naming, folder rules |
+| [`docs/infra/gitea-rebuild.md`](docs/infra/gitea-rebuild.md) | Self-hosted Gitea server: security incident, rebuild, lessons learned |
 
 ## Technology Stack
 
@@ -36,14 +37,15 @@ Project_5_99Bugs/
 │   ├── architecture.md            # system architecture + technology stack
 │   ├── deliverables.md            # ownership + M1/M2/M3 targets
 │   ├── toolchain.md
-│   └── data-pipeline.md
+│   ├── data-pipeline.md
+│   └── infra/gitea-rebuild.md    # self-hosted Gitea: incident + secure rebuild
 ├── apps/
 │   └── mobile/
 │       └── EcoBalance3D/          # Unity project (scenes, art, audio, prefabs, app scripts, app tests)
 ├── packages/
 │   └── ecosim/                    # Unity package com.99bugs.ecosim: simulation core + tests
 ├── tools/
-│   ├── unity.sh                   # open / test / build / clean (Ubuntu, macOS, Git Bash)
+│   ├── unity.sh                   # open / test / build / clean / zip (Ubuntu, macOS, Git Bash)
 │   └── unity.bat                  # same commands for Windows cmd
 ├── tests/                         # test plans and manual checklists
 ├── .github/workflows/unity-ci.yml # CI: EditMode tests + Android build
