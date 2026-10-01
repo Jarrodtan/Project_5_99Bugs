@@ -228,8 +228,21 @@ public class EcosystemSimulatorTests
     }
 
     [Test]
-    public void Events_Predation_SheepMinusOne_LeopardPlusOne()
+    public void Events_Predation_SheepMinusOne_NoLeopardSpawnByDefault()
     {
+        sim.populations[sheep] = 10f;
+        sim.populations[leopard] = 2f;
+
+        sim.RecordPredation(leopard, sheep);
+
+        Assert.AreEqual(9f, sim.populations[sheep]);
+        Assert.AreEqual(2f, sim.populations[leopard]);
+    }
+
+    [Test]
+    public void Events_Predation_WithOffspringOn_LeopardPlusOne()
+    {
+        sim.eatingAddsOffspring = true;
         sim.populations[sheep] = 10f;
         sim.populations[leopard] = 2f;
 
@@ -252,8 +265,21 @@ public class EcosystemSimulatorTests
     }
 
     [Test]
-    public void Events_Eat_UsesResource_AndSpeciesPlusOne()
+    public void Events_Eat_UsesResource_NoSpawnByDefault()
     {
+        sim.populations[sheep] = 10f;
+
+        bool ate = sim.RecordEat(sheep, grass, 20f);
+
+        Assert.IsTrue(ate);
+        Assert.AreEqual(10f, sim.populations[sheep]);
+        Assert.AreEqual(30f, grass.currentAmount, 1e-4f);
+    }
+
+    [Test]
+    public void Events_Eat_WithOffspringOn_SpeciesPlusOne()
+    {
+        sim.eatingAddsOffspring = true;
         sim.populations[sheep] = 10f;
 
         bool ate = sim.RecordEat(sheep, grass, 20f);
