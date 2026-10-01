@@ -104,6 +104,8 @@ CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL`, `UNITY_PASSWOR
 Delete generated folders (`Library`, `Temp`, `Logs`, `obj`, `Build`) if the project gets into a bad state:
 `tools/unity.sh clean` or `tools\unity.bat clean`. The next open re-imports everything.
 
+**Submission zip:** `tools\unity.bat zip` (or menu option 6) or `tools/unity.sh zip` packs only the committed files (about 80 MB) into `EcoBalance_TechFiles.zip` next to the repo folder. You do not need to run Clean first.
+
 Generated files, IDE folders, build output, logs and secrets are excluded by `.gitignore`; never commit them.
 
 ## Workflow
