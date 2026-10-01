@@ -1,6 +1,6 @@
 # Self-hosted Git server (Gitea): secure rebuild
 
-**Team 21 (99 Bugs)** · **Owner:** Tan Wei Leong (Tech Lead) · **Status:** incident reported 29 Sep, server rebuilt 30 Sep, verified by the instructor 1 Oct 2026
+**Team 21 (99 Bugs)** · **Owner:** Tan Wei Leong (Tech Lead) · **Status:** incident reported 29 Sep, server rebuilt 30 Sep, verified by DigiPen IT 1 Oct 2026
 
 ## Why we run Gitea
 
@@ -24,12 +24,12 @@ binary and runs it in the background, disguised as a Gitea process.
 | When | What happened |
 |---|---|
 | 29 Sep 2026 | Investigated the 500 error; found the malicious hook and the backdoor script (log analysis assisted by AI). |
-| 29 Sep 2026, 16:28 | Reported the incident to DigiPen IT Helpdesk (instructor in copy) with the evidence: modified config, the script, 7 days of Gitea logs, attacker IPs found in the logs, and investigation notes. **Did not touch the server** (no file changes, no restart, no Git commands) to preserve evidence. |
+| 29 Sep 2026, 16:28 | Reported the incident to DigiPen IT Helpdesk (course staff in copy) with the evidence: modified config, the script, 7 days of Gitea logs, attacker IPs found in the logs, and investigation notes. **Did not touch the server** (no file changes, no restart, no Git commands) to preserve evidence. |
 | 30 Sep 2026, 15:59 | IT reset and rebuilt the server and sent a login guide and a security advisory. |
 | 30 Sep 2026, night | Reinstalled Gitea from scratch, following every point in the advisory (below). |
 | 30 Sep 2026, 23:04 | Tried Git LFS on Gitea through an SSH tunnel (`8c03b3ae`). |
 | 30 Sep 2026, 23:46 | LFS reverted until after M1 (`b58999f0`): pushes failed whenever the tunnel was down, and CI cannot reach `localhost`. GitHub stays the main pipeline. |
-| 1 Oct 2026 | Instructor checked the rebuild and confirmed it was done properly. |
+| 1 Oct 2026 | DigiPen IT (Saiful Sulaimi) checked the rebuild against the advisory and confirmed it was done properly. |
 
 ## What the rebuild does
 
@@ -60,4 +60,4 @@ and keep sign-up off, so CI and teammates can reach it without an SSH tunnel.
 
 ---
 
-*Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5) from the incident report email, the instructor's feedback and the git history. Reviewed and edited by Tan Wei Leong.*
+*Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5) from the incident report email, DigiPen IT's feedback and the git history. Reviewed and edited by Tan Wei Leong.*
