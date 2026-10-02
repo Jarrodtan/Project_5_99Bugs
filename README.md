@@ -16,6 +16,7 @@ EcoBalance is an interactive, educational 3D ecosystem simulation. Players set u
 | [`docs/deliverables.md`](docs/deliverables.md) | Technical deliverables, ownership, M1/M2/M3 targets |
 | [`docs/toolchain.md`](docs/toolchain.md) | Technology stack and why |
 | [`docs/data-pipeline.md`](docs/data-pipeline.md) | How content/data is authored, naming, folder rules |
+| [`docs/infra/gitea-rebuild.md`](docs/infra/gitea-rebuild.md) | Self-hosted Gitea server: security incident, rebuild, lessons learned |
 
 ## Technology Stack
 
@@ -36,14 +37,15 @@ Project_5_99Bugs/
 │   ├── architecture.md            # system architecture + technology stack
 │   ├── deliverables.md            # ownership + M1/M2/M3 targets
 │   ├── toolchain.md
-│   └── data-pipeline.md
+│   ├── data-pipeline.md
+│   └── infra/gitea-rebuild.md    # self-hosted Gitea: incident + secure rebuild
 ├── apps/
 │   └── mobile/
 │       └── EcoBalance3D/          # Unity project (scenes, art, audio, prefabs, app scripts, app tests)
 ├── packages/
 │   └── ecosim/                    # Unity package com.99bugs.ecosim: simulation core + tests
 ├── tools/
-│   ├── unity.sh                   # open / test / build / clean (Ubuntu, macOS, Git Bash)
+│   ├── unity.sh                   # open / test / build / clean / zip (Ubuntu, macOS, Git Bash)
 │   └── unity.bat                  # same commands for Windows cmd
 ├── tests/                         # test plans and manual checklists
 ├── .github/workflows/unity-ci.yml # CI: EditMode tests + Android build
@@ -74,7 +76,10 @@ Supported development environments: **Windows 11, macOS Tahoe, Ubuntu 24.04**.
 
 ## Run
 
-Open `Assets/Scenes/SampleScene` and press **Play**. Use **Play / Pause / Reset** and **x1 / x2 / x4** to control the simulation.
+Open `Assets/Scenes/HomeScreen` and press **Play**. From the home screen go to the configuration screen, set the starting numbers of blue sheep and snow leopards, and press **Start**.
+Use **Play / Pause / Reset** and **x1 / x2 / x4 / x8** to control the simulation.
+
+The built app starts from the first scene in Build Settings (HomeScreen).
 
 ## Test
 
@@ -100,6 +105,8 @@ CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL`, `UNITY_PASSWOR
 
 Delete generated folders (`Library`, `Temp`, `Logs`, `obj`, `Build`) if the project gets into a bad state:
 `tools/unity.sh clean` or `tools\unity.bat clean`. The next open re-imports everything.
+
+**Submission zip:** `tools\unity.bat zip` (or menu option 6) or `tools/unity.sh zip` packs only the committed files (about 80 MB) into `EcoBalance_TechFiles.zip` next to the repo folder. You do not need to run Clean first.
 
 Generated files, IDE folders, build output, logs and secrets are excluded by `.gitignore`; never commit them.
 
