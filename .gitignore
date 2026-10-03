@@ -146,3 +146,9 @@ test-results.xml
 /*.slnx
 /.vsconfig
 # [AI-GENERATED END]
+
+# [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+# Old project path from before the move to apps/mobile/. Unity Hub entries that still point here
+# make Unity create an empty project in this folder - never commit it.
+/EcoBalance3D/
+# [AI-GENERATED END]

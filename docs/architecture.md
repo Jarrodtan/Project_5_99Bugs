@@ -11,7 +11,7 @@ See also: [toolchain.md](toolchain.md) (technology choices), [data-pipeline.md](
 |---|---|
 | Engine | Unity **6000.6.0f1** (Unity 6), URP |
 | Language | C# |
-| Target platform | Mobile (Android first) |
+| Target platform | Android tablet |
 | Source control / CI | GitHub + GitHub Actions (GameCI): EditMode tests + Android build on every PR to `main` |
 | Project management | Jira (SCRUM project) |
 
@@ -55,7 +55,7 @@ flowchart TB
     ECO -- "populations" --> POP
     ECO -- "populations" --> SPN
     SPN --> BRN
-    BRN -. "Events mode: +1 / -1" .-> ECO
+    BRN -. "Events mode: caught / starved -1" .-> ECO
 ```
 
 The simulator has two modes (`EcosystemSimulator.mode`):
@@ -63,7 +63,7 @@ The simulator has two modes (`EcosystemSimulator.mode`):
 | Mode | How populations change | Used by |
 |---|---|---|
 | **Formula** (default) | Each `Tick()`: predation = rate × predators × prey; grazers share grass; well-fed species grow, underfed ones starve. Deterministic. | EditMode tests, balancing |
-| **Events** | Only from what the 3D animals do: leopard catches sheep → sheep −1, leopard +1; sheep eats grass / drinks water → +1; no food for 15 s (sheep) / 20 s (leopard) → −1. `Tick()` only regrows grass and water (+3). | SampleScene demo |
+| **Events** | Only from what the 3D animals do: leopard catches sheep → sheep −1; no food for 15 s (sheep) / 20 s (leopard) → −1. Eating only feeds the animal: there is **no reproduction yet** (the `eatingAddsOffspring` switch, off by default, would add +1 per meal as a stand-in until the reproduction system exists). `Tick()` only regrows grass and water (+3). | SampleScene demo |
 
 In both modes the numbers live in the simulator and `CreatureSpawner` keeps one model per animal; the animal that was caught or starved is the one removed.
 
@@ -87,6 +87,7 @@ flowchart TB
 Solid box `packages/ecosim` = reusable core; everything in `apps/mobile` depends on it, never the reverse (see §7).
 
 **How the parts communicate**
+- **App flow (F01):** `HomeScreen` → `MainMenu` loads `ConfigurationScreen`, which loads `SampleScene` additively behind the menu with time paused. The player sets starting numbers with `SpeciesCounter`; **Start** stores them in `EcosystemSimulator.StartingPopulationOverrides`, resets the ecosystem and resumes time.
 - **Tick loop:** `SimulationClock.Update()` calls `EcosystemSimulator.Tick()`, then `PopulationDisplay.Refresh()` and `CreatureSpawner.RefreshVisuals()`. Play / Pause / Reset / speed (x1-x8) are on the clock, driven by `SimulationSpeedController` buttons. Reset calls `ResetEcosystem()` (starting populations).
 - **Agents:** `CreatureSpawner` keeps the number of 3D animals in line with the population (one model per animal, rounded like the label) and registers each one in `EcoRegistry`. In SampleScene each animal runs `AnimalBrain`: flee > hunt > go to grass/water > wander, with a hunger timer; in Events mode it reports `RecordPredation` / `RecordEat` / `RecordStarvation` to the simulator. Each animal's `GoalOrientedAnimalBrain` scores its goals by need urgency and runs behaviour-tree actions: Seek finds the nearest `ResourcePatch`, Flee and Hunt ask `EcoRegistry` for the nearest predator / prey (from the Eats relationships).
 - **Data in:** the simulator and AI read `SpeciesDefinition` / `ResourceDefinition` assets. Prey comes from `SpeciesDefinition.GetSpeciesTargets(RelationshipType.Eats)`.
@@ -103,9 +104,10 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Relationship System | `Relationship`, `SpeciesDefinition.relationships` | T01 | Zhi Jie | Done (Eats / Needs / Affects), with tests |
 | Entity Data System | `SpeciesDefinition`, `ResourceDefinition`, Need/Goal/ActionDefinition, species assets | T02 | Li Juan, Yusuf | Done: data-only species incl. needs/goals, audio, 3D model |
 | Species authoring tool | `Editor/AnimalCreator` | T02 | Li Juan | Create + edit species from an Editor window |
-| Simulation Data Display (UI) | `PopulationDisplay`, `SimulationData/*` providers | T04 | Yan De, Dillon | Species (and resource) counts on screen; provider adapter planned M2 |
+| Simulation Data Display (UI) | `PopulationDisplay`, `UI/PopulationCounter`, `UI/ResourceLevels`, `UI/EventFeed`, `SimulationData/*` providers | T04 | Yan De, Dillon | Species and resource counts, resource levels and an event feed on screen, with tests; provider adapter planned M2 |
+| Configuration flow | `UI/Configuration` (`MainMenu`, `ConfigurationScreen`, `SpeciesCounter`), HomeScreen + ConfigurationScreen scenes | F01 | Reginald, Shu Min | Set starting populations, then Start |
 | Agent AI Controller | `GoalOrientedAnimalBrain` + behaviour tree (`Behaviourtreecore/*`), `ResourcePatch` | T07 | Yusuf, Zhi Jie, Reginald | Done: needs → goals; Wander, Seek grass, Flee, Hunt; goal-selection tests |
-| Visualisation (population → agents) | `CreatureSpawner`, Blue Sheep model, placeholder leopard | T03/T04 | Wei Leong, Li Juan | Agents spawn by population and register in `EcoRegistry` |
+| Visualisation (population → agents) | `CreatureSpawner`, Blue Sheep and Snow Leopard 3D models | T03/T04 | Wei Leong, Li Juan | Agents spawn by population and register in `EcoRegistry` |
 | Selection & Inspection | `Selection/*`, `Inspection/*`, `InspectorPanel` | F09 | Yan De | Tap-to-select + inspector panel framework |
 | Audio | `Audio/AudioManager`, BGM + species SFX | — | Li Juan | Done: BGM/ambience, footsteps |
 | Metrics & Data Logging | *(planned)* | T05 (optional) | Unassigned | Not started |
@@ -131,6 +133,7 @@ There is no server or database. EcoBalance is a single offline mobile app.
 | GitHub + GitHub Actions (GameCI Docker images) | Source control, PRs, automated tests and Android builds |
 | Unity Licensing (serial activation in CI) | Activating the Unity editor on CI runners |
 | Jira | Backlog, epics per feature/deliverable, individual task tracking |
+| Self-hosted Gitea (team21 VM) | Private repository copy, reachable only through an SSH tunnel; not used by CI. See [infra/gitea-rebuild.md](infra/gitea-rebuild.md) |
 
 ## 6. Layers (detail)
 
@@ -168,7 +171,7 @@ Project_5_99Bugs/
 │   └── mobile/
 │       └── EcoBalance3D/                  # Unity app (assembly: Assembly-CSharp)
 │           ├── Assets/
-│           │   ├── Scenes/                # SampleScene (M1 demo), IslandPlatform, T02_Test
+│           │   ├── Scenes/                # HomeScreen → ConfigurationScreen → SampleScene (M1 flow), IslandPlatform, T02_Test
 │           │   └── _Project/
 │           │       ├── Audio/             # BGM + SFX
 │           │       ├── Data/              # app assets: AI needs/goals/actions, islands, camera, UI config
@@ -186,7 +189,7 @@ Project_5_99Bugs/
 │           │       │   ├── Resources/         # ResourcePatch
 │           │       │   ├── Selection/         # tap-to-select
 │           │       │   ├── SimulationData/    # ISimulationDataProvider (UI read interface)
-│           │       │   └── UI/                # PopulationDisplay, InspectorPanel
+│           │       │   └── UI/                # Configuration, PopulationCounter, ResourceLevels, EventFeed, InspectorPanel
 │           │       └── Tests/             # app EditMode tests
 │           ├── Packages/manifest.json     # loads com.99bugs.ecosim from packages/ecosim
 │           └── ProjectSettings/

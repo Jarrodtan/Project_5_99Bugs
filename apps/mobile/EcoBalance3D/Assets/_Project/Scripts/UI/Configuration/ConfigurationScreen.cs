@@ -19,12 +19,35 @@ public class ConfigurationScreen : MonoBehaviour
         // Load the ecosystem behind the configuration screen.
         if (!SceneManager.GetSceneByName(simulationSceneName).isLoaded)
         {
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): remove duplicates once it has loaded.
+            SceneManager.sceneLoaded += OnSimulationSceneLoaded;
             SceneManager.LoadScene(
                 simulationSceneName,
                 LoadSceneMode.Additive
             );
         }
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Both scenes have their own EventSystem and camera AudioListener. With the simulation
+    // scene loaded on top, Unity warns every frame about having two of each, so keep one:
+    // this scene's EventSystem (it drives the menu) and the simulation camera's listener.
+    void OnSimulationSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name != simulationSceneName) return;
+        SceneManager.sceneLoaded -= OnSimulationSceneLoaded;
+
+        foreach (var root in scene.GetRootGameObjects())
+            foreach (var es in root.GetComponentsInChildren<UnityEngine.EventSystems.EventSystem>(true))
+                es.gameObject.SetActive(false);
+
+        foreach (var listener in gameObject.scene.GetRootGameObjects())
+            foreach (var al in listener.GetComponentsInChildren<AudioListener>(true))
+                al.enabled = false;
+    }
+
+    void OnDestroy() => SceneManager.sceneLoaded -= OnSimulationSceneLoaded;
+    // [AI-GENERATED END]
 
     public void StartSimulation()
     {
