@@ -13,7 +13,7 @@
 | Simulation Data Tracking           | Li Juan (T05); display: Yan De, Dillon (T04) | Basic tick recording                                 | Feeds real UI graph                             | Polished                                  |
 | Contextual Trigger System          | Unassigned | Basic threshold detection                            | Fires real UI prompts                           | Tuned                                     |
 | Simulation Time Control            | Reginald (T03) | Play/pause functional                                | Speed control added                             | Full reset/reconfigure                    |
-| Visualization/Feedback System      | Wei Leong | Placeholder agents spawn/despawn by population count | Real IMGD models + animations wired to AI state | Polished, environmental feedback complete |
+| Visualization/Feedback System      | Wei Leong | Placeholder agents spawn/despawn by population count | Real 3D models (from UXGD design) + animations wired to AI state | Polished, environmental feedback complete |
 | UI/UX (Inspector, Graphs, Prompts) | Dillon, Nomitha, Shu Min | Wireframes complete                                  | Functional UI wired to real simulation data     | Polished                                  |
 | 3D Environment/Assets              | Yan De | Placeholder biome                                    | Real Himalayan environment assets               | Polished                                  |
 | Animal Models/Animations           | Nomitha, Li Juan | Placeholder models                                   | Real sheep/leopard models + core animation set  | Full animation set complete               |
