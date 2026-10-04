@@ -103,8 +103,9 @@ CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL`, `UNITY_PASSWOR
 
 ## Clean
 
-Delete generated folders (`Library`, `Temp`, `Logs`, `obj`, `Build`) if the project gets into a bad state:
-`tools/unity.sh clean` or `tools\unity.bat clean`. The next open re-imports everything.
+`tools/unity.sh clean` or `tools\unity.bat clean` (menu option 5) deletes the Unity cache (`Library`, `Temp`, `Logs`, `obj`, `Build`)
+and every other Git-ignored file (`UserSettings`, `.vs`, `.vscode`, `*.csproj`, `*.slnx`), leaving the folder like a fresh clone.
+Committed files, new uncommitted work and `.git` are kept. The next open re-imports everything and resets your Unity layout.
 
 **Submission zip:** `tools\unity.bat zip` (or menu option 6) or `tools/unity.sh zip` packs only the committed files (about 80 MB) into `EcoBalance_TechFiles.zip` next to the repo folder. You do not need to run Clean first.
 
