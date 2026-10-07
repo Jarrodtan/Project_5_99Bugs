@@ -71,6 +71,10 @@ Supported development environments: **Windows 11, macOS Tahoe, Ubuntu 24.04**.
    cd Project_5_99Bugs
    git lfs pull
    ```
+   Large binary assets (images, audio, models, fonts, heightmaps) are stored with **Git LFS on our
+   self-hosted Gitea** (`https://team21.dp-ext8.com/git/`), not on GitHub. The first LFS download or
+   upload asks for your **Gitea** username and password; Windows remembers it after that.
+   Accounts are created by the tech lead (sign-up is off).
 5. Unity Hub → **Add → Add project from disk** → select **`apps/mobile/EcoBalance3D`**.
    The first open imports everything (a few minutes).
 

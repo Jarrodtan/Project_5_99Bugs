@@ -13,6 +13,7 @@ This document is the baseline for EcoBalance's technology choices. **Any change 
 | AI navigation | AI Navigation 2.0.14 (NavMesh) | Pathfinding for animal agents (wander, flee, hunt). |
 | Testing | Unity Test Framework 1.8.0 (NUnit, EditMode) | Tests the simulation logic deterministically without entering Play mode. |
 | Version control | Git + GitHub (`Project_5_99Bugs`), feature branches → PR → `main` | Industry standard, and it integrates with GitHub Actions CI. |
+| Large files | Git LFS on self-hosted Gitea (`https://team21.dp-ext8.com/git/`) | Keeps binary assets (models, textures, audio, heightmaps) off GitHub; the team controls the storage. |
 | CI/CD | GitHub Actions + GameCI (`unity-test-runner`, `unity-builder`) | Free for our repo. Runs the tests and makes an Android build on every push or PR to `main`. |
 | Task tracking | Jira (SCRUM project) | Epics for each feature (Fxx) and technical deliverable (Txx), plus stories with acceptance criteria. |
 | IDEs | Visual Studio / JetBrains Rider | Both have official Unity integration packages in the project. |
