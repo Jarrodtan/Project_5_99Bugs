@@ -30,15 +30,17 @@ binary and runs it in the background, disguised as a Gitea process.
 | 30 Sep 2026, 23:04 | Tried Git LFS on Gitea through an SSH tunnel (`8c03b3ae`). |
 | 30 Sep 2026, 23:46 | LFS reverted until after M1 (`b58999f0`): pushes failed whenever the tunnel was down, and CI cannot reach `localhost`. GitHub stays the main pipeline. |
 | 1 Oct 2026 | DigiPen IT (Saiful Sulaimi) checked the rebuild against the advisory and confirmed it was done properly. |
+| 6 Oct 2026 | Following the instructor's advice, put Gitea behind **Caddy** with automatic HTTPS at `https://team21.dp-ext8.com/git/`; Gitea itself still listens only on `127.0.0.1:3000`. Opened ports 80/443 only. Admin account protected with 2FA; 9 team accounts created by the admin. |
+| 6 Oct 2026 | Git LFS moved to Gitea over HTTPS (`f22cc0bb`, PR #30). CI pulls LFS files with a read-only Gitea token (`GITEA_LFS_TOKEN`). CI green. |
 
 ## What the rebuild does
 
 | Requirement          | How it is met                                                                                             |
 | -------------------- | --------------------------------------------------------------------------------------------------------- |
-| Private only         | Gitea listens on `127.0.0.1:3000`; we reach it through an SSH tunnel. Tested as unreachable from outside. |
+| Private only         | Gitea listens on `127.0.0.1:3000`; the only way in is through Caddy over HTTPS (`/git/`). Port 3000 tested as unreachable from outside. |
 | No anonymous access  | Sign-up is disabled, and a login is required even to view anything.                                       |
 | Minimal data         | One account (ours) and only our own repository restored.                                                  |
-| Nothing else exposed | No firewall holes, no Docker, no other services.                                                          |
+| Nothing else exposed | Only SSH (22) and HTTP/HTTPS (80/443, Caddy) are opened; HTTP redirects to HTTPS. No Docker, no other services. |
 | Up to date, least privilege | Gitea 1.27.1 (was 1.23.7), running as the `gitea` user instead of root.                      |
 | Verified             | No requests from the internet since the rebuild.                                                          |
 
@@ -53,10 +55,14 @@ binary and runs it in the background, disguised as a Gitea process.
 - **Keep infrastructure separate from delivery:** GitHub + CI stayed the main pipeline, and we reverted
   the LFS dependency before the deadline, so the Gitea work never put the M1 build at risk.
 
-## Next (after M1)
+## Current setup (since 6 Oct 2026)
 
-If the team needs Gitea (e.g. for LFS or as a CI mirror), expose it on an approved public port with HTTPS
-and keep sign-up off, so CI and teammates can reach it without an SSH tunnel.
+- **HTTPS:** Caddy reverse proxy with an automatic certificate; `https://team21.dp-ext8.com/git/` → Gitea.
+- **Accounts:** sign-up off, admin with 2FA, one account per team member, repository private.
+- **Role:** Git LFS store for binary assets. Code and branches live on GitHub; teammates use GitHub Desktop
+  as usual and log in to Gitea once when LFS asks.
+- **CI:** `unity-ci.yml` pulls LFS files using the `GITEA_LFS_TOKEN` repository secret.
+- **Not a backup:** the VM has no backups; GitHub remains the source of truth for code.
 
 ---
 
