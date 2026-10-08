@@ -27,7 +27,7 @@ echo   1. Open project in Unity
 echo   2. Run EditMode tests
 echo   3. Build Android APK
 echo   4. Build Windows EXE
-echo   5. Clean (delete Library, Temp, Logs, obj, Build)
+echo   5. Clean (Unity cache + all Git-ignored files: UserSettings, .vs, *.csproj...)
 echo   6. Make submission zip (committed files only)
 echo   7. Exit
 echo.
@@ -46,7 +46,7 @@ if "%CMD%"=="" (
 )
 if /i not "%CMD%"=="clean" goto dispatch
 set "OK="
-set /p "OK=Delete the Unity cache - next open re-imports everything. Continue? [y/N] "
+set /p "OK=Delete the Unity cache and all Git-ignored files (your Unity layout resets; committed work is kept). Continue? [y/N] "
 if /i "%OK%"=="y" goto dispatch
 echo Cancelled.
 goto end
@@ -115,6 +115,9 @@ for %%d in (Library Temp Logs obj Build) do if exist "%PROJECT%\%%d" (
   echo removed %%d
 )
 if exist "%ROOT%\test-results.xml" del "%ROOT%\test-results.xml"
+rem Also remove every other Git-ignored file (UserSettings, .vs, .vscode, *.csproj, *.slnx, temp files),
+rem the same set the submission zip leaves out. Committed files, new uncommitted work and .git are kept.
+git -C "%ROOT%" clean -fdX
 echo Clean. The next open re-imports everything (a few minutes).
 set "RC=0"
 goto end

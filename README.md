@@ -103,8 +103,9 @@ CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL`, `UNITY_PASSWOR
 
 ## Clean
 
-Delete generated folders (`Library`, `Temp`, `Logs`, `obj`, `Build`) if the project gets into a bad state:
-`tools/unity.sh clean` or `tools\unity.bat clean`. The next open re-imports everything.
+`tools/unity.sh clean` or `tools\unity.bat clean` (menu option 5) deletes the Unity cache (`Library`, `Temp`, `Logs`, `obj`, `Build`)
+and every other Git-ignored file (`UserSettings`, `.vs`, `.vscode`, `*.csproj`, `*.slnx`), leaving the folder like a fresh clone.
+Committed files, new uncommitted work and `.git` are kept. The next open re-imports everything and resets your Unity layout.
 
 **Submission zip:** `tools\unity.bat zip` (or menu option 6) or `tools/unity.sh zip` packs only the committed files (about 80 MB) into `EcoBalance_TechFiles.zip` next to the repo folder. You do not need to run Clean first.
 
@@ -116,3 +117,6 @@ Generated files, IDE folders, build output, logs and secrets are excluded by `.g
 - `main` is protected: merge only after the **EditMode tests** check passes. Never push directly to `main`.
 - Rename or move Unity files **inside the Unity Editor** so their `.meta` files move with them.
 - Jira tracks the work; this repository holds the implementation and evidence.
+- **Access:** all 9 team members and the instructor are collaborators on the GitHub repository.
+- **Code freeze:** before each milestone, `main` is frozen (M1: Sat 3 Oct 2026, 5pm). After the freeze, only bug fixes go in, through a reviewed pull request with passing tests.
+- **Submission build:** the milestone zip is made from frozen `main` with `tools\unity.bat zip` / `tools/unity.sh zip`, so it matches exactly what was reviewed.
