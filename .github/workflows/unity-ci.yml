@@ -34,8 +34,14 @@ jobs:
           swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
 
       - uses: actions/checkout@v4
-        with:
-          lfs: true
+
+      # LFS files live on the team Gitea, not GitHub, so pull them with a Gitea token
+      - name: Pull LFS files from Gitea
+        env:
+          GITEA_LFS_TOKEN: ${{ secrets.GITEA_LFS_TOKEN }}
+        run: |
+          git config lfs.url "https://team21-admin:${GITEA_LFS_TOKEN}@team21.dp-ext8.com/git/team21-admin/team21_EcoBalance3D_99Bugs.git/info/lfs"
+          git lfs pull
 
       - uses: game-ci/unity-test-runner@v4
         id: tests
@@ -78,8 +84,14 @@ jobs:
           swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
 
       - uses: actions/checkout@v4
-        with:
-          lfs: true
+
+      # LFS files live on the team Gitea, not GitHub, so pull them with a Gitea token
+      - name: Pull LFS files from Gitea
+        env:
+          GITEA_LFS_TOKEN: ${{ secrets.GITEA_LFS_TOKEN }}
+        run: |
+          git config lfs.url "https://team21-admin:${GITEA_LFS_TOKEN}@team21.dp-ext8.com/git/team21-admin/team21_EcoBalance3D_99Bugs.git/info/lfs"
+          git lfs pull
 
       - uses: game-ci/unity-builder@v4
         with:

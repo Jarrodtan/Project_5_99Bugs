@@ -32,7 +32,7 @@ Food chains and population balance are usually taught as static diagrams. Learne
 - **Intended experience:** curiosity → experimentation → discovery → understanding.
 - **Design priorities:** simple touch interactions, visible cause-and-effect, and safe experimentation with easy retry.
 
-*TODO (Design): add a summary of the user research (interviews, comparable products such as other ecosystem sims) with links to the research notes.*
+User research was focused on understanding how children aged 6–9 engage with ecosystem simulations and interactive learning experiences. Research included reviewing comparable ecosystem simulation products and exploring how they communicate cause-and-effect, ecosystem relationships, and visual feedback. These findings informed the simulation’s interaction design, contextual questions, and learning experience.
 
 ## 5. Core user journey
 
