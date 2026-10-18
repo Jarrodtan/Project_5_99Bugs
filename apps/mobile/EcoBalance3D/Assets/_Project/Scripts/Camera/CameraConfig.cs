@@ -22,11 +22,13 @@ public class CameraConfig : ScriptableObject
     [Tooltip("Degrees of yaw/pitch applied per unit of drag delta.")]
     public float rotationSpeed = 0.2f;
 
-    [Tooltip("Minimum pitch angle in degrees.")]
-    public float minPitch = 10f;
+    [Tooltip("Minimum pitch angle in degrees (−89 ≈ from below; avoid ±90 gimbal lock).")]
+    [Range(-89f, 89f)]
+    public float minPitch = -89f;
 
-    [Tooltip("Maximum pitch angle in degrees.")]
-    public float maxPitch = 80f;
+    [Tooltip("Maximum pitch angle in degrees (89 ≈ from above; avoid ±90 gimbal lock).")]
+    [Range(-89f, 89f)]
+    public float maxPitch = 89f;
 
     [Header("Zoom")]
     [Tooltip("Distance change per unit of zoom input.")]

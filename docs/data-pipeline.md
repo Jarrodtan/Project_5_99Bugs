@@ -41,6 +41,7 @@ Scenes live in `Assets/Scenes/` (referenced by Build Settings); personal test sc
 - **Models:** `.fbx`, with Scale Factor 1, +Y up, and Read/Write off unless needed.
 - **Textures:** `.png`, power-of-two sizes, with ASTC compression for Android.
 - **Audio:** `.wav` source files. Unity compresses them to Vorbis.
+- **Storage:** binary files (`.png .jpg .jpeg .psd .tga .exr .tif .fbx .obj .glb .gltf .blend .wav .mp3 .ogg .mp4 .ttf .otf .raw .r16`) go through **Git LFS** to our Gitea server automatically (rules in `.gitattributes`). To add a new binary type, add it to `.gitattributes` **before** committing the first file.
 - **Export:** simulation metrics go out as CSV (T05).
 
 ## Validation rules

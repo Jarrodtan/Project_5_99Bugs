@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: c1000000000000000000000000000045, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -4444,6 +4444,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 8700000003}
+        m_TargetAssemblyTypeName: ClockService, Assembly-CSharp
+        m_MethodName: Reset
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1475575432
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5105,6 +5117,179 @@ MonoBehaviour:
   shape: 2
   size: {x: 2.5, y: 0.05, z: 2.5}
   color: {r: 0.2, g: 0.5, b: 0.95, a: 1}
+--- !u!1001 &8700000090
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 8730000001, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_Name
+      value: Clock
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8730000003, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: speedController
+      value: 
+      objectReference: {fileID: 933990900}
+    - target: {fileID: 8730000004, guid: c1000000000000000000000000000031, type: 3}
+      propertyPath: directionalLight
+      value: 
+      objectReference: {fileID: 410087040}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c1000000000000000000000000000031, type: 3}
+--- !u!4 &8700000002 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8730000002, guid: c1000000000000000000000000000031, type: 3}
+  m_PrefabInstance: {fileID: 8700000090}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8700000003 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8730000003, guid: c1000000000000000000000000000031, type: 3}
+  m_PrefabInstance: {fileID: 8700000090}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 178983159c70ec14fa5e8fc133ddb62b, type: 3}
+--- !u!1001 &8700000100
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 8720000001, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_Name
+      value: ClockHud
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000016, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: providerBehaviour
+      value: 
+      objectReference: {fileID: 8700000003}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c1000000000000000000000000000030, type: 3}
+--- !u!224 &8700000101 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 8720000002, guid: c1000000000000000000000000000030, type: 3}
+  m_PrefabInstance: {fileID: 8700000100}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -5124,3 +5309,5 @@ SceneRoots:
   - {fileID: 3986020}
   - {fileID: 402287757}
   - {fileID: 1614410772}
+  - {fileID: 8700000002}
+  - {fileID: 8700000101}

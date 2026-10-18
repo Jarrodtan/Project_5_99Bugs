@@ -176,6 +176,9 @@ MonoBehaviour:
     - id: Grass
       label: Grass
       prefab: {fileID: 8600000001, guid: a7c3e91b4d6f4088b2e15c0d9f8a7741, type: 3}
+    - id: Water
+      label: Water
+      prefab: {fileID: 8610000001, guid: c1000000000000000000000000000052, type: 3}
     fields:
     - id: plant-spawn-count
       label: Spawn count per click
