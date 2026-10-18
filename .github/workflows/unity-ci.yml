@@ -63,11 +63,15 @@ jobs:
           for f in $(find "$PROJECT_PATH/Logs" -name '*.log' 2>/dev/null); do echo "== $f (last 100 lines) =="; tail -n 100 "$f"; done
           grep -rhE "error CS[0-9]+|License|licen[sc]e|activation" artifacts 2>/dev/null | sort -u | head -40 || true
 
+      # Soft-fail: GitHub free-tier artifact storage often fills up and must not
+      # fail the required "EditMode tests" check after Unity tests already passed.
       - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
           name: test-results
           path: artifacts
+          retention-days: 3
 
   build:
     name: Build (Android)
@@ -101,7 +105,9 @@ jobs:
           customParameters: -nographics   # same exit-137 memory fix as the test job
 
       - uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: EcoBalance3D-Android
           path: build/Android
+          retention-days: 3
 # [AI-GENERATED END]
