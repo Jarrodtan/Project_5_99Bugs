@@ -11,33 +11,46 @@ public class AudioManager : MonoBehaviour
 
     public AudioSource bgm;
     public AudioSource ambience;
-
-    public AudioClip starting;
-    public AudioClip game;
-       
+    public AudioSource sfx;
 
     public void Awake()
     {
-        if (Instance == null) Instance = this;
-        else { Destroy(gameObject);  return; }
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     public void Start()
     {
-        if (bgm != null && game != null)
+        if (menu != null)
         {
-            bgm.clip = game;
-            bgm.loop = true;
-            bgm.Play();
+            menu.TransitionTo(0f);
         }
     }
 
     public void SwitchToSimu()
     {
-        simu.TransitionTo(2.0f);
-        if (bgm != null && game != null) {
-            bgm.clip = game;
-            bgm.Play();
+        if (simu != null)
+        {
+            simu.TransitionTo(2.0f);
+        }
+        if (ambience != null && !ambience.isPlaying)
+        {
+            ambience.Play();
+        }
+    }
+
+    public void PlayUIClick(AudioClip click)
+    {
+        if (sfx != null && click != null)
+        {
+            sfx.PlayOneShot(click);
         }
     }
 
