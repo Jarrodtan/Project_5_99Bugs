@@ -1,19 +1,26 @@
-using UnityEngine;
+using NUnit.Framework;
 using System.Collections;
-using UnityEngine.Networking;
+using System.Collections.Generic;
 using System.Net;
 using TMPro;
+using UnityEngine;
+using UnityEngine.Networking;
 
-[System.Serializable]
-public class WeatherResponse
+[System.Serializable] public class WeatherResponse
 {
     public MainWeather main;
+    public List<WeatherCondition> weather;
 }
 
-[System.Serializable]
-public class MainWeather
+[System.Serializable] public class MainWeather
 {
     public float temp;
+}
+
+[System.Serializable] public class WeatherCondition
+{
+    public string main;
+    public string description;
 }
 
 public class WeatherManager : MonoBehaviour
@@ -43,21 +50,26 @@ public class WeatherManager : MonoBehaviour
             else
             {
                 WeatherResponse data = JsonUtility.FromJson<WeatherResponse>(req.downloadHandler.text);
-                if (data != null && data.main != null)
+                if (data != null && data.main != null && data.weather != null && data.weather.Count > 0)
                 {
                     float curr_temp = data.main.temp;
+                    string condi = data.weather[0].main;
                     if (txt != null)
                     {
-                        txt.text = $"Himalayas Live Temp: {curr_temp}°C";
+                        txt.text = $"Himalayas Live Temp: {curr_temp}°C\nCondition: {condi}";
                     }
-                    Debug.Log($"Live Himalayan Temperature: {curr_temp}°C");
+                    Debug.Log($"Live Himalayan Temp: {curr_temp}°C, Condition: {condi}");
+
+                    // --- For generation of terrain ; Do it here onwards ---
+                    // Example (from AI):
+                    // if (condition == "Snow") { TeammateScript.SpawnSnowParticles(); }
+                    // else if (condition == "Thunderstorm") { TeammateScript.StartStorm(); }
+
                 }
                 else
                 {
                     Debug.LogError("Failed to parse weather data. API Response: " + req.downloadHandler.text);
-                }
-                // --- For generation of terrain ; Do it here onwards ---
-                
+                }                
             }
         }
     }
