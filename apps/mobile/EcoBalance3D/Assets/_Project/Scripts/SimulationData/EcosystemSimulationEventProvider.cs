@@ -34,6 +34,10 @@ public class EcosystemSimulationEventProvider : MonoBehaviour, ISimulationEventP
     [SerializeField]
     string starvationFormat = "{0} starved";
 
+    [Tooltip("{0} = species, {1} = how many were born.")]
+    [SerializeField]
+    string birthFormat = "{1} {0} born";
+
     [Tooltip("Added when a species' population reaches zero. {0} = species.")]
     [SerializeField]
     string extinctionFormat = "{0} went extinct";
@@ -58,6 +62,7 @@ public class EcosystemSimulationEventProvider : MonoBehaviour, ISimulationEventP
         simulator.PredationRecorded += OnPredation;
         simulator.EatRecorded += OnEat;
         simulator.StarvationRecorded += OnStarvation;
+        simulator.BirthRecorded += OnBirth;
     }
 
     void OnDisable()
@@ -68,6 +73,7 @@ public class EcosystemSimulationEventProvider : MonoBehaviour, ISimulationEventP
         simulator.PredationRecorded -= OnPredation;
         simulator.EatRecorded -= OnEat;
         simulator.StarvationRecorded -= OnStarvation;
+        simulator.BirthRecorded -= OnBirth;
     }
 
     void OnPredation(SpeciesDefinition predator, SpeciesDefinition prey)
@@ -89,6 +95,9 @@ public class EcosystemSimulationEventProvider : MonoBehaviour, ISimulationEventP
         Add("starvation", string.Format(starvationFormat, NameOf(species)));
         CheckExtinct(species);
     }
+
+    void OnBirth(SpeciesDefinition species, int count) =>
+        Add("birth", string.Format(birthFormat, NameOf(species), count));
 
     void CheckExtinct(SpeciesDefinition species)
     {

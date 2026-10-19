@@ -312,5 +312,46 @@ public class EcosystemSimulatorTests
 
         Assert.AreEqual(0f, sim.populations[leopard]);
     }
+
+    [Test]
+    public void Events_Birth_AddsOneAndRaisesEvent()
+    {
+        sim.populations[sheep] = 10f;
+        SpeciesDefinition raisedFor = null; int raisedCount = 0;
+        sim.BirthRecorded += (s, n) => { raisedFor = s; raisedCount = n; };
+
+        int born = sim.RecordBirth(sheep);
+
+        Assert.AreEqual(1, born);
+        Assert.AreEqual(11f, sim.populations[sheep]);
+        Assert.AreEqual(sheep, raisedFor);
+        Assert.AreEqual(1, raisedCount);
+    }
+
+    [Test]
+    public void Events_Birth_CappedAtMaxPopulation()
+    {
+        sim.maxPopulationPerSpecies = 12f;
+        sim.populations[sheep] = 10f;
+
+        int born = sim.RecordBirth(sheep, 5);
+
+        Assert.AreEqual(2, born);
+        Assert.AreEqual(12f, sim.populations[sheep]);
+        Assert.AreEqual(0, sim.RecordBirth(sheep));
+    }
+
+    [Test]
+    public void Events_Birth_ExtinctOrUnknownSpecies_ChangesNothing()
+    {
+        sim.populations[leopard] = 0f;
+        bool raised = false;
+        sim.BirthRecorded += (_, _) => raised = true;
+
+        Assert.AreEqual(0, sim.RecordBirth(leopard));
+        Assert.AreEqual(0, sim.RecordBirth(null));
+        Assert.AreEqual(0f, sim.populations[leopard]);
+        Assert.IsFalse(raised);
+    }
 }
 // [AI-GENERATED END]
