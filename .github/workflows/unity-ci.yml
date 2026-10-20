@@ -1,11 +1,14 @@
 # [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 name: Unity CI
 
-# Minutes/storage budget: PRs run tests only; the Android APK is built on main
-# and on demand (Actions > Unity CI > Run workflow). Doc-only changes skip CI.
+# Minutes/storage budget: PRs run tests only; the Android APK is built on main,
+# on version tags (v*) and on demand (Actions > Unity CI > Run workflow).
+# APKs are stored on the team Gitea (package "ecobalance-apk"), not GitHub.
+# Doc-only changes skip CI.
 on:
   push:
     branches: [main]
+    tags: ['v*']
     paths-ignore: ['docs/**', '**/*.md']
   pull_request:
     branches: [main]
@@ -87,6 +90,8 @@ jobs:
     needs: test
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
     steps:
       # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -114,7 +119,40 @@ jobs:
           buildName: EcoBalance3D
           customParameters: -nographics   # same exit-137 memory fix as the test job
 
+      # APKs go to the team Gitea package registry instead of GitHub artifact
+      # storage (which caused October's billing lock). Builds are named
+      # build-<date>-<sha> and only the newest 10 are kept; v* tags are kept.
+      - name: Publish APK to Gitea
+        id: gitea
+        if: env.GITEA_PACKAGE_TOKEN != ''
+        env:
+          GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
+        run: |
+          set -euo pipefail
+          API=https://team21.dp-ext8.com/git
+          OWNER=team21-admin
+          PKG=ecobalance-apk
+          AUTH="$OWNER:$GITEA_PACKAGE_TOKEN"
+          APK=$(find build/Android -name '*.apk' | head -n 1)
+          if [ -z "$APK" ]; then echo "No APK found"; exit 1; fi
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            VER="$GITHUB_REF_NAME"
+          else
+            VER="build-$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}"
+          fi
+          curl -fsS --user "$AUTH" --upload-file "$APK"             "$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance3D.apk"
+          URL="$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance3D.apk"
+          echo "### APK: [$VER]($URL)" >> "$GITHUB_STEP_SUMMARY"
+          # Keep the newest 10 build-* versions; tagged releases are never pruned.
+          curl -fsS --user "$AUTH"             "$API/api/v1/packages/$OWNER?type=generic&q=$PKG&limit=50"           | jq -r '[.[] | select(.name=="'"$PKG"'" and (.version|startswith("build-")))]
+                   | sort_by(.created_at) | reverse | .[10:] | .[].version'           | while read -r OLD; do
+              echo "Pruning $OLD"
+              curl -fsS -X DELETE --user "$AUTH" "$API/api/packages/$OWNER/generic/$PKG/$OLD" || true
+            done
+
+      # Fallback until the Gitea token secret exists: short-lived GitHub artifact.
       - uses: actions/upload-artifact@v4
+        if: env.GITEA_PACKAGE_TOKEN == ''
         continue-on-error: true
         with:
           name: EcoBalance3D-Android
