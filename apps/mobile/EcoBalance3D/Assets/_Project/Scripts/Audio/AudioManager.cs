@@ -30,7 +30,7 @@ public class AudioManager : MonoBehaviour
     {
         if (menu != null)
         {
-            menu.TransitionTo(0f);
+            menu.TransitionTo(2.0f);
         }
     }
 
