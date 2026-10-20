@@ -66,6 +66,8 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
         // so each run starts from the configured starting amount.
         foreach (var r in resources)
             r.currentAmount = Mathf.Min(r.startingAmount, r.maxAmount);
+        TickCount = 0;
+        EcosystemReset?.Invoke();
         // [AI-GENERATED END]
     }
 
@@ -99,11 +101,26 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
     }
     // [AI-GENERATED END]
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    /// <summary>Completed ticks since the last reset (one tick = one simulated day).</summary>
+    public int TickCount { get; private set; }
+
+    /// <summary>Raised after each completed <see cref="Tick"/>, once populations and resources are updated.</summary>
+    public event System.Action Ticked;
+
+    /// <summary>Raised after <see cref="ResetEcosystem"/> restores the starting state.</summary>
+    public event System.Action EcosystemReset;
+
     public void Tick()
     {
-        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
         if (!ValidateConfiguration()) return;
+        Step();
+        TickCount++;
+        Ticked?.Invoke();
+    }
 
+    void Step()
+    {
         if (mode == SimulationMode.Events)
         {
             // Populations change only through RecordPredation / RecordEat / RecordStarvation.
