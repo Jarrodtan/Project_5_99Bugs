@@ -93,17 +93,22 @@ The built app starts from the first scene in Build Settings (HomeScreen).
   - Windows: `tools\unity.bat test`
 
   Results are written to `test-results.xml`.
-- **CI:** runs automatically on every push and pull request to `main` (GitHub → Actions).
+- **CI:** runs automatically on every pull request and push to `main` (GitHub → Actions). Test logs are uploaded only when a run fails.
 
 ## Build
 
 - **Editor:** **File → Build Profiles → Android → Build**.
 - **Command line** (Editor closed): `tools/unity.sh build android` or `tools\unity.bat build android`
   (also `windows`, and `macos` / `linux` with `unity.sh`). Output: `apps/mobile/EcoBalance3D/Build/<Platform>/`.
-- **CI:** every push to `main` produces the Android build artifact **`EcoBalance3D-Android`** (GitHub → Actions → run → Artifacts).
+- **CI:** pull requests run tests only. Every push to `main`, every `v*` tag and a manual **Actions → Unity CI → Run workflow** also build the Android APK.
+  APKs are stored on the team Gitea, not GitHub: **Gitea → team21-admin → Packages → `ecobalance-apk`** (newest 10 `build-*` versions kept; `v*` tags kept).
+  The run's GitHub summary links to the APK. Tag `main` (e.g. `v0.2-m2`) for a versioned milestone release.
 
 CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL`, `UNITY_PASSWORD`
-(serial-based Unity licence; see the [GameCI activation guide](https://game.ci/docs/github/activation)).
+(serial-based Unity licence; see the [GameCI activation guide](https://game.ci/docs/github/activation)),
+`GITEA_LFS_TOKEN` (LFS pull) and `GITEA_PACKAGE_TOKEN` (APK upload; Gitea token with package read/write).
+APKs go to Gitea because GitHub artifact storage filled up in October 2026 and locked Actions.
+Running CI on the team VM instead is documented in [docs/infra/ci-vm-runner.md](docs/infra/ci-vm-runner.md) (on hold: VM too small).
 
 ## Clean
 
