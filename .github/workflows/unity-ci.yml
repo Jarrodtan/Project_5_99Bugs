@@ -1,12 +1,21 @@
 # [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 name: Unity CI
 
+# Minutes/storage budget: PRs run tests only; the Android APK is built on main
+# and on demand (Actions > Unity CI > Run workflow). Doc-only changes skip CI.
 on:
   push:
     branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
   pull_request:
     branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
   workflow_dispatch:
+
+# A newer push to the same PR/branch cancels the older run instead of paying for both.
+concurrency:
+  group: unity-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -63,10 +72,10 @@ jobs:
           for f in $(find "$PROJECT_PATH/Logs" -name '*.log' 2>/dev/null); do echo "== $f (last 100 lines) =="; tail -n 100 "$f"; done
           grep -rhE "error CS[0-9]+|License|licen[sc]e|activation" artifacts 2>/dev/null | sort -u | head -40 || true
 
-      # Soft-fail: GitHub free-tier artifact storage often fills up and must not
-      # fail the required "EditMode tests" check after Unity tests already passed.
+      # Logs are only kept when something failed, to stay inside artifact storage.
+      # Soft-fail: a full storage quota must not fail the required check.
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         continue-on-error: true
         with:
           name: test-results
@@ -76,6 +85,7 @@ jobs:
   build:
     name: Build (Android)
     needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
