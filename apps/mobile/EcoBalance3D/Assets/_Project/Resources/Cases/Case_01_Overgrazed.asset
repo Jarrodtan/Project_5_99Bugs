@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1b04dea7ac44c66bc1de3a97db3e900, type: 3}
+  m_Name: Case_01_Overgrazed
+  m_EditorClassIdentifier: 
+  caseId: overgrazed
+  title: The valley ran out of grass
+  hint: "What happens when lots of blue sheep share a small valley?"
+  explanation: "So many blue sheep were grazing that the grass could not grow back fast enough. Without enough grass, hungry sheep get weak. Fewer sheep would have let the grass recover."
+  earliestDay: 1
+  conditions:
+  - kind: 0
+    subject: {fileID: 11400000, guid: 76da2c5da0148784389995384801e63e, type: 2}
+    other: {fileID: 0}
+    value: 10
+    windowDays: 10
+  - kind: 1
+    subject: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
+    other: {fileID: 0}
+    value: 20
+    windowDays: 10
