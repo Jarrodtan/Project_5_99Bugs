@@ -1,9 +1,11 @@
 # [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 name: Unity CI
 
-# Minutes/storage budget: PRs run tests only; the Android APK is built on main,
-# on version tags (v*) and on demand (Actions > Unity CI > Run workflow).
-# APKs are stored on the team Gitea (package "ecobalance-apk"), not GitHub.
+# Minutes budget: PRs and pushes to main run tests only. The Android APK is built
+# nightly (only if main changed since the last APK), on version tags (v*) and on
+# demand (Actions > Unity CI > Run workflow).
+# APKs are stored on the team Gitea (package "ecobalance-apk"); nothing is uploaded to
+# GitHub artifact storage. Test failures are printed in the job log instead.
 # Doc-only pushes to main skip CI.
 on:
   push:
@@ -14,9 +16,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '0 18 * * *'   # 02:00 Singapore time, nightly APK
 
 # On PRs a newer push cancels the older run instead of paying for both.
-# On main every merge finishes, so each merge gets its APK.
+# On main every run finishes, so each merge gets its tests.
 concurrency:
   group: unity-ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -35,8 +39,29 @@ env:
 # (exit 137) while Unity reloaded assemblies; clean imports passed.
 
 jobs:
+  # Nightly runs skip everything when Gitea already has an APK for this commit.
+  check:
+    name: Anything new?
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.c.outputs.changed }}
+    steps:
+      - id: c
+        env:
+          GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != schedule ] || [ -z "$GITEA_PACKAGE_TOKEN" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          SHORT=${GITHUB_SHA::7}
+          FOUND=$(curl -fsS --user "team21-admin:$GITEA_PACKAGE_TOKEN"             "https://team21.dp-ext8.com/git/api/v1/packages/team21-admin?type=generic&q=ecobalance-apk&limit=50"             | jq -r --arg s "$SHORT" '[.[] | select(.version|endswith($s))] | length' || echo 0)
+          if [ "$FOUND" -gt 0 ]; then echo "APK for $SHORT already on Gitea, skipping"; echo "changed=false" >> "$GITHUB_OUTPUT"
+          else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+
   test:
     name: EditMode tests
+    needs: check
+    if: needs.check.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
       # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
@@ -76,20 +101,13 @@ jobs:
           for f in $(find "$PROJECT_PATH/Logs" -name '*.log' 2>/dev/null); do echo "== $f (last 100 lines) =="; tail -n 100 "$f"; done
           grep -rhE "error CS[0-9]+|License|licen[sc]e|activation" artifacts 2>/dev/null | sort -u | head -40 || true
 
-      # Logs are only kept when something failed, to stay inside artifact storage.
-      # Soft-fail: a full storage quota must not fail the required check.
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        continue-on-error: true
-        with:
-          name: test-results
-          path: artifacts
-          retention-days: 3
-
   build:
     name: Build (Android)
-    needs: test
-    if: github.event_name != 'pull_request'
+    needs: [check, test]
+    # Not on PRs or ordinary pushes to main (saves ~50 min per merge).
+    if: >-
+      github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' ||
+      (github.event_name == 'schedule' && needs.check.outputs.changed == 'true')
     runs-on: ubuntu-latest
     env:
       GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
@@ -125,7 +143,6 @@ jobs:
       # build-<date>-<sha> and only the newest 10 are kept; v* tags are kept.
       - name: Publish APK to Gitea
         id: gitea
-        if: env.GITEA_PACKAGE_TOKEN != ''
         env:
           GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
         run: |
@@ -150,13 +167,4 @@ jobs:
               echo "Pruning $OLD"
               curl -fsS -X DELETE --user "$AUTH" "$API/api/packages/$OWNER/generic/$PKG/$OLD" || true
             done
-
-      # Fallback until the Gitea token secret exists: short-lived GitHub artifact.
-      - uses: actions/upload-artifact@v4
-        if: env.GITEA_PACKAGE_TOKEN == ''
-        continue-on-error: true
-        with:
-          name: EcoBalance3D-Android
-          path: build/Android
-          retention-days: 3
 # [AI-GENERATED END]
