@@ -12,7 +12,7 @@ See also: [toolchain.md](toolchain.md) (technology choices), [data-pipeline.md](
 | Engine | Unity **6000.6.0f1** (Unity 6), URP |
 | Language | C# |
 | Target platform | Android tablet |
-| Source control / CI | GitHub + GitHub Actions (GameCI): EditMode tests + Android build on every PR to `main` |
+| Source control / CI | GitHub + GitHub Actions (GameCI): EditMode tests on every PR; Android build on `main`, `v*` tags and manual runs, APK stored on team Gitea |
 | Project management | Jira (SCRUM project) |
 
 ## 2. Architecture diagram

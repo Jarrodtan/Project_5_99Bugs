@@ -4,15 +4,15 @@ name: Unity CI
 # Minutes/storage budget: PRs run tests only; the Android APK is built on main,
 # on version tags (v*) and on demand (Actions > Unity CI > Run workflow).
 # APKs are stored on the team Gitea (package "ecobalance-apk"), not GitHub.
-# Doc-only changes skip CI.
+# Doc-only pushes to main skip CI.
 on:
   push:
     branches: [main]
     tags: ['v*']
     paths-ignore: ['docs/**', '**/*.md']
+  # No paths-ignore on PRs: "EditMode tests" is a required check, so it must report.
   pull_request:
     branches: [main]
-    paths-ignore: ['docs/**', '**/*.md']
   workflow_dispatch:
 
 # A newer push to the same PR/branch cancels the older run instead of paying for both.
