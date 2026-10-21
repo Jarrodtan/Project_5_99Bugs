@@ -109,13 +109,13 @@ jobs:
           checkName: EditMode Test Results
           # No GPU on the runner: skip software OpenGL, which used enough RAM to get
           # Unity killed (exit 137) while loading assemblies.
-          # Nightly: PerformanceTests also write their timings for the history below.
+          # Weekly run: PerformanceTests also write their timings for the history below.
           customParameters: >-
             -nographics
             ${{ github.event_name == 'schedule' && '-perfOut /github/workspace/artifacts/perf.txt' || '' }}
 
       # Performance history (rubric: performance tests with a historical representation):
-      # one CSV row per nightly run, kept on Gitea as ecobalance-perf/history/perf.csv.
+      # one CSV row per weekly run, kept on Gitea as ecobalance-perf/history/perf.csv.
       - name: Append performance history on Gitea
         if: github.event_name == 'schedule' && success()
         env:
@@ -201,7 +201,7 @@ jobs:
             VER="$GITHUB_REF_NAME"
           else
             VER="build-$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}"
-            # Development APKs get a suffix so the nightly "already built?" check ignores them.
+            # Development APKs get a suffix so the weekly "already built?" check ignores them.
             if [ "${{ github.event.inputs.buildType }}" = development ]; then VER="$VER-dev"; fi
           fi
           curl -fsS --user "$AUTH" --upload-file "$APK"             "$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance3D.apk"
