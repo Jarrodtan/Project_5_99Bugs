@@ -17,11 +17,12 @@ EcoBalance is an interactive, educational 3D ecosystem simulation. Players set u
 | [`docs/toolchain.md`](docs/toolchain.md) | Technology stack and why |
 | [`docs/data-pipeline.md`](docs/data-pipeline.md) | How content/data is authored, naming, folder rules |
 | [`docs/infra/gitea-rebuild.md`](docs/infra/gitea-rebuild.md) | Self-hosted Gitea server: security incident, rebuild, lessons learned |
+| [`docs/infra/ci.md`](docs/infra/ci.md) | CI/CD: what runs when, where APKs and results are, rubric mapping |
 
 ## Technology Stack
 
 - **Engine:** Unity 6000.6.0f1 (URP) · **Language:** C# · **Target:** Android (mobile)
-- **Tests:** Unity Test Framework (EditMode) · **CI:** GitHub Actions + GameCI (tests + Android build)
+- **Tests:** Unity Test Framework (EditMode) · **CI:** GitHub Actions + GameCI (repo checks, unit/smoke/performance tests, Android build), details in [`docs/infra/ci.md`](docs/infra/ci.md)
 - **Tracking:** Jira · Details: [`docs/toolchain.md`](docs/toolchain.md)
 
 ## Repository Structure
@@ -38,7 +39,7 @@ Project_5_99Bugs/
 │   ├── deliverables.md            # ownership + M1/M2/M3 targets
 │   ├── toolchain.md
 │   ├── data-pipeline.md
-│   └── infra/gitea-rebuild.md    # self-hosted Gitea: incident + secure rebuild
+│   └── infra/                    # gitea-rebuild.md (VM/Gitea), ci.md (CI/CD), ci-vm-runner.md
 ├── apps/
 │   └── mobile/
 │       └── EcoBalance3D/          # Unity project (scenes, art, audio, prefabs, app scripts, app tests)
@@ -48,7 +49,7 @@ Project_5_99Bugs/
 │   ├── unity.sh                   # open / test / build / clean / zip (Ubuntu, macOS, Git Bash)
 │   └── unity.bat                  # same commands for Windows cmd
 ├── tests/                         # test plans and manual checklists
-├── .github/workflows/unity-ci.yml # CI: EditMode tests + Android build
+├── .github/workflows/unity-ci.yml # CI: repo checks, EditMode tests, Android build (docs/infra/ci.md)
 ├── .gitignore  .gitattributes  .editorconfig
 ```
 
@@ -93,22 +94,22 @@ The built app starts from the first scene in Build Settings (HomeScreen).
   - Windows: `tools\unity.bat test`
 
   Results are written to `test-results.xml`.
-- **CI:** runs automatically on every pull request and push to `main` (GitHub → Actions). Test logs are uploaded only when a run fails.
+- **CI:** runs automatically on every pull request and push to `main` (GitHub → Actions): repo checks (`python tools/ci/repo-checks.py`, also runnable locally) plus EditMode tests, including scene smoke tests and performance tests. Failures are printed in the job log.
 
 ## Build
 
 - **Editor:** **File → Build Profiles → Android → Build**.
 - **Command line** (Editor closed): `tools/unity.sh build android` or `tools\unity.bat build android`
   (also `windows`, and `macos` / `linux` with `unity.sh`). Output: `apps/mobile/EcoBalance3D/Build/<Platform>/`.
-- **CI:** pull requests run tests only. Every push to `main`, every `v*` tag and a manual **Actions → Unity CI → Run workflow** also build the Android APK.
+- **CI:** the Android APK is built **weekly** (Sunday 02:00 SGT, only if `main` changed), for every `v*` tag, and on demand via **Actions → Unity CI → Run workflow** (choose `release` or `development`; development includes the debug overlay).
   APKs are stored on the team Gitea, not GitHub: **Gitea → team21-admin → Packages → `ecobalance-apk`** (newest 10 `build-*` versions kept; `v*` tags kept).
   The run's GitHub summary links to the APK. Tag `main` (e.g. `v0.2-m2`) for a versioned milestone release.
 
 CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL`, `UNITY_PASSWORD`
 (serial-based Unity licence; see the [GameCI activation guide](https://game.ci/docs/github/activation)),
 `GITEA_LFS_TOKEN` (LFS pull) and `GITEA_PACKAGE_TOKEN` (APK upload; Gitea token with package read/write).
-APKs go to Gitea because GitHub artifact storage filled up in October 2026 and locked Actions.
-Running CI on the team VM instead is documented in [docs/infra/ci-vm-runner.md](docs/infra/ci-vm-runner.md) (on hold: VM too small).
+APKs and performance history go to Gitea, so GitHub artifact storage stays at 0 (it filled up in October 2026 and locked Actions).
+CI uses about 1,200 of the 3,000 student-Pro minutes per month; an Actions budget with "stop usage" makes it pause rather than charge.
 
 ## Clean
 

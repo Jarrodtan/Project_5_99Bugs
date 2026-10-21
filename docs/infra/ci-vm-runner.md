@@ -1,5 +1,9 @@
 # Running CI on the team VM (GitHub self-hosted runner)
 
+> **Status (22 Oct 2026): not pursued.** The VM has 3.7 GB RAM and Tomas confirmed it can't be upgraded, so Unity CI
+> stays on GitHub-hosted runners (see [ci.md](ci.md)). The VM's CI role is now planned as running a **headless build**
+> for soak tests (M3). This page is kept as the setup reference in case a bigger machine becomes available.
+
 GitHub stays the same for the team (push, PRs, ✅/❌ checks). The **VM does the heavy work**: Unity tests and the Android build.
 Why: GitHub's free CI minutes and artifact storage ran out in October 2026 and locked Actions. Self-hosted runners use no minutes, and APKs saved on the VM use no GitHub storage.
 

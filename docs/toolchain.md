@@ -14,7 +14,7 @@ This document is the baseline for EcoBalance's technology choices. **Any change 
 | Testing | Unity Test Framework 1.8.0 (NUnit, EditMode) | Tests the simulation logic deterministically without entering Play mode. |
 | Version control | Git + GitHub (`Project_5_99Bugs`), feature branches → PR → `main` | Industry standard, and it integrates with GitHub Actions CI. |
 | Large files | Git LFS on self-hosted Gitea (`https://team21.dp-ext8.com/git/`) | Keeps binary assets (models, textures, audio, heightmaps) off GitHub; the team controls the storage. |
-| CI/CD | GitHub Actions + GameCI (`unity-test-runner`, `unity-builder`); APKs stored on team Gitea packages | Included in GitHub Pro (student). PRs run tests; `main`, `v*` tags and manual runs also build the Android APK. APKs live on Gitea so GitHub artifact storage stays near zero. |
+| CI/CD | GitHub Actions + GameCI (`unity-test-runner`, `unity-builder`); APKs and performance history stored on team Gitea packages | Included in GitHub Pro (student, 3,000 min/month). PRs and `main` run repo checks and tests; the APK builds weekly, on `v*` tags and on demand. Nothing is stored on GitHub, so storage limits can't lock CI. The team VM (3.7 GB RAM) is too small to run Unity CI itself. Details: `docs/infra/ci.md`. |
 | Task tracking | Jira (SCRUM project) | Epics for each feature (Fxx) and technical deliverable (Txx), plus stories with acceptance criteria. |
 | IDEs | Visual Studio / JetBrains Rider | Both have official Unity integration packages in the project. |
 | AI tools | Unity AI Assistant, Claude Code | Used to help with code, scaffolding and documentation. All output is reviewed by a team member before merge. |
