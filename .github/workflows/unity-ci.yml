@@ -16,6 +16,12 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      buildType:
+        description: 'APK type'
+        type: choice
+        options: [release, development]
+        default: release
   schedule:
     - cron: '0 18 * * *'   # 02:00 Singapore time, nightly APK
 
@@ -39,6 +45,16 @@ env:
 # (exit 137) while Unity reloaded assemblies; clean imports passed.
 
 jobs:
+  # Static checks without Unity (missing .meta files, files that belong in LFS, merge
+  # markers, editor-only code in runtime folders). Seconds, so it runs on every PR/push.
+  repo-checks:
+    name: Repo checks
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4   # no LFS needed: checks what Git stores
+      - run: python3 tools/ci/repo-checks.py
+
   # Nightly runs skip everything when Gitea already has an APK for this commit.
   check:
     name: Anything new?
@@ -90,7 +106,28 @@ jobs:
           checkName: EditMode Test Results
           # No GPU on the runner: skip software OpenGL, which used enough RAM to get
           # Unity killed (exit 137) while loading assemblies.
-          customParameters: -nographics
+          # Nightly: PerformanceTests also write their timings for the history below.
+          customParameters: >-
+            -nographics
+            ${{ github.event_name == 'schedule' && '-perfOut /github/workspace/artifacts/perf.txt' || '' }}
+
+      # Performance history (rubric: performance tests with a historical representation):
+      # one CSV row per nightly run, kept on Gitea as ecobalance-perf/history/perf.csv.
+      - name: Append performance history on Gitea
+        if: github.event_name == 'schedule' && success()
+        env:
+          GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
+        run: |
+          set -uo pipefail
+          [ -s artifacts/perf.txt ] || { echo "no perf.txt, skipping"; exit 0; }
+          URL=https://team21.dp-ext8.com/git/api/packages/team21-admin/generic/ecobalance-perf/history/perf.csv
+          AUTH="team21-admin:$GITEA_PACKAGE_TOKEN"
+          curl -fsS --user "$AUTH" "$URL" -o perf.csv || : > perf.csv
+          echo "$(date -u +%Y-%m-%d),${GITHUB_SHA::7},$(cat artifacts/perf.txt)" >> perf.csv
+          tail -n 5 perf.csv
+          curl -fsS -X DELETE --user "$AUTH" "$URL" || true
+          curl -fsS --user "$AUTH" --upload-file perf.csv "$URL"
+          echo "### Performance history: [perf.csv]($URL)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Show Unity log and test results on failure
         if: failure()
@@ -137,6 +174,9 @@ jobs:
           targetPlatform: Android
           buildName: EcoBalance3D
           customParameters: -nographics   # same exit-137 memory fix as the test job
+          # Run workflow with buildType=development uses our Development build (debug overlay,
+          # profiler); everything else uses GameCI's default release build.
+          buildMethod: ${{ github.event.inputs.buildType == 'development' && 'EcoBalanceCIBuild.BuildAndroidDevelopment' || '' }}
 
       # APKs go to the team Gitea package registry instead of GitHub artifact
       # storage (which caused October's billing lock). Builds are named
@@ -157,6 +197,8 @@ jobs:
             VER="$GITHUB_REF_NAME"
           else
             VER="build-$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}"
+            # Development APKs get a suffix so the nightly "already built?" check ignores them.
+            if [ "${{ github.event.inputs.buildType }}" = development ]; then VER="$VER-dev"; fi
           fi
           curl -fsS --user "$AUTH" --upload-file "$APK"             "$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance3D.apk"
           URL="$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance3D.apk"
