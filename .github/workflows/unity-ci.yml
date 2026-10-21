@@ -2,8 +2,8 @@
 name: Unity CI
 
 # Minutes budget: PRs and pushes to main run tests only. The Android APK is built
-# nightly (only if main changed since the last APK), on version tags (v*) and on
-# demand (Actions > Unity CI > Run workflow).
+# weekly (Sunday, only if main changed since the last APK), on version tags (v*) and
+# on demand (Actions > Unity CI > Run workflow).
 # APKs are stored on the team Gitea (package "ecobalance-apk"); nothing is uploaded to
 # GitHub artifact storage. Test failures are printed in the job log instead.
 # Doc-only pushes to main skip CI.
@@ -23,7 +23,7 @@ on:
         options: [release, development]
         default: release
   schedule:
-    - cron: '0 18 * * *'   # 02:00 Singapore time, nightly APK
+    - cron: '0 18 * * 6'   # Sunday 02:00 Singapore time, weekly APK + perf history
 
 # On PRs a newer push cancels the older run instead of paying for both.
 # On main every run finishes, so each merge gets its tests.
@@ -55,9 +55,11 @@ jobs:
       - uses: actions/checkout@v4   # no LFS needed: checks what Git stores
       - run: python3 tools/ci/repo-checks.py
 
-  # Nightly runs skip everything when Gitea already has an APK for this commit.
+  # Scheduled runs skip everything when Gitea already has an APK for this commit.
+  # Only runs on the schedule (every job is billed as at least 1 minute).
   check:
     name: Anything new?
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.c.outputs.changed }}
@@ -77,7 +79,8 @@ jobs:
   test:
     name: EditMode tests
     needs: check
-    if: needs.check.outputs.changed == 'true'
+    # check is skipped on every event except the schedule.
+    if: always() && (needs.check.result == 'skipped' || needs.check.outputs.changed == 'true')
     runs-on: ubuntu-latest
     steps:
       # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
@@ -143,8 +146,9 @@ jobs:
     needs: [check, test]
     # Not on PRs or ordinary pushes to main (saves ~50 min per merge).
     if: >-
+      always() && needs.test.result == 'success' && (
       github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' ||
-      (github.event_name == 'schedule' && needs.check.outputs.changed == 'true')
+      (github.event_name == 'schedule' && needs.check.outputs.changed == 'true'))
     runs-on: ubuntu-latest
     env:
       GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
