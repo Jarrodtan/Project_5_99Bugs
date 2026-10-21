@@ -5,6 +5,10 @@
 /// </summary>
 public static class CaseEvaluator
 {
+    // Fractions and ratios are compared with a small tolerance so 4 / 10 counts as reaching 0.4
+    // (float division can land at 0.39999998).
+    const float Tolerance = 1e-4f;
+
     /// <summary>True when every condition holds on the latest recorded day and that day is late enough.</summary>
     public static bool IsMet(InvestigationCase c, PopulationHistory history)
     {
@@ -33,19 +37,19 @@ public static class CaseEvaluator
             case CaseConditionKind.DroppedByFraction:
             {
                 float before = history.Back(cond.windowDays).Get(key);
-                return before > 0f && (before - now) / before >= cond.value;
+                return before > 0f && (before - now) / before >= cond.value - Tolerance;
             }
             case CaseConditionKind.RoseByFraction:
             {
                 float before = history.Back(cond.windowDays).Get(key);
-                return before > 0f && (now - before) / before >= cond.value;
+                return before > 0f && (now - before) / before >= cond.value - Tolerance;
             }
             case CaseConditionKind.RatioAtLeast:
             {
                 string otherKey = cond.OtherKey;
                 if (otherKey == null || !today.Has(otherKey)) return false;
                 float other = today.Get(otherKey);
-                return other > 0f ? now / other >= cond.value : now > 0f;
+                return other > 0f ? now / other >= cond.value - Tolerance : now > 0f;
             }
             default: return false;
         }
