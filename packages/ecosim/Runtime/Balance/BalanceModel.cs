@@ -161,6 +161,21 @@ public static class BalanceModel
             $"leopards {LeopardMin}-{LeopardMax} (extinct day {LeopardExtinctDay}), sheep peaks {SheepPeaks}";
     }
 
+    /// <summary>
+    /// Converts a run into a <see cref="PopulationHistory"/> keyed like the real recorder (asset names),
+    /// so investigation cases can be checked against the model before they ship.
+    /// </summary>
+    public static PopulationHistory ToHistory(IReadOnlyList<DaySample> h, string sheepKey, string leopardKey, string grassKey)
+    {
+        var history = new PopulationHistory(Math.Max(1, h.Count));
+        foreach (var s in h)
+            history.Add(s.Day, new Dictionary<string, float>
+            {
+                [sheepKey] = s.Sheep, [leopardKey] = s.Leopards, [grassKey] = s.GrassAverage,
+            });
+        return history;
+    }
+
     /// <summary>History as CSV (day,sheep,leopards,grass) for spreadsheets or the population graph.</summary>
     public static string ToCsv(IReadOnlyList<DaySample> h)
     {
