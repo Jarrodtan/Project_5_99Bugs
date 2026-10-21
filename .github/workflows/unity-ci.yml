@@ -15,10 +15,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# A newer push to the same PR/branch cancels the older run instead of paying for both.
+# On PRs a newer push cancels the older run instead of paying for both.
+# On main every merge finishes, so each merge gets its APK.
 concurrency:
   group: unity-ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
