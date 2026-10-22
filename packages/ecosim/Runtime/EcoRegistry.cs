@@ -19,6 +19,7 @@ public static class EcoRegistry
             byDefinition[definition] = list = new List<Transform>();
         if (!list.Contains(instance))
             list.Add(instance);
+        if (grids.TryGetValue(definition, out var grid)) grid.builtFrame = -1;
     }
 
     public static void Unregister(Transform instance, ScriptableObject definition)
@@ -26,10 +27,15 @@ public static class EcoRegistry
         if (instance == null || definition == null) return;
         if (byDefinition.TryGetValue(definition, out var list))
             list.Remove(instance);
+        if (grids.TryGetValue(definition, out var grid)) grid.builtFrame = -1;
     }
 
     /// <summary>Removes everything. Useful for tests and scene resets.</summary>
-    public static void Clear() => byDefinition.Clear();
+    public static void Clear()
+    {
+        byDefinition.Clear();
+        grids.Clear();
+    }
 
     /// <summary>Number of live registered instances of a definition.</summary>
     public static int Count(ScriptableObject definition)
@@ -49,15 +55,127 @@ public static class EcoRegistry
         foreach (var def in definitions)
         {
             if (def == null || !byDefinition.TryGetValue(def, out var list)) continue;
-            list.RemoveAll(t => t == null);
-            foreach (var t in list)
-            {
-                if (t == exclude || !t.gameObject.activeInHierarchy) continue;
-                float sqr = (t.position - from).sqrMagnitude;
-                if (sqr < bestSqr) { bestSqr = sqr; best = t; }
-            }
+            if (list.Count < GridThreshold)
+                NearestLinear(list, from, exclude, ref best, ref bestSqr);
+            else
+                GridFor(def, list).Nearest(from, exclude, ref best, ref bestSqr);
         }
         return best;
+    }
+
+    static void NearestLinear(List<Transform> list, Vector3 from, Transform exclude, ref Transform best, ref float bestSqr)
+    {
+        list.RemoveAll(t => t == null);
+        foreach (var t in list)
+        {
+            if (t == exclude || !t.gameObject.activeInHierarchy) continue;
+            float sqr = (t.position - from).sqrMagnitude;
+            if (sqr < bestSqr) { bestSqr = sqr; best = t; }
+        }
+    }
+
+    // ---- Spatial hash grid (SCRUM-265) ----
+    // With many animals, every Hunt/Flee/Forage query scanning every instance is O(n) per animal,
+    // O(n^2) per frame. Each definition with GridThreshold+ instances gets a grid of CellSize-wide
+    // XZ cells, rebuilt at most once per frame (animals move), so a query only looks at nearby cells.
+
+    /// <summary>Below this many instances a plain scan is faster than building a grid.</summary>
+    public const int GridThreshold = 32;
+    /// <summary>Grid cell width in world units (about one hunt/flee radius).</summary>
+    public const float CellSize = 8f;
+
+    static readonly Dictionary<ScriptableObject, SpatialGrid> grids = new Dictionary<ScriptableObject, SpatialGrid>();
+
+    /// <summary>
+    /// Debug view: fills <paramref name="into"/> with every grid cell (x, z index) that holds a live
+    /// registered object and how many it holds. Cell (x, z) spans [x*CellSize, (x+1)*CellSize) in world XZ.
+    /// </summary>
+    public static void CountPerCell(Dictionary<Vector2Int, int> into)
+    {
+        into.Clear();
+        foreach (var list in byDefinition.Values)
+            foreach (var t in list)
+            {
+                if (t == null || !t.gameObject.activeInHierarchy) continue;
+                var key = new Vector2Int(Mathf.FloorToInt(t.position.x / CellSize), Mathf.FloorToInt(t.position.z / CellSize));
+                into[key] = into.GetValueOrDefault(key) + 1;
+            }
+    }
+
+    /// <summary>True when lookups for <paramref name="definition"/> use the grid instead of a plain scan.</summary>
+    public static bool UsesGrid(ScriptableObject definition) => Count(definition) >= GridThreshold;
+
+    /// <summary>Forces grids to rebuild on the next query (objects moved within the same frame, e.g. in tests).</summary>
+    public static void InvalidateGrids()
+    {
+        foreach (var g in grids.Values) g.builtFrame = -1;
+    }
+
+    static SpatialGrid GridFor(ScriptableObject def, List<Transform> list)
+    {
+        if (!grids.TryGetValue(def, out var grid))
+            grids[def] = grid = new SpatialGrid();
+        if (grid.builtFrame != Time.frameCount)
+        {
+            list.RemoveAll(t => t == null);
+            grid.Rebuild(list);
+            grid.builtFrame = Time.frameCount;
+        }
+        return grid;
+    }
+
+    sealed class SpatialGrid
+    {
+        public int builtFrame = -1;
+        readonly Dictionary<(int, int), List<Transform>> cells = new Dictionary<(int, int), List<Transform>>();
+        int minX, maxX, minZ, maxZ;
+
+        static int Cell(float v) => Mathf.FloorToInt(v / CellSize);
+
+        public void Rebuild(List<Transform> list)
+        {
+            foreach (var c in cells.Values) c.Clear();
+            minX = minZ = int.MaxValue;
+            maxX = maxZ = int.MinValue;
+            foreach (var t in list)
+            {
+                var p = t.position;
+                var key = (Cell(p.x), Cell(p.z));
+                if (!cells.TryGetValue(key, out var c)) cells[key] = c = new List<Transform>();
+                c.Add(t);
+                minX = Mathf.Min(minX, key.Item1); maxX = Mathf.Max(maxX, key.Item1);
+                minZ = Mathf.Min(minZ, key.Item2); maxZ = Mathf.Max(maxZ, key.Item2);
+            }
+        }
+
+        // Searches rings of cells outward from the query cell. Anything outside ring r is at
+        // least r*CellSize away, so it stops once the best hit is closer than that.
+        public void Nearest(Vector3 from, Transform exclude, ref Transform best, ref float bestSqr)
+        {
+            if (minX > maxX) return; // empty
+            int cx = Cell(from.x), cz = Cell(from.z);
+            int lastRing = Mathf.Max(Mathf.Max(Mathf.Abs(cx - minX), Mathf.Abs(cx - maxX)),
+                                     Mathf.Max(Mathf.Abs(cz - minZ), Mathf.Abs(cz - maxZ)));
+
+            for (int r = 0; r <= lastRing; r++)
+            {
+                float ringDist = (r - 1) * CellSize;
+                if (r > 0 && ringDist * ringDist >= bestSqr) return;
+
+                for (int x = cx - r; x <= cx + r; x++)
+                for (int z = cz - r; z <= cz + r; z++)
+                {
+                    if (Mathf.Abs(x - cx) != r && Mathf.Abs(z - cz) != r) continue; // ring edge only
+                    if (!cells.TryGetValue((x, z), out var c)) continue;
+                    foreach (var t in c)
+                    {
+                        if (t == null || t == exclude || !t.gameObject.activeInHierarchy) continue;
+                        float sqr = (t.position - from).sqrMagnitude;
+                        if (sqr < bestSqr) { bestSqr = sqr; best = t; }
+                    }
+                }
+            }
+        }
     }
 
     public static Transform Nearest(Vector3 from, ScriptableObject definition, float maxDistance = float.PositiveInfinity, Transform exclude = null)

@@ -41,6 +41,7 @@ public class SimDebugOverlay : MonoBehaviour
         if (sim == null) return;
         var go = new GameObject("[SimDebugOverlay]");
         go.AddComponent<SimDebugOverlay>().Attach(sim);
+        go.AddComponent<SpatialGridView>().sim = sim;
     }
 
     void Attach(EcosystemSimulator target)
