@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd10ba53277213b4f87e228a0819a3b3, type: 3}
-  m_Name: Snow Leopard
+  m_Name: SnowLeopard
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
   speciesName: SnowLeopard
   footstep: {fileID: 0}
