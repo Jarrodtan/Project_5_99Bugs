@@ -8,13 +8,15 @@ GitHub artifact storage stays at 0.
 
 | Event | Repo checks | EditMode tests (incl. smoke + perf) | Android APK | Linux headless build | Perf history |
 |---|---|---|---|---|---|
-| Pull request into `main` | ✅ | ✅ (required to merge) | — | — | — |
-| Push / merge to `main` | ✅ | ✅ | — | — | — |
-| Weekly, Sunday 02:00 SGT (only if `main` changed) | — | ✅ | ✅ release | ✅ | ✅ |
+| Pull request into `main` | ✅ | skipped (counts as passing) | — | — | — |
+| Nightly, 02:00 SGT (only if `main` changed in the last 24 h) | — | ✅ | — | — | ✅ |
 | Actions → Unity CI → **Run workflow** | ✅ | ✅ | ✅ release **or** development | if `headless` ticked | — |
 | Tag `v*` (e.g. `v0.2-m2`) | ✅ | ✅ | ✅ release, kept permanently | ✅ | — |
 
-Approximate use: ~1,400 of 3,000 minutes/month, 0 GB GitHub storage. An Actions budget of $1 with
+Since 22 Oct 2026 the Unity tests run nightly on `main` instead of on every PR, to stay inside the
+Actions minutes (~12 min per nightly run, ~50 per build). A red nightly run means something merged
+the day before broke `main`; fix it first thing. Approximate use: ~400 of 3,000 minutes/month, 0 GB
+GitHub storage. An Actions budget of $1 with
 "stop usage" means CI pauses rather than charges if the limit is ever reached.
 
 ## Where results are
@@ -29,22 +31,22 @@ Approximate use: ~1,400 of 3,000 minutes/month, 0 GB GitHub storage. An Actions 
 
 | Rubric item | Level | Covered by |
 |---|---|---|
-| T4 Automated build: CI checks `main`, reports failures | REQUIRED | Every PR/push; failures shown on the PR |
+| T4 Automated build: CI checks `main`, reports failures | REQUIRED | Repo checks on every PR; EditMode tests nightly on `main` |
 | T5 Automated checks/tests, team can show results | REQUIRED | EditMode tests (ecosim package + app) |
-| CI/Build pipeline: automating builds | REQUIRED | Weekly / tag / manual Android APK |
+| CI/Build pipeline: automating builds | REQUIRED | Tag / manual Android APK |
 | …testing on target device/platform | REQUIRED | APK from Gitea installed on the Android tablet |
 | …versioned releases | REQUIRED | `v*` tags → permanent APK on Gitea |
 | Static analysis build | BASIC | **Repo checks** (`tools/ci/repo-checks.py`): missing/orphan `.meta`, large files outside LFS, merge markers, `UnityEditor` in runtime code |
 | Create all builds (debug/release), verify no errors, let the team know | BASIC | Run workflow → release or development APK; failures fail the run |
 | Smoke tests | ADVANCED | `SceneSmokeTests`: every build scene opens with no errors or missing scripts; simulator wired to real assets |
-| Performance tests with historical representation | ADVANCED | `PerformanceTests` (budgets) + weekly row appended to `perf.csv` |
-| Stability / soak tests ("test the build", Tomas's VM guide) | ADVANCED | Headless Linux build soak-tested weekly on the team VM (`HeadlessSoakRunner` + `tools/vm/soak.sh`), history in `soak.csv` |
+| Performance tests with historical representation | ADVANCED | `PerformanceTests` (budgets) + nightly row appended to `perf.csv` |
+| Stability / soak tests ("test the build", Tomas's VM guide) | ADVANCED | Headless Linux build (built on tags / on demand) soak-tested weekly on the team VM (`HeadlessSoakRunner` + `tools/vm/soak.sh`), history in `soak.csv` |
 | Tech Items TI-31 / TI-32 (simulation model, determinism) | Optional | `BalanceModel` + determinism tests |
 
 ## Headless soak test on the VM
 
 The VM (3.7 GB RAM) can't run the Unity **editor**, but it can run a **headless player**: the game built for Linux and
-started with no graphics. CI builds it weekly and publishes it to Gitea; the VM downloads it, runs the simulation for
+started with no graphics. CI builds it on `v*` tags and on demand (Run workflow, tick `headless`) and publishes it to Gitea; the VM downloads it, runs the simulation for
 2,000 simulated days, and records crashes, errors, memory and final populations.
 
 - **Game side:** `Assets/_Project/Scripts/DevTools/HeadlessSoakRunner.cs` only activates when started with `-soakDays N`.
@@ -61,7 +63,7 @@ chmod +x soak.sh
 nano ~/.ecobalance-token        # paste a Gitea token with package read/write, save
 chmod 600 ~/.ecobalance-token
 ./soak.sh                       # first run by hand (needs a headless build on Gitea first)
-crontab -e                      # add the line below: every Sunday 05:00 SGT (after the 02:00 build)
+crontab -e                      # add the line below: every Sunday 05:00 SGT (tests the newest headless build)
 # 0 21 * * 6 $HOME/soak/soak.sh >> $HOME/soak/cron.log 2>&1
 ```
 
