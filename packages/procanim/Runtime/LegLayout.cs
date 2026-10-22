@@ -19,18 +19,23 @@ public class LegLayout
     public float HipY { get; private set; }
     public float BlendHeight { get; private set; }
     public Vector3 Center { get; private set; }
+    /// <summary>Lowest and highest point of the model (rig space).</summary>
+    public Vector3 Min { get; private set; }
+    public Vector3 Max { get; private set; }
+    /// <summary>True when the model's head is at -Z / -X instead of +Z / +X.</summary>
+    public bool FacesBackward { get; private set; }
     public readonly Vector3[] Hips = new Vector3[4];
 
-    /// <summary>Direction the animal faces: along its long axis, preferring +Z / +X.</summary>
-    public Vector3 Forward => LongAxis == 0 ? Vector3.right : Vector3.forward;
+    /// <summary>Direction the animal faces: along its long axis, +Z / +X unless <see cref="FacesBackward"/>.</summary>
+    public Vector3 Forward => (LongAxis == 0 ? Vector3.right : Vector3.forward) * (FacesBackward ? -1f : 1f);
     Vector3 Side => LongAxis == 0 ? Vector3.forward : Vector3.right;
 
     /// <summary>Axis a leg rotates around so that a positive angle swings the foot forward.</summary>
     public Vector3 SwingAxis => Vector3.Cross(Vector3.down, Forward);
 
-    public static LegLayout Analyze(IReadOnlyList<Vector3> points, float legHeightFraction, float legBlendFraction)
+    public static LegLayout Analyze(IReadOnlyList<Vector3> points, float legHeightFraction, float legBlendFraction, bool facesBackward = false)
     {
-        var layout = new LegLayout();
+        var layout = new LegLayout { FacesBackward = facesBackward };
         if (points == null || points.Count == 0) return layout;
 
         Vector3 min = points[0], max = points[0];
@@ -39,6 +44,8 @@ public class LegLayout
         if (height <= 0f) return layout;
 
         layout.Center = (min + max) * 0.5f;
+        layout.Min = min;
+        layout.Max = max;
         layout.LongAxis = (max.x - min.x) > (max.z - min.z) ? 0 : 2;
         layout.HipY = min.y + Mathf.Clamp01(legHeightFraction) * height;
         layout.BlendHeight = Mathf.Max(1e-5f, legBlendFraction * height);

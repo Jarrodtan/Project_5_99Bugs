@@ -102,16 +102,38 @@ public class MotionStateMachineTests
         }
     }
 
+    // Child-friendly: lies down, stays a moment so it's noticed, then shrinks away (no body left).
     [Test]
-    public void Death_TipsOverThenSinksAndStays()
+    public void Death_LiesDown_Pauses_ThenShrinksAway()
     {
-        var tipped = MotionStateMachine.DeathPose(profile, profile.deathSeconds);
-        Assert.AreEqual(profile.deathRoll, tipped.Roll, 1e-3f);
-        Assert.AreEqual(0f, tipped.Height, 1e-5f, "sinking starts after tipping over");
+        var lying = MotionStateMachine.DeathPose(profile, profile.deathSeconds);
+        Assert.AreEqual(profile.deathRoll, lying.Roll, 1e-3f);
+        Assert.AreEqual(1f, lying.Scale, 1e-5f, "still full size once lying down");
 
+        float shrinkStart = MotionStateMachine.DeathShrinkStart(profile);
+        Assert.AreEqual(profile.deathSeconds + profile.deathPauseSeconds, shrinkStart, 1e-5f);
+        Assert.AreEqual(1f, MotionStateMachine.DeathPose(profile, shrinkStart - 0.01f).Scale, 1e-5f, "pause: stays visible");
+
+        float gone = shrinkStart + profile.deathShrinkSeconds;
+        Assert.AreEqual(0f, MotionStateMachine.DeathPose(profile, gone).Scale, 1e-5f);
+        Assert.AreEqual(0f, MotionStateMachine.DeathPose(profile, gone + 10f).Scale, 1e-5f, "stays gone, never negative");
+    }
+
+    [Test]
+    public void Death_LyingDownIsGentle_LegsRelaxedNotStiff()
+    {
+        Assert.Less(profile.deathRoll, 80f, "lies down rather than flipping over");
+        Assert.LessOrEqual(profile.deathLegSpread, 15f, "legs relaxed, not sticking out");
+        Assert.GreaterOrEqual(profile.deathSeconds, 0.8f, "slow enough to read as lying down");
+    }
+
+    [Test]
+    public void Death_OptionalSink()
+    {
+        profile.deathSink = 0.2f;
         float end = profile.deathSeconds + profile.deathSinkSeconds;
-        Assert.AreEqual(-profile.deathSink, MotionStateMachine.DeathPose(profile, end).Height, 1e-5f);
-        Assert.AreEqual(-profile.deathSink, MotionStateMachine.DeathPose(profile, end + 10f).Height, 1e-5f);
+        Assert.AreEqual(0f, MotionStateMachine.DeathPose(profile, profile.deathSeconds).Height, 1e-5f, "sinks only after lying down");
+        Assert.AreEqual(-0.2f, MotionStateMachine.DeathPose(profile, end).Height, 1e-5f);
     }
 
     [Test]

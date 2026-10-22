@@ -22,7 +22,9 @@ public class AnimalMotionBridge : MonoBehaviour
 
     AnimalBrain brain;
     ProcAnimator animator;
-    bool predatorNear, preyNear;
+    Transform nearPredator, nearPrey;
+    bool predatorNear => nearPredator != null;
+    bool preyNear => nearPrey != null;
     float nextAwarenessCheck;
 
     public ProcAnimator Animator => animator;
@@ -51,7 +53,13 @@ public class AnimalMotionBridge : MonoBehaviour
             nextAwarenessCheck = Time.time + awarenessInterval;
             UpdateAwareness();
         }
-        animator.SetState(Pick());
+        var state = Pick();
+        animator.SetState(state);
+        // Alert prey watch the nearest predator; predators watch their prey (when hunting or stalking).
+        // Not while fleeing: the predator is behind, past the head's turn limit.
+        Transform watch = state == MotionState.Alert ? nearPredator
+                        : state == MotionState.Stalk || state == MotionState.Run ? nearPrey : null;
+        animator.SetLookTarget(watch != null ? watch.position : (Vector3?)null);
     }
 
     MotionState Pick()
@@ -80,10 +88,10 @@ public class AnimalMotionBridge : MonoBehaviour
     void UpdateAwareness()
     {
         var species = brain.species_data;
-        if (species == null) { predatorNear = preyNear = false; return; }
+        if (species == null) { nearPredator = nearPrey = null; return; }
         Vector3 at = transform.position;
-        predatorNear = EcoRegistry.NearestPredator(species, at, brain.fleeRadius * awarenessMultiplier) != null;
-        preyNear = EcoRegistry.NearestPrey(species, at, brain.huntRadius * awarenessMultiplier) != null;
+        nearPredator = EcoRegistry.NearestPredator(species, at, brain.fleeRadius * awarenessMultiplier);
+        nearPrey = EcoRegistry.NearestPrey(species, at, brain.huntRadius * awarenessMultiplier);
     }
 }
 // [AI-GENERATED END]

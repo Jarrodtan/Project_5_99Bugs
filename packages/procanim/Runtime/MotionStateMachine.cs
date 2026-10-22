@@ -55,19 +55,33 @@ public class MotionStateMachine
     static MotionPose PoseOf(MotionProfile profile, MotionState state, float phase, float time)
         => state == MotionState.Die ? DeathPose(profile, time) : profile.Get(state).Evaluate(phase);
 
-    /// <summary>Tips over onto its side (ease-out), then sinks into the ground.</summary>
+    /// <summary>
+    /// Child-friendly death: lies down gently onto its side (ease-out), stays still for a moment so
+    /// it's noticed, then shrinks away (ease-in) instead of leaving a body. Optional sink.
+    /// </summary>
     public static MotionPose DeathPose(MotionProfile profile, float time)
     {
-        float tip = Mathf.Clamp01(time / profile.deathSeconds);
-        tip = 1f - (1f - tip) * (1f - tip);
+        float lie = DeathLieProgress(profile, time);
         float sink = Mathf.Clamp01((time - profile.deathSeconds) / profile.deathSinkSeconds);
+        float shrink = profile.deathShrinkSeconds <= 0f ? 0f
+            : Mathf.Clamp01((time - DeathShrinkStart(profile)) / profile.deathShrinkSeconds);
         return new MotionPose
         {
             Height = -profile.deathSink * sink,
-            Roll = profile.deathRoll * tip,
-            Scale = 1f,
+            Roll = profile.deathRoll * lie,
+            Scale = 1f - shrink * shrink,
         };
     }
+
+    /// <summary>0 → 1 while lying down (ease-out).</summary>
+    public static float DeathLieProgress(MotionProfile profile, float time)
+    {
+        float t = Mathf.Clamp01(time / profile.deathSeconds);
+        return 1f - (1f - t) * (1f - t);
+    }
+
+    /// <summary>Seconds after dying when it starts shrinking away (and the death effect appears).</summary>
+    public static float DeathShrinkStart(MotionProfile profile) => profile.deathSeconds + profile.deathPauseSeconds;
 
     // ---- Overlays: layered on top of any state by ProcAnimator ----
 

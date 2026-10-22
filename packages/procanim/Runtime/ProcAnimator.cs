@@ -10,8 +10,9 @@ using UnityEngine;
 /// 1. the state machine's looping motion (cross-faded between states),
 /// 2. springs: lean into turns, nose dip/lift when braking/speeding up,
 /// 3. a pop-in when the object appears,
-/// 4. legs: found automatically in the mesh and swung from the hips in a trot (<see cref="LegDeformer"/>),
-///    braced when eating, stiff when dead.
+/// 4. body parts found automatically in the mesh (<see cref="BodyDeformer"/>): legs trot from the
+///    hips, the head nods/grazes and turns to look at <see cref="SetLookTarget"/>, the tail wags,
+/// 5. a child-friendly death: lies down, pauses, then shrinks away (optional effect).
 /// </summary>
 [DisallowMultipleComponent]
 public class ProcAnimator : MonoBehaviour
@@ -22,26 +23,40 @@ public class ProcAnimator : MonoBehaviour
     public MotionProfile profile;
 
     readonly MotionStateMachine machine = new MotionStateMachine();
-    SpringFloat lean, accelPitch;
+    SpringFloat lean, accelPitch, headYaw;
     Transform pivot;
     Vector3 basePosition, baseScale;
     Quaternion baseRotation;
     Vector3 lastPosition;
     float lastYaw, lastSpeed, enabledTime;
-    LegDeformer legs;
-    readonly float[] legAngles = new float[4];
-    float legPhase, legSwing, frontLegAngle, backLegAngle;
+
+    BodyDeformer body;
+    float gaitPhase, tailPhase;
+    float legSwing, frontLegAngle, backLegAngle, headPitch;
+    Vector3? lookTarget;
+    bool deathEffectSpawned;
 
     public MotionState State => machine.Current;
     /// <summary>Ground speed (m/s) measured last frame.</summary>
     public float Speed { get; private set; }
     /// <summary>The final pose applied last frame (for debugging and tests).</summary>
     public MotionPose LastPose { get; private set; } = MotionPose.Identity;
+    /// <summary>The leg/head/tail angles applied last frame.</summary>
+    public BodyPartAngles LastBodyAngles { get; private set; }
     public Transform Pivot => pivot;
     /// <summary>True when legs were found in the mesh and are being animated.</summary>
-    public bool HasLegs => legs != null && legs.Valid;
+    public bool HasLegs => body != null && body.Valid;
+    public bool HasHead => HasLegs && body.HeadPart != null && body.HeadPart.Valid;
+    public bool HasTail => HasLegs && body.TailPart != null && body.TailPart.Valid;
 
-    public void SetState(MotionState state) => machine.SetState(state);
+    public void SetState(MotionState state)
+    {
+        if (state == MotionState.Die && machine.Current != MotionState.Die) deathEffectSpawned = false;
+        machine.SetState(state);
+    }
+
+    /// <summary>Something for the head to turn towards (world position), or null to look ahead.</summary>
+    public void SetLookTarget(Vector3? worldPosition) => lookTarget = worldPosition;
 
     void Awake()
     {
@@ -51,10 +66,22 @@ public class ProcAnimator : MonoBehaviour
         baseRotation = pivot.localRotation;
         baseScale = pivot.localScale;
         if (profile.animateLegs)
-            legs = LegDeformer.Build(transform, pivot, profile.legHeightFraction, profile.legBlendFraction);
+        {
+            body = BodyDeformer.Build(transform, pivot, new BodyDeformer.Settings
+            {
+                legHeightFraction = profile.legHeightFraction,
+                legBlendFraction = profile.legBlendFraction,
+                facesBackward = profile.modelFacesBackward,
+                head = profile.animateHead,
+                tail = profile.animateTail,
+                headLengthFraction = profile.headLengthFraction,
+                tailLengthFraction = profile.tailLengthFraction,
+                headTailBlendFraction = profile.headTailBlendFraction,
+            });
+        }
     }
 
-    void OnDestroy() => legs?.Dispose();
+    void OnDestroy() => body?.Dispose();
 
     /// <summary>
     /// Returns <paramref name="root"/>'s pivot, creating it on first use by moving every existing child
@@ -82,6 +109,7 @@ public class ProcAnimator : MonoBehaviour
         enabledTime = Time.time;
         lean.Reset();
         accelPitch.Reset();
+        headYaw.Reset();
     }
 
     void LateUpdate()
@@ -108,31 +136,69 @@ public class ProcAnimator : MonoBehaviour
         pose.Scale *= MotionStateMachine.SpawnScale(profile, Time.time - enabledTime);
 
         Apply(pose);
-        if (HasLegs) AnimateLegs(dt, dying);
+        if (HasLegs) AnimateBody(dt, dying);
+        if (dying) SpawnDeathEffectOnce();
     }
 
-    void AnimateLegs(float dt, bool dying)
+    void AnimateBody(float dt, bool dying)
     {
         var motion = profile.Get(machine.Current);
-        float swingTarget = dying ? 0f : motion.legSwing;
-        float frontTarget = motion.frontLegAngle, backTarget = motion.backLegAngle;
+        float swingTarget = motion.legSwing, frontTarget = motion.frontLegAngle, backTarget = motion.backLegAngle;
+        float headTarget = motion.headPitch;
         if (dying)
         {
-            float tip = Mathf.Clamp01(machine.TimeInState / profile.deathSeconds);
-            frontTarget = profile.deathLegSpread * tip;
-            backTarget = -profile.deathLegSpread * tip;
+            float lie = MotionStateMachine.DeathLieProgress(profile, machine.TimeInState);
+            swingTarget = 0f;
+            frontTarget = profile.deathLegSpread * lie;
+            backTarget = -profile.deathLegSpread * lie;
+            headTarget = profile.deathHeadPitch * lie;
         }
 
-        // Fade swing and leg poses in/out instead of snapping when the state changes.
+        // Fade swing and poses in/out instead of snapping when the state changes.
         float k = 1f - Mathf.Exp(-profile.legSwingResponse * dt);
         legSwing = Mathf.Lerp(legSwing, swingTarget, k);
         frontLegAngle = Mathf.Lerp(frontLegAngle, frontTarget, k);
         backLegAngle = Mathf.Lerp(backLegAngle, backTarget, k);
-        legPhase = Mathf.Repeat(legPhase + motion.CycleRate(Speed) * dt, 1f);
+        headPitch = Mathf.Lerp(headPitch, headTarget, k);
+        gaitPhase = Mathf.Repeat(gaitPhase + motion.CycleRate(Speed) * dt, 1f);
+        tailPhase = Mathf.Repeat(tailPhase + profile.tailHz * dt, 1f);
 
-        for (int leg = 0; leg < 4; leg++)
-            legAngles[leg] = LegLayout.LegAngle(leg, legPhase, legSwing, frontLegAngle, backLegAngle);
-        legs.Apply(legAngles);
+        float cycle = Mathf.Sin(2f * Mathf.PI * gaitPhase);
+        float yawTarget = dying ? 0f : LookYaw() + motion.headYawWave * Mathf.Sin(Mathf.PI * gaitPhase * 2f + 1f);
+        headYaw.Step(yawTarget, profile.springHz, 0.7f, dt);
+
+        var angles = new BodyPartAngles
+        {
+            FrontLeft = LegLayout.LegAngle(LegLayout.FrontLeft, gaitPhase, legSwing, frontLegAngle, backLegAngle),
+            FrontRight = LegLayout.LegAngle(LegLayout.FrontRight, gaitPhase, legSwing, frontLegAngle, backLegAngle),
+            BackLeft = LegLayout.LegAngle(LegLayout.BackLeft, gaitPhase, legSwing, frontLegAngle, backLegAngle),
+            BackRight = LegLayout.LegAngle(LegLayout.BackRight, gaitPhase, legSwing, frontLegAngle, backLegAngle),
+            HeadPitch = headPitch + (dying ? 0f : motion.headPitchWave * cycle),
+            HeadYaw = headYaw.Value,
+            TailYaw = dying ? 0f : motion.tailWag * Mathf.Sin(2f * Mathf.PI * tailPhase),
+        };
+        LastBodyAngles = angles;
+        body.Apply(angles);
+    }
+
+    /// <summary>Head turn (degrees, clockwise from above) towards the look target, clamped.</summary>
+    float LookYaw()
+    {
+        if (lookTarget == null) return 0f;
+        Vector3 local = transform.InverseTransformPoint(lookTarget.Value);
+        if (body != null && body.Valid && body.Layout.FacesBackward) local = -local;
+        local.y = 0f;
+        if (local.sqrMagnitude < 1e-6f) return 0f;
+        float yaw = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
+        return Mathf.Clamp(yaw, -profile.maxHeadYaw, profile.maxHeadYaw);
+    }
+
+    void SpawnDeathEffectOnce()
+    {
+        if (deathEffectSpawned || profile.deathEffect == null) return;
+        if (machine.TimeInState < MotionStateMachine.DeathShrinkStart(profile)) return;
+        deathEffectSpawned = true;
+        Instantiate(profile.deathEffect, pivot.position, Quaternion.identity);
     }
 
     void Apply(MotionPose pose)
