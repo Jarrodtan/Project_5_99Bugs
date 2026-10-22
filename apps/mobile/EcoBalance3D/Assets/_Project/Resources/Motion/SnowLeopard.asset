@@ -24,6 +24,9 @@ MonoBehaviour:
     cycleHz: 0.25
     maxCycleHz: 2
     bounce: 0
+    legSwing: 0
+    frontLegAngle: 0
+    backLegAngle: 0
   walk:
     height: 0
     pitch: 0
@@ -36,6 +39,9 @@ MonoBehaviour:
     cycleHz: 0
     maxCycleHz: 1.3
     bounce: 1
+    legSwing: 18
+    frontLegAngle: 0
+    backLegAngle: 0
   run:
     height: 0
     pitch: 2
@@ -48,6 +54,9 @@ MonoBehaviour:
     cycleHz: 0
     maxCycleHz: 2
     bounce: 1
+    legSwing: 30
+    frontLegAngle: 0
+    backLegAngle: 0
   flee:
     height: 0
     pitch: 6
@@ -60,6 +69,9 @@ MonoBehaviour:
     cycleHz: 0
     maxCycleHz: 2.5
     bounce: 1
+    legSwing: 40
+    frontLegAngle: 0
+    backLegAngle: 0
   stalk:
     height: -0.07
     pitch: 5
@@ -72,6 +84,9 @@ MonoBehaviour:
     cycleHz: 0
     maxCycleHz: 1
     bounce: 1
+    legSwing: 14
+    frontLegAngle: 0
+    backLegAngle: 0
   eat:
     height: 0
     pitch: 15
@@ -84,6 +99,9 @@ MonoBehaviour:
     cycleHz: 0.8
     maxCycleHz: 2
     bounce: 0
+    legSwing: 0
+    frontLegAngle: 12
+    backLegAngle: -6
   drink:
     height: -0.03
     pitch: 28
@@ -96,6 +114,9 @@ MonoBehaviour:
     cycleHz: 0.8
     maxCycleHz: 2
     bounce: 0
+    legSwing: 0
+    frontLegAngle: 18
+    backLegAngle: -8
   alert:
     height: 0.04
     pitch: -8
@@ -108,6 +129,9 @@ MonoBehaviour:
     cycleHz: 2.5
     maxCycleHz: 2
     bounce: 0
+    legSwing: 0
+    frontLegAngle: -6
+    backLegAngle: 4
   blendSeconds: 0.2
   turnLeanPerDegPerSec: 0.09
   maxTurnLean: 14
@@ -119,4 +143,9 @@ MonoBehaviour:
   deathRoll: 80
   deathSink: 0.25
   deathSinkSeconds: 1.5
+  deathLegSpread: 35
   spawnSeconds: 0.35
+  animateLegs: 1
+  legHeightFraction: 0.4
+  legBlendFraction: 0.12
+  legSwingResponse: 8

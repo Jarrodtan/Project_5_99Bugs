@@ -27,6 +27,12 @@ public class StateMotion
     [Min(0f)] public float maxCycleHz = 2f;
     [Tooltip("Bob rises twice per cycle (one per footfall) instead of once.")]
     public bool bounce;
+    [Tooltip("How far each leg swings forward/back from the hip, in degrees (0 = legs still). Needs a readable mesh.")]
+    public float legSwing;
+    [Tooltip("Fixed front-leg angle in this state, degrees (+ = forward), e.g. bracing to eat.")]
+    public float frontLegAngle;
+    [Tooltip("Fixed back-leg angle in this state, degrees (+ = forward).")]
+    public float backLegAngle;
 
     /// <summary>The pose at <paramref name="phase"/> (in cycles; only the fraction matters).</summary>
     public MotionPose Evaluate(float phase)
@@ -62,13 +68,13 @@ public class MotionProfile : ScriptableObject
 {
     [Header("States")]
     public StateMotion idle = new StateMotion { cycleHz = 0.35f, pitchWave = 1f, scalePulse = 0.015f };
-    public StateMotion walk = new StateMotion { stepsPerMetre = 0.6f, maxCycleHz = 1.6f, bobHeight = 0.008f, pitchWave = 1f, rollWave = 1.5f, bounce = true };
-    public StateMotion run = new StateMotion { pitch = 3f, stepsPerMetre = 0.4f, maxCycleHz = 2.2f, bobHeight = 0.02f, pitchWave = 3f, rollWave = 1f, bounce = true };
-    public StateMotion flee = new StateMotion { pitch = 6f, stepsPerMetre = 0.45f, maxCycleHz = 2.5f, bobHeight = 0.025f, pitchWave = 4f, rollWave = 1f, bounce = true };
-    public StateMotion stalk = new StateMotion { height = -0.04f, pitch = 3f, stepsPerMetre = 0.8f, maxCycleHz = 1.2f, bobHeight = 0.004f, pitchWave = 0.5f, rollWave = 1f, bounce = true };
-    public StateMotion eat = new StateMotion { pitch = 18f, cycleHz = 1f, pitchWave = 4f };
-    public StateMotion drink = new StateMotion { height = -0.03f, pitch = 28f, cycleHz = 0.8f, pitchWave = 3f };
-    public StateMotion alert = new StateMotion { height = 0.04f, pitch = -8f, cycleHz = 2.5f, rollWave = 1f };
+    public StateMotion walk = new StateMotion { stepsPerMetre = 0.6f, maxCycleHz = 1.6f, bobHeight = 0.008f, pitchWave = 1f, rollWave = 1.5f, bounce = true, legSwing = 22f };
+    public StateMotion run = new StateMotion { pitch = 3f, stepsPerMetre = 0.4f, maxCycleHz = 2.2f, bobHeight = 0.02f, pitchWave = 3f, rollWave = 1f, bounce = true, legSwing = 35f };
+    public StateMotion flee = new StateMotion { pitch = 6f, stepsPerMetre = 0.45f, maxCycleHz = 2.5f, bobHeight = 0.025f, pitchWave = 4f, rollWave = 1f, bounce = true, legSwing = 40f };
+    public StateMotion stalk = new StateMotion { height = -0.04f, pitch = 3f, stepsPerMetre = 0.8f, maxCycleHz = 1.2f, bobHeight = 0.004f, pitchWave = 0.5f, rollWave = 1f, bounce = true, legSwing = 14f };
+    public StateMotion eat = new StateMotion { pitch = 18f, cycleHz = 1f, pitchWave = 4f, frontLegAngle = 12f, backLegAngle = -6f };
+    public StateMotion drink = new StateMotion { height = -0.03f, pitch = 28f, cycleHz = 0.8f, pitchWave = 3f, frontLegAngle = 18f, backLegAngle = -8f };
+    public StateMotion alert = new StateMotion { height = 0.04f, pitch = -8f, cycleHz = 2.5f, rollWave = 1f, frontLegAngle = -6f, backLegAngle = 4f };
 
     [Header("Blending")]
     [Tooltip("Seconds to cross-fade from one state to the next.")]
@@ -82,11 +88,22 @@ public class MotionProfile : ScriptableObject
     [Tooltip("How fast the lean/settle springs react.")] [Min(0f)] public float springHz = 3f;
     [Tooltip("Below 1 the springs overshoot and wobble back.")] [Min(0f)] public float springDamping = 0.35f;
 
+    [Header("Legs (static meshes: legs found automatically)")]
+    [Tooltip("Swing the legs from the hips while moving.")] public bool animateLegs = true;
+    [Tooltip("Legs are the lowest part of the model, as a fraction of its height.")]
+    [Range(0.1f, 0.8f)] public float legHeightFraction = 0.4f;
+    [Tooltip("Part of the leg (fraction of model height) below the hip that blends from body to leg, so the mesh doesn't tear.")]
+    [Range(0.01f, 0.5f)] public float legBlendFraction = 0.12f;
+    [Tooltip("How quickly the leg swing fades in and out when the state changes (per second).")]
+    [Min(0f)] public float legSwingResponse = 8f;
+
     [Header("Death")]
     [Min(0.01f)] public float deathSeconds = 0.7f;
     [Tooltip("Degrees it tips over onto its side.")] public float deathRoll = 80f;
     [Tooltip("Metres it sinks into the ground after tipping over.")] public float deathSink = 0.25f;
     [Min(0.01f)] public float deathSinkSeconds = 1.5f;
+    [Tooltip("Legs stretch out stiff as it tips over: front legs forward, back legs back (degrees).")]
+    public float deathLegSpread = 35f;
 
     [Header("Spawn")]
     [Tooltip("Seconds of the pop-in when the model appears (0 = off).")]

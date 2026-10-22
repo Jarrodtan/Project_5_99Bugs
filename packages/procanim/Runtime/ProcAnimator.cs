@@ -9,7 +9,9 @@ using UnityEngine;
 /// <see cref="SetState"/>. Layers, every frame:
 /// 1. the state machine's looping motion (cross-faded between states),
 /// 2. springs: lean into turns, nose dip/lift when braking/speeding up,
-/// 3. a pop-in when the object appears.
+/// 3. a pop-in when the object appears,
+/// 4. legs: found automatically in the mesh and swung from the hips in a trot (<see cref="LegDeformer"/>),
+///    braced when eating, stiff when dead.
 /// </summary>
 [DisallowMultipleComponent]
 public class ProcAnimator : MonoBehaviour
@@ -26,6 +28,9 @@ public class ProcAnimator : MonoBehaviour
     Quaternion baseRotation;
     Vector3 lastPosition;
     float lastYaw, lastSpeed, enabledTime;
+    LegDeformer legs;
+    readonly float[] legAngles = new float[4];
+    float legPhase, legSwing, frontLegAngle, backLegAngle;
 
     public MotionState State => machine.Current;
     /// <summary>Ground speed (m/s) measured last frame.</summary>
@@ -33,6 +38,8 @@ public class ProcAnimator : MonoBehaviour
     /// <summary>The final pose applied last frame (for debugging and tests).</summary>
     public MotionPose LastPose { get; private set; } = MotionPose.Identity;
     public Transform Pivot => pivot;
+    /// <summary>True when legs were found in the mesh and are being animated.</summary>
+    public bool HasLegs => legs != null && legs.Valid;
 
     public void SetState(MotionState state) => machine.SetState(state);
 
@@ -43,7 +50,11 @@ public class ProcAnimator : MonoBehaviour
         basePosition = pivot.localPosition;
         baseRotation = pivot.localRotation;
         baseScale = pivot.localScale;
+        if (profile.animateLegs)
+            legs = LegDeformer.Build(transform, pivot, profile.legHeightFraction, profile.legBlendFraction);
     }
+
+    void OnDestroy() => legs?.Dispose();
 
     /// <summary>
     /// Returns <paramref name="root"/>'s pivot, creating it on first use by moving every existing child
@@ -97,6 +108,31 @@ public class ProcAnimator : MonoBehaviour
         pose.Scale *= MotionStateMachine.SpawnScale(profile, Time.time - enabledTime);
 
         Apply(pose);
+        if (HasLegs) AnimateLegs(dt, dying);
+    }
+
+    void AnimateLegs(float dt, bool dying)
+    {
+        var motion = profile.Get(machine.Current);
+        float swingTarget = dying ? 0f : motion.legSwing;
+        float frontTarget = motion.frontLegAngle, backTarget = motion.backLegAngle;
+        if (dying)
+        {
+            float tip = Mathf.Clamp01(machine.TimeInState / profile.deathSeconds);
+            frontTarget = profile.deathLegSpread * tip;
+            backTarget = -profile.deathLegSpread * tip;
+        }
+
+        // Fade swing and leg poses in/out instead of snapping when the state changes.
+        float k = 1f - Mathf.Exp(-profile.legSwingResponse * dt);
+        legSwing = Mathf.Lerp(legSwing, swingTarget, k);
+        frontLegAngle = Mathf.Lerp(frontLegAngle, frontTarget, k);
+        backLegAngle = Mathf.Lerp(backLegAngle, backTarget, k);
+        legPhase = Mathf.Repeat(legPhase + motion.CycleRate(Speed) * dt, 1f);
+
+        for (int leg = 0; leg < 4; leg++)
+            legAngles[leg] = LegLayout.LegAngle(leg, legPhase, legSwing, frontLegAngle, backLegAngle);
+        legs.Apply(legAngles);
     }
 
     void Apply(MotionPose pose)
