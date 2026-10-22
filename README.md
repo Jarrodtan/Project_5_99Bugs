@@ -94,21 +94,21 @@ The built app starts from the first scene in Build Settings (HomeScreen).
   - Windows: `tools\unity.bat test`
 
   Results are written to `test-results.xml`.
-- **CI:** runs automatically on every pull request and push to `main` (GitHub → Actions): repo checks (`python tools/ci/repo-checks.py`, also runnable locally) plus EditMode tests, including scene smoke tests and performance tests. Failures are printed in the job log.
+- **CI:** every pull request runs the repo checks (`python tools/ci/repo-checks.py`, also runnable locally). The EditMode tests (including scene smoke tests and performance tests) run **nightly** on `main` (02:00 SGT, only if `main` changed) to save Actions minutes, so run them in the Unity Test Runner before opening a PR. Failures are printed in the job log.
 
 ## Build
 
 - **Editor:** **File → Build Profiles → Android → Build**.
 - **Command line** (Editor closed): `tools/unity.sh build android` or `tools\unity.bat build android`
   (also `windows`, and `macos` / `linux` with `unity.sh`). Output: `apps/mobile/EcoBalance3D/Build/<Platform>/`.
-- **CI:** the Android APK is built **weekly** (Sunday 02:00 SGT, only if `main` changed), for every `v*` tag, and on demand via **Actions → Unity CI → Run workflow** (choose `release` or `development`; development includes the debug overlay).
+- **CI:** the Android APK is built for every `v*` tag and on demand via **Actions → Unity CI → Run workflow** (choose `release` or `development`; development includes the debug overlay).
   APKs are stored on the team Gitea, not GitHub: **Gitea → team21-admin → Packages → `ecobalance-apk`** (newest 10 `build-*` versions kept; `v*` tags kept).
   The run's GitHub summary links to the APK. Tag `main` (e.g. `v0.2-m2`) for a versioned milestone release.
 
 CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL`, `UNITY_PASSWORD`
 (serial-based Unity licence; see the [GameCI activation guide](https://game.ci/docs/github/activation)),
 `GITEA_LFS_TOKEN` (LFS pull) and `GITEA_PACKAGE_TOKEN` (APK upload; Gitea token with package read/write).
-Weekly (and on `v*` tags) CI also builds a **Linux headless** version that the team VM soak-tests (`tools/vm/soak.sh`, results on Gitea → Packages → `ecobalance-soak`).
+On `v*` tags (and on demand with `headless` ticked) CI also builds a **Linux headless** version that the team VM soak-tests (`tools/vm/soak.sh`, results on Gitea → Packages → `ecobalance-soak`).
 APKs and performance history go to Gitea, so GitHub artifact storage stays at 0 (it filled up in October 2026 and locked Actions).
 CI uses about 1,400 of the 3,000 student-Pro minutes per month; an Actions budget with "stop usage" makes it pause rather than charge.
 

@@ -1,18 +1,18 @@
 # [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 name: Unity CI
 
-# Minutes budget: PRs and pushes to main run tests only. The Android APK is built
-# weekly (Sunday, only if main changed since the last APK), on version tags (v*) and
-# on demand (Actions > Unity CI > Run workflow).
+# Minutes budget (GitHub Pro: 3,000 min/month, Unity runs are ~12 min each):
+# - PRs: Repo checks only (seconds). "EditMode tests" is skipped, which still counts as
+#   passing for the required check, so PRs can merge.
+# - Nightly (02:00 SGT): EditMode tests on main, only if main got new commits in the
+#   last 24 h. A failure there means something merged yesterday broke main.
+# - APK + headless builds: only on version tags (v*) and on demand
+#   (Actions > Unity CI > Run workflow). Run workflow also runs the tests first.
 # APKs are stored on the team Gitea (package "ecobalance-apk"); nothing is uploaded to
 # GitHub artifact storage. Test failures are printed in the job log instead.
-# Doc-only pushes to main skip CI.
 on:
   push:
-    branches: [main]
     tags: ['v*']
-    paths-ignore: ['docs/**', '**/*.md']
-  # No paths-ignore on PRs: "EditMode tests" is a required check, so it must report.
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -27,10 +27,9 @@ on:
         type: boolean
         default: false
   schedule:
-    - cron: '0 18 * * 6'   # Sunday 02:00 Singapore time, weekly APK + perf history
+    - cron: '0 18 * * *'   # 02:00 Singapore time daily: tests + perf history
 
 # On PRs a newer push cancels the older run instead of paying for both.
-# On main every run finishes, so each merge gets its tests.
 concurrency:
   group: unity-ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -59,7 +58,7 @@ jobs:
       - uses: actions/checkout@v4   # no LFS needed: checks what Git stores
       - run: python3 tools/ci/repo-checks.py
 
-  # Scheduled runs skip everything when Gitea already has an APK for this commit.
+  # Nightly runs skip the tests when nothing was pushed to main in the last 24 h.
   # Only runs on the schedule (every job is billed as at least 1 minute).
   check:
     name: Anything new?
@@ -70,21 +69,20 @@ jobs:
     steps:
       - id: c
         env:
-          GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" != schedule ] || [ -z "$GITEA_PACKAGE_TOKEN" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          SHORT=${GITHUB_SHA::7}
-          FOUND=$(curl -fsS --user "team21-admin:$GITEA_PACKAGE_TOKEN"             "https://team21.dp-ext8.com/git/api/v1/packages/team21-admin?type=generic&q=ecobalance-apk&limit=50"             | jq -r --arg s "$SHORT" '[.[] | select(.version|endswith($s))] | length' || echo 0)
-          if [ "$FOUND" -gt 0 ]; then echo "APK for $SHORT already on Gitea, skipping"; echo "changed=false" >> "$GITHUB_OUTPUT"
-          else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+          SINCE=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          NEW=$(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&since=$SINCE&per_page=1" --jq length || echo 1)
+          if [ "$NEW" -gt 0 ]; then echo "changed=true" >> "$GITHUB_OUTPUT"
+          else echo "No commits on main since $SINCE, skipping"; echo "changed=false" >> "$GITHUB_OUTPUT"; fi
 
   test:
     name: EditMode tests
     needs: check
-    # check is skipped on every event except the schedule.
-    if: always() && (needs.check.result == 'skipped' || needs.check.outputs.changed == 'true')
+    # Not on PRs (see the minutes note at the top). check only runs on the schedule.
+    if: >-
+      always() && github.event_name != 'pull_request' &&
+      (needs.check.result == 'skipped' || needs.check.outputs.changed == 'true')
     runs-on: ubuntu-latest
     steps:
       # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
@@ -113,13 +111,13 @@ jobs:
           checkName: EditMode Test Results
           # No GPU on the runner: skip software OpenGL, which used enough RAM to get
           # Unity killed (exit 137) while loading assemblies.
-          # Weekly run: PerformanceTests also write their timings for the history below.
+          # Nightly run: PerformanceTests also write their timings for the history below.
           customParameters: >-
             -nographics
             ${{ github.event_name == 'schedule' && '-perfOut /github/workspace/artifacts/perf.txt' || '' }}
 
       # Performance history (rubric: performance tests with a historical representation):
-      # one CSV row per weekly run, kept on Gitea as ecobalance-perf/history/perf.csv.
+      # one CSV row per nightly run, kept on Gitea as ecobalance-perf/history/perf.csv.
       - name: Append performance history on Gitea
         if: github.event_name == 'schedule' && success()
         env:
@@ -148,11 +146,10 @@ jobs:
   build:
     name: Build (Android)
     needs: [check, test]
-    # Not on PRs or ordinary pushes to main (saves ~50 min per merge).
+    # Only on v* tags and Run workflow (~50 min each).
     if: >-
-      always() && needs.test.result == 'success' && (
-      github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' ||
-      (github.event_name == 'schedule' && needs.check.outputs.changed == 'true'))
+      always() && needs.test.result == 'success' &&
+      (github.event_name == 'workflow_dispatch' || github.ref_type == 'tag')
     runs-on: ubuntu-latest
     env:
       GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
@@ -205,7 +202,7 @@ jobs:
             VER="$GITHUB_REF_NAME"
           else
             VER="build-$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}"
-            # Development APKs get a suffix so the weekly "already built?" check ignores them.
+            # Development APKs get a -dev suffix so they're easy to tell apart.
             if [ "${{ github.event.inputs.buildType }}" = development ]; then VER="$VER-dev"; fi
           fi
           curl -fsS --user "$AUTH" --upload-file "$APK"             "$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance3D.apk"
@@ -220,14 +217,13 @@ jobs:
 
   # Linux headless build for the weekly soak test on the team VM (tools/vm/soak.sh pulls it from
   # Gitea and runs it with -batchmode -nographics -soakDays N). The VM is too small for the Unity
-  # editor but runs a headless player fine. Weekly, on v* tags, or Run workflow with headless=true.
+  # editor but runs a headless player fine. On v* tags, or Run workflow with headless=true.
   headless:
     name: Build (Linux headless)
     needs: [check, test]
     if: >-
-      always() && needs.test.result == 'success' && (
-      github.ref_type == 'tag' || github.event.inputs.headless == 'true' ||
-      (github.event_name == 'schedule' && needs.check.outputs.changed == 'true'))
+      always() && needs.test.result == 'success' &&
+      (github.ref_type == 'tag' || github.event.inputs.headless == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
