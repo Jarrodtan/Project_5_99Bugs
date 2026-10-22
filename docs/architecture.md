@@ -26,16 +26,19 @@ flowchart LR
     DATA["Data assets<br/>Species, Resources"]
     CORE["Simulation core<br/>packages/ecosim"]
     APP["Unity app<br/>apps/mobile/EcoBalance3D"]
+    ANIM["Procedural animation<br/>packages/procanim"]
     CI["Tests + CI<br/>GitHub Actions"]
 
     DATA -- "read by" --> CORE
     CORE -- "populations" --> APP
     APP -- "Tick / Reset" --> CORE
+    APP -- "motion state" --> ANIM
     CI -- "tests + APK" --> CORE
     CI -- "builds" --> APP
 ```
 
 The core never depends on the app (arrows into `packages/ecosim` are calls through its public API; see §7).
+The two packages don't know about each other: the app's `AnimalMotionBridge` is the only link between the AI and the animation.
 
 ### 2.2 Simulation loop — every tick
 
@@ -74,14 +77,19 @@ flowchart TB
     SPN["CreatureSpawner"]
     BRN["Animal brain<br/>picks most urgent goal"]
     ACT["Actions<br/>Wander, Seek, Flee, Hunt, Idle"]
-    REG["EcoRegistry<br/>nearest prey / predator"]
+    REG["EcoRegistry<br/>nearest prey / predator<br/>spatial hash grid"]
     PATCH["ResourcePatch<br/>grass, water"]
+    BRG["AnimalMotionBridge<br/>action to motion state"]
+    PA["ProcAnimator<br/>packages/procanim"]
 
     SPN -- "spawns + registers" --> REG
     SPN --> BRN
     BRN --> ACT
     ACT -- "Flee / Hunt" --> REG
     ACT -- "Seek" --> PATCH
+    BRN --> BRG
+    BRG -- "alert / stalk check" --> REG
+    BRG -- "SetState, look target" --> PA
 ```
 
 Solid box `packages/ecosim` = reusable core; everything in `apps/mobile` depends on it, never the reverse (see §7).
@@ -90,6 +98,8 @@ Solid box `packages/ecosim` = reusable core; everything in `apps/mobile` depends
 - **App flow (F01):** `HomeScreen` → `MainMenu` loads `ConfigurationScreen`, which loads `SampleScene` additively behind the menu with time paused. The player sets starting numbers with `SpeciesCounter`; **Start** stores them in `EcosystemSimulator.StartingPopulationOverrides`, resets the ecosystem and resumes time.
 - **Tick loop:** `SimulationClock.Update()` calls `EcosystemSimulator.Tick()`, then `PopulationDisplay.Refresh()` and `CreatureSpawner.RefreshVisuals()`. Play / Pause / Reset / speed (x1-x8) are on the clock, driven by `SimulationSpeedController` buttons. Reset calls `ResetEcosystem()` (starting populations).
 - **Agents:** `CreatureSpawner` keeps the number of 3D animals in line with the population (one model per animal, rounded like the label) and registers each one in `EcoRegistry`. In SampleScene each animal runs `AnimalBrain`: flee > hunt > go to grass/water > wander, with a hunger timer; in Events mode it reports `RecordPredation` / `RecordEat` / `RecordStarvation` to the simulator. Each animal's `GoalOrientedAnimalBrain` scores its goals by need urgency and runs behaviour-tree actions: Seek finds the nearest `ResourcePatch`, Flee and Hunt ask `EcoRegistry` for the nearest predator / prey (from the Eats relationships).
+- **Animation:** `AnimalBrain` adds an `AnimalMotionBridge`, which adds a `ProcAnimator` (our procedural animation, `packages/procanim`) and turns the brain's action into a motion state each frame (walk, run, flee, stalk, eat, drink, alert, die). `ProcAnimator` measures speed and turning from how the NavMeshAgent moved the animal, finds the legs, head and tail in the static mesh, and animates a pivot child plus the mesh's vertices. Settings per species: `Resources/Motion/<species asset name>`.
+- **Spatial grid:** `EcoRegistry` answers nearest-prey/predator/food queries from an 8 m spatial hash grid once a species has 32+ animals (rebuilt once per frame, searched ring by ring); smaller groups use a plain scan. Measured: 500 animals 0.87 ms per frame (`PerformanceTests`). Press **G** in Play mode (Editor/dev builds) for the debug view.
 - **Data in:** the simulator and AI read `SpeciesDefinition` / `ResourceDefinition` assets. Prey comes from `SpeciesDefinition.GetSpeciesTargets(RelationshipType.Eats)`.
 - **Data out:** population counts live in `EcosystemSimulator.populations` (a dictionary keyed by species asset). The UI reads them directly for M1. From M2 the UI reads through `ISimulationDataProvider`, so it never depends on simulation internals.
 - **Selection → inspection:** `ObjectSelector` publishes the selected object on the shared `SelectionContext` asset, and `InspectorPanel` listens to it and shows `IInspectable` stats.
@@ -108,6 +118,8 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Configuration flow | `UI/Configuration` (`MainMenu`, `ConfigurationScreen`, `SpeciesCounter`), HomeScreen + ConfigurationScreen scenes | F01 | Reginald, Shu Min | Set starting populations, then Start |
 | Agent AI Controller | `GoalOrientedAnimalBrain` + behaviour tree (`Behaviourtreecore/*`), `ResourcePatch` | T07 | Yusuf, Zhi Jie, Reginald | Done: needs → goals; Wander, Seek grass, Flee, Hunt; goal-selection tests |
 | Visualisation (population → agents) | `CreatureSpawner`, Blue Sheep and Snow Leopard 3D models | T03/T04 | Wei Leong, Li Juan | Agents spawn by population and register in `EcoRegistry` |
+| Procedural animation (M2) | `packages/procanim`: `ProcAnimator`, `MotionStateMachine`, `SpringFloat`, `LegLayout`, `Appendage`, `BodyDeformer`; app: `AnimalMotionBridge`, `Resources/Motion/*` | SCRUM-267 (TI-10) | Wei Leong | Done: our own animation instead of Unity's Animator; 13 motions incl. legs/head/tail found in the static meshes, child-friendly death; data-driven; 36 tests, 0.085 ms per frame for 500 animals |
+| Spatial grid (M2) | `packages/ecosim/Runtime/EcoRegistry.cs`; debug view `DevTools/SpatialGridView` | SCRUM-264–266 (TI-16) | Wei Leong | Done: 8 m hash grid with ring search; same answers as a full scan (500-animal test); 20 vs 500 animals benchmark in the perf history |
 | Selection & Inspection | `Selection/*`, `Inspection/*`, `InspectorPanel` | F09 | Yan De | Tap-to-select + inspector panel framework |
 | Audio | `Audio/AudioManager`, BGM + species SFX | — | Li Juan | Done: BGM/ambience, footsteps |
 | Population history (M2) | `packages/ecosim/Runtime/History`: `PopulationHistory`, `PopulationHistoryRecorder` | T05 / F05 | Wei Leong | Done: per-day species and resource values, read by the graph and the case detector; tested |
@@ -117,7 +129,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Headless soak test (M2/M3) | `Assets/_Project/Scripts/DevTools/HeadlessSoakRunner`, `EcoBalanceCIBuild.BuildLinuxHeadless`, `tools/vm/soak.sh` | — | Wei Leong | Linux headless build from CI, run weekly on the team VM for 2,000 simulated days; report + history on Gitea ([details](infra/ci.md)) |
 | Metrics export (CSV) | *(planned, reads PopulationHistory)* | T05 (optional) | Li Juan | Not started |
 | Weather & Hazard Events | *(planned)* | T06 (optional) | Unassigned | Not started |
-| CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/ecosim/Tests/Editor/*`, `Assets/_Project/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks, unit + smoke + performance tests, weekly/tag/manual Android APK to Gitea ([details](infra/ci.md)) |
+| CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/*/Tests/Editor/*`, `Assets/_Project/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks on every PR; unit + smoke + performance tests nightly on `main`; tag/manual Android APK to Gitea ([details](infra/ci.md)) |
 | UI/UX design | Figma / `docs/design/ui-ux` | — | Nomitha, Shu Min (Design) | Wireframes / mockups |
 
 ## 4. Data stores
@@ -161,7 +173,7 @@ There is no server or database. EcoBalance is a single offline mobile app.
 - **Simulation Time Control:** play/pause/reset + speed x1-x8 on `SimulationClock` (F02/F06).
 
 ### Presentation layer
-- **Visualisation/Feedback:** translates simulation and AI state into visible feedback (population → agents, AI state → animation, vegetation depletion).
+- **Visualisation/Feedback:** translates simulation and AI state into visible feedback (population → agents, AI state → procedural animation via `AnimalMotionBridge` → `ProcAnimator`, vegetation depletion).
 - **UI** (Design-owned): inspector panel, population graphs/timeline, contextual learning prompts.
 - **Selection System:** generic click/tap picking (`ObjectSelector` + `ISelectable`), published on a shared `SelectionContext` asset.
 - **Selection Highlight:** `SelectionHighlighter` + `ISelectionHighlightVisual` (ground ring) driven by `SelectionHighlightConfig`.
@@ -185,14 +197,15 @@ Project_5_99Bugs/
 │           │       ├── Data/              # app assets: AI needs/goals/actions, islands, camera, UI config
 │           │       ├── Prefabs/           # creatures, islands
 │           │       ├── Resources/Cases/   # investigation case assets (Field Journal)
+│           │       ├── Resources/Motion/  # motion profiles per species (BlueSheep, SnowLeopard, Default)
 │           │       ├── ScriptableObjects/ # Species (BlueSheep, SnowLeopard), Resources (Grass, Water)
 │           │       ├── Scripts/
 │           │       │   ├── Audio/             # AudioManager
 │           │       │   ├── Behaviourtreecore/ # behaviour tree + action executors (Wander, Seek, Flee, Hunt)
 │           │       │   ├── Camera/            # orbit camera
 │           │       │   ├── Creatures/         # CreatureSpawner
-│           │       │   ├── EcoSim/            # SimulationClock, speed controller, animal brains
-│           │       │   ├── DevTools/          # SimDebugOverlay (Editor/dev builds), HeadlessSoakRunner (-soakDays)
+│           │       │   ├── EcoSim/            # SimulationClock, speed controller, animal brains, AnimalMotionBridge
+│           │       │   ├── DevTools/          # SimDebugOverlay + SpatialGridView (Editor/dev builds), HeadlessSoakRunner (-soakDays)
 │           │       │   ├── Editor/            # BuildScript, EcoBalanceCIBuild, AnimalCreator window
 │           │       │   ├── Inspection/        # IInspectable, inspector data
 │           │       │   ├── IslandPlatform/    # IslandManager, island swap
@@ -201,10 +214,10 @@ Project_5_99Bugs/
 │           │       │   ├── SimulationData/    # ISimulationDataProvider (UI read interface)
 │           │       │   └── UI/                # Configuration, PopulationCounter, ResourceLevels, EventFeed, InspectorPanel
 │           │       └── Tests/             # app EditMode tests
-│           ├── Packages/manifest.json     # loads com.99bugs.ecosim from packages/ecosim
+│           ├── Packages/manifest.json     # loads com.99bugs.ecosim and com.99bugs.procanim from packages/
 │           └── ProjectSettings/
 ├── packages/
-│   └── ecosim/                            # Unity package com.99bugs.ecosim
+│   ├── ecosim/                            # Unity package com.99bugs.ecosim
 │       ├── package.json
 │       ├── Runtime/                       # assembly: EcoSim (no app dependency)
 │       │   ├── EcosystemSimulator.cs      # tick: regrow, graze, predation, growth
@@ -216,6 +229,12 @@ Project_5_99Bugs/
 │       │   ├── Cases/                     # investigation cases, evaluator, journal, detector
 │       │   └── Balance/                   # headless balance model + parameters
 │       └── Tests/Editor/                  # assembly: EcoSim.Tests.Editor (simulator, relationships, registry, history, cases, balance, performance)
+│   └── procanim/                          # Unity package com.99bugs.procanim (our procedural animation)
+│       ├── Runtime/                       # assembly: EcoProcAnim (no app or EcoSim dependency)
+│       │   ├── ProcAnimator.cs            # component: pose from speed/turning + state
+│       │   ├── MotionStateMachine.cs  MotionProfile.cs  MotionPose.cs  SpringFloat.cs
+│       │   └── LegLayout.cs  Appendage.cs  BodyDeformer.cs   # legs/head/tail found in static meshes
+│       └── Tests/Editor/                  # assembly: EcoProcAnim.Tests.Editor
 ├── docs/                                  # proposal, design, architecture, deliverables
 ├── tests/                                 # test plans, manual checklists
 ├── tools/                                 # unity.sh / unity.bat; ci/repo-checks.py; vm/soak.sh (VM soak test)
@@ -226,7 +245,9 @@ Project_5_99Bugs/
 |---|---|---|---|
 | `packages/ecosim/Runtime` | `EcoSim` | UnityEngine only | Any app code |
 | `packages/ecosim/Tests/Editor` | `EcoSim.Tests.Editor` | `EcoSim`, NUnit | App code |
-| `apps/mobile/EcoBalance3D/Assets` | `Assembly-CSharp` (+ `-Editor`) | `EcoSim` (auto-referenced) | — |
+| `packages/procanim/Runtime` | `EcoProcAnim` | UnityEngine only | App code, `EcoSim` |
+| `packages/procanim/Tests/Editor` | `EcoProcAnim.Tests.Editor` | `EcoProcAnim`, NUnit | App code |
+| `apps/mobile/EcoBalance3D/Assets` | `Assembly-CSharp` (+ `-Editor`) | `EcoSim`, `EcoProcAnim` (auto-referenced) | — |
 
 **Why this split:** the simulation core (species/resource data, relationships, `EcosystemSimulator`,
 `EcoRegistry`, AI data types) is the part we most want to keep correct and reusable, so it is a separate

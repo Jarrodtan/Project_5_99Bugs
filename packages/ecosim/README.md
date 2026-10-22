@@ -5,7 +5,7 @@ The EcoBalance simulation core as a local Unity package. It has **no dependency 
 
 | Folder | Contents |
 |---|---|
-| `Runtime/` | `SpeciesDefinition`, `ResourceDefinition`, `Relationship` (Eats / Needs / Affects), `EcosystemSimulator` (tick-based populations), `EcoRegistry` + `EcoEntity` (find nearest food / prey / predator), `IEcosystemReset`, and the AI data types in `Definitions/` (`NeedDefinition`, `GoalDefinition`, `ActionDefinition`) |
+| `Runtime/` | `SpeciesDefinition`, `ResourceDefinition`, `Relationship` (Eats / Needs / Affects), `EcosystemSimulator` (tick-based populations), `EcoRegistry` + `EcoEntity` (find nearest food / prey / predator; species with 32+ instances use an 8 m spatial hash grid instead of a full scan), `IEcosystemReset`, and the AI data types in `Definitions/` (`NeedDefinition`, `GoalDefinition`, `ActionDefinition`) |
 | `Tests/Editor/` | EditMode tests for the simulator, relationships and registry |
 
 ## How the app uses it

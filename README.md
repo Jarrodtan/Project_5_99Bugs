@@ -44,7 +44,8 @@ Project_5_99Bugs/
 │   └── mobile/
 │       └── EcoBalance3D/          # Unity project (scenes, art, audio, prefabs, app scripts, app tests)
 ├── packages/
-│   └── ecosim/                    # Unity package com.99bugs.ecosim: simulation core + tests
+│   ├── ecosim/                    # Unity package com.99bugs.ecosim: simulation core + tests
+│   └── procanim/                  # Unity package com.99bugs.procanim: our procedural animation + tests
 ├── tools/
 │   ├── unity.sh                   # open / test / build / clean / zip (Ubuntu, macOS, Git Bash)
 │   └── unity.bat                  # same commands for Windows cmd
@@ -53,9 +54,9 @@ Project_5_99Bugs/
 ├── .gitignore  .gitattributes  .editorconfig
 ```
 
-The app loads the simulation core from `packages/ecosim` through
-`apps/mobile/EcoBalance3D/Packages/manifest.json` (`"com.99bugs.ecosim": "file:../../../../packages/ecosim"`),
-so always clone the **whole repository**.
+The app loads the simulation core from `packages/ecosim` and the animation module from `packages/procanim`
+through `apps/mobile/EcoBalance3D/Packages/manifest.json` (`"com.99bugs.ecosim": "file:../../../../packages/ecosim"`,
+same for `procanim`), so always clone the **whole repository**.
 
 ## Setup
 
@@ -88,7 +89,7 @@ The built app starts from the first scene in Build Settings (HomeScreen).
 
 ## Test
 
-- **Editor:** **Window → General → Test Runner → EditMode → Run All** (app tests + `com.99bugs.ecosim` package tests).
+- **Editor:** **Window → General → Test Runner → EditMode → Run All** (app tests + `com.99bugs.ecosim` and `com.99bugs.procanim` package tests).
 - **Command line** (Editor closed):
   - Ubuntu / macOS / Git Bash: `tools/unity.sh test`
   - Windows: `tools\unity.bat test`
