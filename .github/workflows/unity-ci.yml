@@ -262,9 +262,11 @@ jobs:
           # GameCI may name the binary with or without the .x86_64 extension.
           BIN=$(find build -type f \( -name 'EcoBalanceHeadless.x86_64' -o -name 'EcoBalanceHeadless' \) | head -n 1)
           [ -n "$BIN" ] || { echo "headless binary not found"; find build -maxdepth 3; exit 1; }
-          DIR=$(dirname "$BIN")
-          echo "${GITHUB_SHA::7}" > "$DIR/COMMIT"
-          tar -czf EcoBalanceHeadless.tar.gz -C "$DIR" .
+          # The build folder is owned by root (Unity ran in Docker), so copy it before adding files.
+          mkdir -p headless
+          cp -r "$(dirname "$BIN")"/. headless/
+          echo "${GITHUB_SHA::7}" > headless/COMMIT
+          tar -czf EcoBalanceHeadless.tar.gz -C headless .
           ls -lh EcoBalanceHeadless.tar.gz
           URL=https://team21.dp-ext8.com/git/api/packages/team21-admin/generic/ecobalance-headless/latest/EcoBalanceHeadless.tar.gz
           AUTH="team21-admin:$GITEA_PACKAGE_TOKEN"
