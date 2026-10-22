@@ -25,7 +25,7 @@ GitHub storage. An Actions budget of $1 with
 - **APKs:** Gitea → team21-admin → Packages → `ecobalance-apk` (newest 10 `build-*`; `v*` kept; `-dev` = development build).
 - **Headless build (for the VM):** Gitea → Packages → `ecobalance-headless` → `latest/EcoBalanceHeadless.tar.gz`.
 - **Soak test results:** Gitea → Packages → `ecobalance-soak` (one report per run + `history/soak.csv`).
-- **Performance history:** Gitea → Packages → `ecobalance-perf` → `history/perf.csv` (one row per week: date, commit, timings in ms).
+- **Performance history:** Gitea → Packages → `ecobalance-perf` → `history/perf.csv` (one row per nightly run that had new commits: date, commit, timings in ms; includes the spatial grid and animation benchmarks).
 
 ## Rubric mapping (M1 / M2 / M3)
 
