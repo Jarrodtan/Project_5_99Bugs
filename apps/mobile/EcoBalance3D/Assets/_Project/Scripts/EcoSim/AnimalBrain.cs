@@ -68,6 +68,18 @@ public class AnimalBrain : MonoBehaviour
     [Tooltip("Amount taken from a grass / water patch per visit.")]
     public float biteSize = 20f;
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Breeding (SCRUM-251)
+    [Header("Breeding")]
+    [Tooltip("Plant-eaters produce one offspring after this many meals.")]
+    [Min(1)] public int preyMealsPerBirth = 3;
+
+    [Tooltip("Predators produce one offspring after this many catches.")]
+    [Min(1)] public int predatorMealsPerBirth = 3;
+
+    private int meals_since_birth = 0;
+    // [AI-GENERATED END]
+
     private float base_speed;
     private float eat_timer = 0f;
     private float hunger_time = 0f;
@@ -100,6 +112,25 @@ public class AnimalBrain : MonoBehaviour
     {
         CaughtTime = Time.time;
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Events mode: every N meals a fed animal adds one of its species (needs a mate, so 2+ alive).
+    // The simulator caps the population and spawns the 3D model on its next visual refresh.
+    void CountMealForBreeding()
+    {
+        if (!EventsMode || species_data == null) return;
+
+        meals_since_birth++;
+        int needed = IsPredator ? predatorMealsPerBirth : preyMealsPerBirth;
+        if (meals_since_birth < needed) return;
+
+        if (simulator.populations.TryGetValue(species_data, out float pop) && pop >= 2f)
+        {
+            simulator.RecordBirth(species_data);
+            meals_since_birth = 0;
+        }
+    }
+    // [AI-GENERATED END]
 
     void Start()
     {
@@ -456,6 +487,7 @@ public class AnimalBrain : MonoBehaviour
             // Reset hunger after eating/drinking.
             hunger_time = 0f;
             curr_hunger = 100f;
+            CountMealForBreeding();
 
             forage_target = null;
 
@@ -539,6 +571,7 @@ public class AnimalBrain : MonoBehaviour
             // Predator has successfully eaten.
             hunger_time = 0f;
             curr_hunger = 100f;
+            CountMealForBreeding();
 
             eat_timer =
                 eatDuration;
