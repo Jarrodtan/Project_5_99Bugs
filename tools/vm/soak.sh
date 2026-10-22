@@ -31,7 +31,7 @@ COMMIT=$(cat build/COMMIT 2>/dev/null || echo unknown)
 
 echo "== Running soak: $SOAK_DAYS days (commit $COMMIT)"
 rm -f report.json
-timeout $((MAX_SECONDS + 120)) "$BIN" -batchmode -nographics -logFile soak.log \
+timeout $((MAX_SECONDS + 120)) "$BIN" -batchmode -nographics -logFile "$WORK/soak.log" \
   -soakDays "$SOAK_DAYS" -soakMaxSeconds "$MAX_SECONDS" -soakReport "$WORK/report.json"
 CODE=$?
 echo "exit code $CODE"
@@ -43,7 +43,7 @@ field() { grep -o "\"$1\": *[^,}]*" report.json | head -n 1 | sed 's/.*: *//; s/
 
 echo "== Uploading report and history"
 curl -fsS --user "$AUTH" --upload-file report.json "$API/ecobalance-soak/$STAMP-$COMMIT/report.json" || true
-curl -fsS --user "$AUTH" --upload-file soak.log "$API/ecobalance-soak/$STAMP-$COMMIT/soak.log" || true
+curl -fsS --user "$AUTH" --upload-file "$WORK/soak.log" "$API/ecobalance-soak/$STAMP-$COMMIT/soak.log" || true
 
 HIST="$API/ecobalance-soak/history/soak.csv"
 curl -fsS --user "$AUTH" "$HIST" -o soak.csv || echo "date,commit,exit,result,days,seconds,errors,peak_mb" > soak.csv
