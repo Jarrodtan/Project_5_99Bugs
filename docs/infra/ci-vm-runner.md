@@ -132,7 +132,7 @@ cd /home/ghrunner/actions-runner && sudo ./svc.sh install ghrunner && sudo ./svc
 | Remove the `free-disk-space` step | ⚠️ It deletes system files. Fine on GitHub's throwaway machines, harmful on the VM |
 | LFS pulled from Gitea on the same machine | Faster |
 | APK copied to `/srv/ecobalance/apks/<commit>/`, last 10 kept | No GitHub storage charges |
-| Tag `v*` (e.g. `v0.2-m2`) → GitHub Release with the APK | Rubric "versioned releases"; Releases don't use artifact storage |
+| Tag `v*` (e.g. `v0.2-m2`) → APK kept permanently on Gitea | Rubric "versioned releases"; no GitHub storage used |
 | PRs: tests only. `main`, tags, Run workflow: tests + APK | Fewer runs |
 
 Backup: if the VM is ever down, change `runs-on` back to `ubuntu-latest` (one line).
