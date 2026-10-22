@@ -259,8 +259,10 @@ jobs:
           GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
         run: |
           set -euo pipefail
-          DIR=$(dirname "$(find build -name 'EcoBalanceHeadless.x86_64' | head -n 1)")
-          [ -n "$DIR" ] && [ "$DIR" != . ] || { echo "headless binary not found"; exit 1; }
+          # GameCI may name the binary with or without the .x86_64 extension.
+          BIN=$(find build -type f \( -name 'EcoBalanceHeadless.x86_64' -o -name 'EcoBalanceHeadless' \) | head -n 1)
+          [ -n "$BIN" ] || { echo "headless binary not found"; find build -maxdepth 3; exit 1; }
+          DIR=$(dirname "$BIN")
           echo "${GITHUB_SHA::7}" > "$DIR/COMMIT"
           tar -czf EcoBalanceHeadless.tar.gz -C "$DIR" .
           ls -lh EcoBalanceHeadless.tar.gz

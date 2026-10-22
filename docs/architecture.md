@@ -114,6 +114,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Investigation cases (M2, Free Exploration) | `packages/ecosim/Runtime/Cases`: `InvestigationCase`, `CaseEvaluator`, `CaseJournal`, `CaseDetector`; case assets in `Assets/_Project/Resources/Cases` | F07 / Field Journal | Wei Leong (engine), Dillon (UI), design (case content) | Engine done and tested; journal UI in progress |
 | Balance model (M2) | `packages/ecosim/Runtime/Balance`: `BalanceModel`, `BalanceParameters` | T03 | Wei Leong | Headless agent model of design's simulation spec; proves cases are reachable; tested |
 | Dev overlay (M2) | `Assets/_Project/Scripts/DevTools/SimDebugOverlay` | — | Wei Leong | Editor and development builds only: day, populations, case status |
+| Headless soak test (M2/M3) | `Assets/_Project/Scripts/DevTools/HeadlessSoakRunner`, `EcoBalanceCIBuild.BuildLinuxHeadless`, `tools/vm/soak.sh` | — | Wei Leong | Linux headless build from CI, run weekly on the team VM for 2,000 simulated days; report + history on Gitea ([details](infra/ci.md)) |
 | Metrics export (CSV) | *(planned, reads PopulationHistory)* | T05 (optional) | Li Juan | Not started |
 | Weather & Hazard Events | *(planned)* | T06 (optional) | Unassigned | Not started |
 | CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/ecosim/Tests/Editor/*`, `Assets/_Project/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks, unit + smoke + performance tests, weekly/tag/manual Android APK to Gitea ([details](infra/ci.md)) |
@@ -139,6 +140,7 @@ There is no server or database. EcoBalance is a single offline mobile app.
 | GitHub + GitHub Actions (GameCI Docker images) | Source control, PRs, automated tests and Android builds |
 | Unity Licensing (serial activation in CI) | Activating the Unity editor on CI runners |
 | Jira | Backlog, epics per feature/deliverable, individual task tracking |
+| Team VM soak test | Runs the Linux headless build weekly (`tools/vm/soak.sh`); reports to Gitea packages |
 | Self-hosted Gitea (team21 VM) | **Git LFS store** for binary assets, over HTTPS at `https://team21.dp-ext8.com/git/` (Caddy reverse proxy, sign-up off). Code and branches stay on GitHub; CI pulls LFS files with the `GITEA_LFS_TOKEN` secret. See [infra/gitea-rebuild.md](infra/gitea-rebuild.md) |
 
 ## 6. Layers (detail)
@@ -190,7 +192,7 @@ Project_5_99Bugs/
 │           │       │   ├── Camera/            # orbit camera
 │           │       │   ├── Creatures/         # CreatureSpawner
 │           │       │   ├── EcoSim/            # SimulationClock, speed controller, animal brains
-│           │       │   ├── DevTools/          # SimDebugOverlay (Editor and development builds only)
+│           │       │   ├── DevTools/          # SimDebugOverlay (Editor/dev builds), HeadlessSoakRunner (-soakDays)
 │           │       │   ├── Editor/            # BuildScript, EcoBalanceCIBuild, AnimalCreator window
 │           │       │   ├── Inspection/        # IInspectable, inspector data
 │           │       │   ├── IslandPlatform/    # IslandManager, island swap
@@ -216,7 +218,7 @@ Project_5_99Bugs/
 │       └── Tests/Editor/                  # assembly: EcoSim.Tests.Editor (simulator, relationships, registry, history, cases, balance, performance)
 ├── docs/                                  # proposal, design, architecture, deliverables
 ├── tests/                                 # test plans, manual checklists
-├── tools/                                 # unity.sh / unity.bat: open, test, build, clean; ci/repo-checks.py
+├── tools/                                 # unity.sh / unity.bat; ci/repo-checks.py; vm/soak.sh (VM soak test)
 └── .github/workflows/unity-ci.yml         # CI: repo checks, tests, Android build (docs/infra/ci.md)
 ```
 

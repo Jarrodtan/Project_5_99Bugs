@@ -24,7 +24,7 @@ rm -rf build && mkdir build
 echo "== Downloading latest headless build"
 curl -fsS --user "$AUTH" -o build.tar.gz "$API/ecobalance-headless/latest/EcoBalanceHeadless.tar.gz" || { echo "download failed"; exit 1; }
 tar -xzf build.tar.gz -C build
-BIN=$(find build -name 'EcoBalanceHeadless.x86_64' | head -n 1)
+BIN=$(find build -type f \( -name 'EcoBalanceHeadless.x86_64' -o -name 'EcoBalanceHeadless' \) | head -n 1)
 [ -n "$BIN" ] || { echo "binary not found in archive"; exit 1; }
 chmod +x "$BIN"
 COMMIT=$(cat build/COMMIT 2>/dev/null || echo unknown)

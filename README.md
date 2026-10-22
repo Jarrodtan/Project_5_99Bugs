@@ -108,8 +108,9 @@ The built app starts from the first scene in Build Settings (HomeScreen).
 CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL`, `UNITY_PASSWORD`
 (serial-based Unity licence; see the [GameCI activation guide](https://game.ci/docs/github/activation)),
 `GITEA_LFS_TOKEN` (LFS pull) and `GITEA_PACKAGE_TOKEN` (APK upload; Gitea token with package read/write).
+Weekly (and on `v*` tags) CI also builds a **Linux headless** version that the team VM soak-tests (`tools/vm/soak.sh`, results on Gitea → Packages → `ecobalance-soak`).
 APKs and performance history go to Gitea, so GitHub artifact storage stays at 0 (it filled up in October 2026 and locked Actions).
-CI uses about 1,200 of the 3,000 student-Pro minutes per month; an Actions budget with "stop usage" makes it pause rather than charge.
+CI uses about 1,400 of the 3,000 student-Pro minutes per month; an Actions budget with "stop usage" makes it pause rather than charge.
 
 ## Clean
 

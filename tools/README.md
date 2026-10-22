@@ -15,6 +15,8 @@ Close the Editor before `test` or `build`.
 
 `ci/repo-checks.py` runs the CI static checks locally in about a second: `python tools/ci/repo-checks.py` (missing or orphan `.meta` files, large files outside LFS, merge-conflict markers, `UnityEditor` in runtime code). Run it before opening a PR.
 
+`vm/soak.sh` runs on the team VM (weekly cron): downloads the Linux headless build CI published to Gitea, soak-tests it for 2,000 simulated days and uploads the report and history. Setup: `docs/infra/ci.md`.
+
 Unity Editor tools (custom inspectors, windows) go in `apps/mobile/EcoBalance3D/Assets/_Project/Scripts/Editor/`, because Unity only compiles code inside `Assets/`.
 
 ---
