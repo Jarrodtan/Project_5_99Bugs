@@ -1,9 +1,11 @@
 # [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 name: Unity CI
 
-# Minutes/storage budget: PRs run tests only; the Android APK is built on main,
-# on version tags (v*) and on demand (Actions > Unity CI > Run workflow).
-# APKs are stored on the team Gitea (package "ecobalance-apk"), not GitHub.
+# Minutes budget: PRs and pushes to main run tests only. The Android APK is built
+# weekly (Sunday, only if main changed since the last APK), on version tags (v*) and
+# on demand (Actions > Unity CI > Run workflow).
+# APKs are stored on the team Gitea (package "ecobalance-apk"); nothing is uploaded to
+# GitHub artifact storage. Test failures are printed in the job log instead.
 # Doc-only pushes to main skip CI.
 on:
   push:
@@ -14,9 +16,21 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      buildType:
+        description: 'APK type'
+        type: choice
+        options: [release, development]
+        default: release
+      headless:
+        description: 'Also build the Linux headless build for the VM soak test'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 18 * * 6'   # Sunday 02:00 Singapore time, weekly APK + perf history
 
 # On PRs a newer push cancels the older run instead of paying for both.
-# On main every merge finishes, so each merge gets its APK.
+# On main every run finishes, so each merge gets its tests.
 concurrency:
   group: unity-ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -35,8 +49,42 @@ env:
 # (exit 137) while Unity reloaded assemblies; clean imports passed.
 
 jobs:
+  # Static checks without Unity (missing .meta files, files that belong in LFS, merge
+  # markers, editor-only code in runtime folders). Seconds, so it runs on every PR/push.
+  repo-checks:
+    name: Repo checks
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4   # no LFS needed: checks what Git stores
+      - run: python3 tools/ci/repo-checks.py
+
+  # Scheduled runs skip everything when Gitea already has an APK for this commit.
+  # Only runs on the schedule (every job is billed as at least 1 minute).
+  check:
+    name: Anything new?
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.c.outputs.changed }}
+    steps:
+      - id: c
+        env:
+          GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != schedule ] || [ -z "$GITEA_PACKAGE_TOKEN" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          SHORT=${GITHUB_SHA::7}
+          FOUND=$(curl -fsS --user "team21-admin:$GITEA_PACKAGE_TOKEN"             "https://team21.dp-ext8.com/git/api/v1/packages/team21-admin?type=generic&q=ecobalance-apk&limit=50"             | jq -r --arg s "$SHORT" '[.[] | select(.version|endswith($s))] | length' || echo 0)
+          if [ "$FOUND" -gt 0 ]; then echo "APK for $SHORT already on Gitea, skipping"; echo "changed=false" >> "$GITHUB_OUTPUT"
+          else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+
   test:
     name: EditMode tests
+    needs: check
+    # check is skipped on every event except the schedule.
+    if: always() && (needs.check.result == 'skipped' || needs.check.outputs.changed == 'true')
     runs-on: ubuntu-latest
     steps:
       # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
@@ -65,7 +113,28 @@ jobs:
           checkName: EditMode Test Results
           # No GPU on the runner: skip software OpenGL, which used enough RAM to get
           # Unity killed (exit 137) while loading assemblies.
-          customParameters: -nographics
+          # Weekly run: PerformanceTests also write their timings for the history below.
+          customParameters: >-
+            -nographics
+            ${{ github.event_name == 'schedule' && '-perfOut /github/workspace/artifacts/perf.txt' || '' }}
+
+      # Performance history (rubric: performance tests with a historical representation):
+      # one CSV row per weekly run, kept on Gitea as ecobalance-perf/history/perf.csv.
+      - name: Append performance history on Gitea
+        if: github.event_name == 'schedule' && success()
+        env:
+          GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
+        run: |
+          set -uo pipefail
+          [ -s artifacts/perf.txt ] || { echo "no perf.txt, skipping"; exit 0; }
+          URL=https://team21.dp-ext8.com/git/api/packages/team21-admin/generic/ecobalance-perf/history/perf.csv
+          AUTH="team21-admin:$GITEA_PACKAGE_TOKEN"
+          curl -fsS --user "$AUTH" "$URL" -o perf.csv || : > perf.csv
+          echo "$(date -u +%Y-%m-%d),${GITHUB_SHA::7},$(cat artifacts/perf.txt)" >> perf.csv
+          tail -n 5 perf.csv
+          curl -fsS -X DELETE --user "$AUTH" "$URL" || true
+          curl -fsS --user "$AUTH" --upload-file perf.csv "$URL"
+          echo "### Performance history: [perf.csv]($URL)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Show Unity log and test results on failure
         if: failure()
@@ -76,20 +145,14 @@ jobs:
           for f in $(find "$PROJECT_PATH/Logs" -name '*.log' 2>/dev/null); do echo "== $f (last 100 lines) =="; tail -n 100 "$f"; done
           grep -rhE "error CS[0-9]+|License|licen[sc]e|activation" artifacts 2>/dev/null | sort -u | head -40 || true
 
-      # Logs are only kept when something failed, to stay inside artifact storage.
-      # Soft-fail: a full storage quota must not fail the required check.
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        continue-on-error: true
-        with:
-          name: test-results
-          path: artifacts
-          retention-days: 3
-
   build:
     name: Build (Android)
-    needs: test
-    if: github.event_name != 'pull_request'
+    needs: [check, test]
+    # Not on PRs or ordinary pushes to main (saves ~50 min per merge).
+    if: >-
+      always() && needs.test.result == 'success' && (
+      github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' ||
+      (github.event_name == 'schedule' && needs.check.outputs.changed == 'true'))
     runs-on: ubuntu-latest
     env:
       GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
@@ -119,13 +182,15 @@ jobs:
           targetPlatform: Android
           buildName: EcoBalance3D
           customParameters: -nographics   # same exit-137 memory fix as the test job
+          # Run workflow with buildType=development uses our Development build (debug overlay,
+          # profiler); everything else uses GameCI's default release build.
+          buildMethod: ${{ github.event.inputs.buildType == 'development' && 'EcoBalanceCIBuild.BuildAndroidDevelopment' || '' }}
 
       # APKs go to the team Gitea package registry instead of GitHub artifact
       # storage (which caused October's billing lock). Builds are named
       # build-<date>-<sha> and only the newest 10 are kept; v* tags are kept.
       - name: Publish APK to Gitea
         id: gitea
-        if: env.GITEA_PACKAGE_TOKEN != ''
         env:
           GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
         run: |
@@ -140,6 +205,8 @@ jobs:
             VER="$GITHUB_REF_NAME"
           else
             VER="build-$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}"
+            # Development APKs get a suffix so the weekly "already built?" check ignores them.
+            if [ "${{ github.event.inputs.buildType }}" = development ]; then VER="$VER-dev"; fi
           fi
           curl -fsS --user "$AUTH" --upload-file "$APK"             "$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance3D.apk"
           URL="$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance3D.apk"
@@ -151,12 +218,57 @@ jobs:
               curl -fsS -X DELETE --user "$AUTH" "$API/api/packages/$OWNER/generic/$PKG/$OLD" || true
             done
 
-      # Fallback until the Gitea token secret exists: short-lived GitHub artifact.
-      - uses: actions/upload-artifact@v4
-        if: env.GITEA_PACKAGE_TOKEN == ''
-        continue-on-error: true
+  # Linux headless build for the weekly soak test on the team VM (tools/vm/soak.sh pulls it from
+  # Gitea and runs it with -batchmode -nographics -soakDays N). The VM is too small for the Unity
+  # editor but runs a headless player fine. Weekly, on v* tags, or Run workflow with headless=true.
+  headless:
+    name: Build (Linux headless)
+    needs: [check, test]
+    if: >-
+      always() && needs.test.result == 'success' && (
+      github.ref_type == 'tag' || github.event.inputs.headless == 'true' ||
+      (github.event_name == 'schedule' && needs.check.outputs.changed == 'true'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: jlumbroso/free-disk-space@v1.3.1
         with:
-          name: EcoBalance3D-Android
-          path: build/Android
-          retention-days: 3
+          tool-cache: true
+          android: true
+          swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
+
+      - uses: actions/checkout@v4
+
+      - name: Pull LFS files from Gitea
+        env:
+          GITEA_LFS_TOKEN: ${{ secrets.GITEA_LFS_TOKEN }}
+        run: |
+          git config lfs.url "https://team21-admin:${GITEA_LFS_TOKEN}@team21.dp-ext8.com/git/team21-admin/team21_EcoBalance3D_99Bugs.git/info/lfs"
+          git lfs pull
+
+      - uses: game-ci/unity-builder@v4
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          targetPlatform: StandaloneLinux64
+          buildName: EcoBalanceHeadless
+          buildMethod: EcoBalanceCIBuild.BuildLinuxHeadless
+          customParameters: -nographics
+
+      # Replaces ecobalance-headless/latest on Gitea (only the newest build is kept).
+      - name: Publish headless build to Gitea
+        env:
+          GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # GameCI may name the binary with or without the .x86_64 extension.
+          BIN=$(find build -type f \( -name 'EcoBalanceHeadless.x86_64' -o -name 'EcoBalanceHeadless' \) | head -n 1)
+          [ -n "$BIN" ] || { echo "headless binary not found"; find build -maxdepth 3; exit 1; }
+          DIR=$(dirname "$BIN")
+          echo "${GITHUB_SHA::7}" > "$DIR/COMMIT"
+          tar -czf EcoBalanceHeadless.tar.gz -C "$DIR" .
+          ls -lh EcoBalanceHeadless.tar.gz
+          URL=https://team21.dp-ext8.com/git/api/packages/team21-admin/generic/ecobalance-headless/latest/EcoBalanceHeadless.tar.gz
+          AUTH="team21-admin:$GITEA_PACKAGE_TOKEN"
+          curl -fsS -X DELETE --user "$AUTH" "$URL" || true
+          curl -fsS --user "$AUTH" --upload-file EcoBalanceHeadless.tar.gz "$URL"
+          echo "### Headless build ${GITHUB_SHA::7} published for the VM soak test" >> "$GITHUB_STEP_SUMMARY"
 # [AI-GENERATED END]
