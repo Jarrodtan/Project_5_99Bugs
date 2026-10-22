@@ -70,4 +70,4 @@ over with MobaXterm/scp is simpler. The VM clock is UTC, so `0 21 * * 6` (Saturd
 
 ## Other options
 
-- Self-hosted runner on a team PC as an unlimited fallback if minutes run low ([ci-vm-runner.md](ci-vm-runner.md) has the steps).
+- Self-hosted runner on a team PC as an unlimited fallback if minutes run low (GitHub → Settings → Actions → Runners → New self-hosted runner; then `runs-on: self-hosted` in the workflow).

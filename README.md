@@ -39,7 +39,7 @@ Project_5_99Bugs/
 │   ├── deliverables.md            # ownership + M1/M2/M3 targets
 │   ├── toolchain.md
 │   ├── data-pipeline.md
-│   └── infra/                    # gitea-rebuild.md (VM/Gitea), ci.md (CI/CD), ci-vm-runner.md
+│   └── infra/                    # gitea-rebuild.md (VM/Gitea), ci.md (CI/CD)
 ├── apps/
 │   └── mobile/
 │       └── EcoBalance3D/          # Unity project (scenes, art, audio, prefabs, app scripts, app tests)
