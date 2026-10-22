@@ -323,6 +323,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 873323749}
+        m_TargetAssemblyTypeName: UnityEngine.AudioSource, UnityEngine
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 1629121588}
         m_TargetAssemblyTypeName: SpeciesCounter, Assembly-CSharp
         m_MethodName: Add
@@ -593,6 +605,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 873323749}
+        m_TargetAssemblyTypeName: UnityEngine.AudioSource, UnityEngine
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 1230681128}
         m_TargetAssemblyTypeName: SpeciesCounter, Assembly-CSharp
         m_MethodName: Add
@@ -1008,6 +1032,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 873323749}
+        m_TargetAssemblyTypeName: UnityEngine.AudioSource, UnityEngine
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 191507126}
         m_TargetAssemblyTypeName: ConfigurationScreen, Assembly-CSharp
         m_MethodName: StartSimulation
@@ -1900,6 +1936,53 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 518933146}
   m_CullTransparentMesh: 1
+--- !u!1 &594291177
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 594291178}
+  - component: {fileID: 594291179}
+  m_Layer: 0
+  m_Name: AnimalData
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &594291178
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 594291177}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &594291179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 594291177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1441a5d107726b54c8a42dcbf34a509a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalData
+  api_key: rlts_o5S8GngQ83LLl5pZ5VzslMJXlX7aSm2QZb4v
+  snowLeopardCounter: {fileID: 1230681128}
+  blueSheepCounter: {fileID: 1629121588}
 --- !u!1 &632166564
 GameObject:
   m_ObjectHideFlags: 0
@@ -1983,6 +2066,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 873323749}
+        m_TargetAssemblyTypeName: UnityEngine.AudioSource, UnityEngine
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 1230681128}
         m_TargetAssemblyTypeName: SpeciesCounter, Assembly-CSharp
         m_MethodName: Subtract
@@ -2566,6 +2661,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RectMask2D
   m_Padding: {x: -8, y: -5, z: -8, w: -5}
   m_Softness: {x: 0, y: 0}
+--- !u!82 &873323749 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 3078265897409347826, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+  m_PrefabInstance: {fileID: 8429186768727189307}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &965128204
 GameObject:
   m_ObjectHideFlags: 0
@@ -3807,6 +3907,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 873323749}
+        m_TargetAssemblyTypeName: UnityEngine.AudioSource, UnityEngine
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 1629121588}
         m_TargetAssemblyTypeName: SpeciesCounter, Assembly-CSharp
         m_MethodName: Subtract
@@ -4599,7 +4711,7 @@ MonoBehaviour:
   countInput: {fileID: 1141289237}
   startCount: 0
   minCount: 0
-  maxCount: 100
+  maxCount: 500
 --- !u!1 &1675345348
 GameObject:
   m_ObjectHideFlags: 0
@@ -5499,6 +5611,63 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2040902421}
   m_CullTransparentMesh: 1
+--- !u!1001 &8429186768727189307
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2425801788170798894, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 796.4729
+      objectReference: {fileID: 0}
+    - target: {fileID: 2425801788170798894, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.00001
+      objectReference: {fileID: 0}
+    - target: {fileID: 2425801788170798894, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -4958.8667
+      objectReference: {fileID: 0}
+    - target: {fileID: 2425801788170798894, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2425801788170798894, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2425801788170798894, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2425801788170798894, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2425801788170798894, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2425801788170798894, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2425801788170798894, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3572933053264363125, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_Name
+      value: SFX
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -5508,3 +5677,5 @@ SceneRoots:
   - {fileID: 1040150962}
   - {fileID: 1231667974}
   - {fileID: 1316651865}
+  - {fileID: 594291178}
+  - {fileID: 8429186768727189307}
