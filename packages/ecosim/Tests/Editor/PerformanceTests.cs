@@ -67,6 +67,40 @@ public class PerformanceTests
         finally { UnityEngine.Object.DestroyImmediate(sheep); }
     }
 
+    // SCRUM-266: one frame of every animal asking for its nearest prey/predator, 20 vs 500
+    // animals. With the spatial grid 500 should stay far below the O(n^2) plain-scan cost.
+    [TestCase(20)]
+    [TestCase(500)]
+    public void Perf_EcoRegistry_NearestPerFrame(int animals)
+    {
+        EcoRegistry.Clear();
+        var sheep = UnityEngine.ScriptableObject.CreateInstance<SpeciesDefinition>();
+        var objects = new List<UnityEngine.GameObject>();
+        var rng = new Random(1);
+        try
+        {
+            for (int i = 0; i < animals; i++)
+            {
+                var go = new UnityEngine.GameObject();
+                go.transform.position = new UnityEngine.Vector3((float)rng.NextDouble() * 200f - 100f, 0f, (float)rng.NextDouble() * 200f - 100f);
+                objects.Add(go);
+                EcoRegistry.Register(go.transform, sheep);
+            }
+            Record($"registry_nearest_{animals}_animals", Time(() =>
+            {
+                EcoRegistry.InvalidateGrids(); // new frame: animals have moved
+                foreach (var go in objects)
+                    EcoRegistry.Nearest(go.transform.position, sheep, 12f, go.transform);
+            }, 10), budgetMs: 50);
+        }
+        finally
+        {
+            EcoRegistry.Clear();
+            foreach (var go in objects) UnityEngine.Object.DestroyImmediate(go);
+            UnityEngine.Object.DestroyImmediate(sheep);
+        }
+    }
+
     // Writes the metrics (metric=ms,...) when Unity was started with -perfOut <path>;
     // CI prefixes the date and commit and appends the row to the history on Gitea.
     [OneTimeTearDown]

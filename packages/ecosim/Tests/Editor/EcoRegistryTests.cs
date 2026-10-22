@@ -95,6 +95,47 @@ public class EcoRegistryTests
     }
 
     [Test]
+    public void Grid_MatchesPlainScan_With500Animals()
+    {
+        var rng = new System.Random(7);
+        var all = new List<Transform>();
+        for (int i = 0; i < 500; i++)
+        {
+            var t = Spawn(sheep, 0f);
+            t.position = new Vector3((float)rng.NextDouble() * 200f - 100f, 0f, (float)rng.NextDouble() * 200f - 100f);
+            all.Add(t);
+        }
+        EcoRegistry.InvalidateGrids();
+
+        for (int q = 0; q < 200; q++)
+        {
+            var from = new Vector3((float)rng.NextDouble() * 260f - 130f, 0f, (float)rng.NextDouble() * 260f - 130f);
+            float radius = q % 2 == 0 ? float.PositiveInfinity : 15f;
+
+            Transform expected = null;
+            float bestSqr = radius * radius;
+            foreach (var t in all)
+            {
+                float sqr = (t.position - from).sqrMagnitude;
+                if (sqr < bestSqr) { bestSqr = sqr; expected = t; }
+            }
+            Assert.AreSame(expected, EcoRegistry.Nearest(from, sheep, radius), $"query {q} at {from}");
+        }
+    }
+
+    [Test]
+    public void Grid_SeesMovedAnimalsAfterInvalidate()
+    {
+        var list = new List<Transform>();
+        for (int i = 0; i < EcoRegistry.GridThreshold + 5; i++) list.Add(Spawn(sheep, 100f + i));
+        Assert.AreSame(list[0], EcoRegistry.Nearest(Vector3.zero, sheep));
+
+        list[10].position = new Vector3(1f, 0f, 0f);
+        EcoRegistry.InvalidateGrids();
+        Assert.AreSame(list[10], EcoRegistry.Nearest(Vector3.zero, sheep));
+    }
+
+    [Test]
     public void NullInputs_DoNotThrow()
     {
         EcoRegistry.Register(null, grass);

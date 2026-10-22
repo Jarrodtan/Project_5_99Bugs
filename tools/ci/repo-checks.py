@@ -9,7 +9,7 @@ import re
 import subprocess
 import sys
 
-ROOTS = ("apps/mobile/EcoBalance3D/Assets/", "packages/ecosim/")
+ROOTS = ("apps/mobile/EcoBalance3D/Assets/", "packages/ecosim/", "packages/procanim/")
 LARGE = 5 * 1024 * 1024
 
 top = subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()

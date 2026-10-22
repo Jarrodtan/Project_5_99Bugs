@@ -49,6 +49,10 @@ public class PopulationHistoryTests
     [Test]
     public void Recorder_RecordsTicksAndRestartsOnReset()
     {
+        // StartingPopulationOverrides is static: a Play session (live animal data sets "BlueSheep")
+        // leaves it filled when domain reload is off, which changed this test's starting 10 sheep.
+        var savedOverrides = new Dictionary<string, float>(EcosystemSimulator.StartingPopulationOverrides);
+        EcosystemSimulator.StartingPopulationOverrides.Clear();
         var created = new List<Object>();
         var sheep = ScriptableObject.CreateInstance<SpeciesDefinition>(); sheep.name = "BlueSheep"; sheep.startingPopulation = 10; created.Add(sheep);
         var grass = ScriptableObject.CreateInstance<ResourceDefinition>(); grass.name = "Grass"; grass.startingAmount = 50; grass.maxAmount = 100; created.Add(grass);
@@ -79,6 +83,7 @@ public class PopulationHistoryTests
         finally
         {
             foreach (var o in created) Object.DestroyImmediate(o);
+            foreach (var kv in savedOverrides) EcosystemSimulator.StartingPopulationOverrides[kv.Key] = kv.Value;
         }
     }
 }
