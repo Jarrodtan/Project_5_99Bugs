@@ -159,6 +159,10 @@ public class AnimalBrain : MonoBehaviour
 
         CurrentAction = AnimalAction.Roaming;
         CurrentTargetName = "";
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): procedural animation (ProcAnim module) for every animal.
+        if (!TryGetComponent(out AnimalMotionBridge _))
+            gameObject.AddComponent<AnimalMotionBridge>();
     }
 
     void Update()

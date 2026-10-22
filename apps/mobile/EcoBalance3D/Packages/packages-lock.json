@@ -6,6 +6,12 @@
       "source": "local",
       "dependencies": {}
     },
+    "com.99bugs.procanim": {
+      "version": "file:../../../../packages/procanim",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.14",
       "depth": 0,

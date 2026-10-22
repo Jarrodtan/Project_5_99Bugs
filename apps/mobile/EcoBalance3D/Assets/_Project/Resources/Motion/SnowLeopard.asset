@@ -1,0 +1,122 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4c5dfc6b33e4707bcaa01a14d9754ed, type: 3}
+  m_Name: SnowLeopard
+  m_EditorClassIdentifier: 
+  idle:
+    height: 0
+    pitch: 0
+    roll: 0
+    bobHeight: 0
+    pitchWave: 1
+    rollWave: 0
+    scalePulse: 0.02
+    stepsPerMetre: 0
+    cycleHz: 0.25
+    maxCycleHz: 2
+    bounce: 0
+  walk:
+    height: 0
+    pitch: 0
+    roll: 0
+    bobHeight: 0.005
+    pitchWave: 0.8
+    rollWave: 2.5
+    scalePulse: 0
+    stepsPerMetre: 0.45
+    cycleHz: 0
+    maxCycleHz: 1.3
+    bounce: 1
+  run:
+    height: 0
+    pitch: 2
+    roll: 0
+    bobHeight: 0.015
+    pitchWave: 5
+    rollWave: 1
+    scalePulse: 0
+    stepsPerMetre: 0.3
+    cycleHz: 0
+    maxCycleHz: 2
+    bounce: 1
+  flee:
+    height: 0
+    pitch: 6
+    roll: 0
+    bobHeight: 0.025
+    pitchWave: 4
+    rollWave: 1
+    scalePulse: 0
+    stepsPerMetre: 0.45
+    cycleHz: 0
+    maxCycleHz: 2.5
+    bounce: 1
+  stalk:
+    height: -0.07
+    pitch: 5
+    roll: 0
+    bobHeight: 0.002
+    pitchWave: 0.5
+    rollWave: 1
+    scalePulse: 0
+    stepsPerMetre: 0.6
+    cycleHz: 0
+    maxCycleHz: 1
+    bounce: 1
+  eat:
+    height: 0
+    pitch: 15
+    roll: 0
+    bobHeight: 0
+    pitchWave: 3
+    rollWave: 0
+    scalePulse: 0
+    stepsPerMetre: 0
+    cycleHz: 0.8
+    maxCycleHz: 2
+    bounce: 0
+  drink:
+    height: -0.03
+    pitch: 28
+    roll: 0
+    bobHeight: 0
+    pitchWave: 3
+    rollWave: 0
+    scalePulse: 0
+    stepsPerMetre: 0
+    cycleHz: 0.8
+    maxCycleHz: 2
+    bounce: 0
+  alert:
+    height: 0.04
+    pitch: -8
+    roll: 0
+    bobHeight: 0
+    pitchWave: 0
+    rollWave: 1
+    scalePulse: 0
+    stepsPerMetre: 0
+    cycleHz: 2.5
+    maxCycleHz: 2
+    bounce: 0
+  blendSeconds: 0.2
+  turnLeanPerDegPerSec: 0.09
+  maxTurnLean: 14
+  pitchPerAccel: 2
+  maxAccelPitch: 8
+  springHz: 3
+  springDamping: 0.3
+  deathSeconds: 0.7
+  deathRoll: 80
+  deathSink: 0.25
+  deathSinkSeconds: 1.5
+  spawnSeconds: 0.35
