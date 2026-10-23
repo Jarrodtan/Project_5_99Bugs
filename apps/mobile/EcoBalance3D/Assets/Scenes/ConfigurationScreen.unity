@@ -1980,7 +1980,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1441a5d107726b54c8a42dcbf34a509a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimalData
-  api_key: rlts_o5S8GngQ83LLl5pZ5VzslMJXlX7aSm2QZb4v
   snowLeopardCounter: {fileID: 1230681128}
   blueSheepCounter: {fileID: 1629121588}
 --- !u!1 &632166564
@@ -2878,6 +2877,7 @@ GameObject:
   - component: {fileID: 1040150961}
   - component: {fileID: 1040150960}
   - component: {fileID: 1040150959}
+  - component: {fileID: 1040150963}
   m_Layer: 5
   m_Name: ConfigurationPanel
   m_TagString: Untagged
@@ -2969,6 +2969,22 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1040150963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1040150958}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c8b7c97b1b497a42862a55982973b10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TerrainData
+  spawn_trees: 0
+  spawn_rivers: 0
+  spawn_hills: 0
+  spawn_mud: 0
 --- !u!1 &1047648194
 GameObject:
   m_ObjectHideFlags: 0

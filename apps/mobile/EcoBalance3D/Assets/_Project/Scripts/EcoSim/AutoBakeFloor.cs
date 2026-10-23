@@ -8,12 +8,15 @@ public class AutoBakeFloor : MonoBehaviour
     {
         //Delay baking process by 0.5s so that it gives time for the floor to be generated
         // before the floor turns into a walkable floor
-        Invoke("Bake", 0.5f);
     }
 
     // Generate the walkable pathfinding grid
-    void Bake()
+    public void Bake(int tree, int river, int hill, int mud)
     {
+        // TODO FOR SECOND PERSON: Add prefab instantiation loops here.
+        // Example: for(int i = 0; i < treeCount; i++) { Instantiate(treePrefab); }
+        Debug.Log($"[LEVEL GENERATION] Ready to spawn {tree} trees, {river} rivers, {hill} hills, {mud} mud.");
+
         GetComponent<NavMeshSurface>().BuildNavMesh();
         Debug.Log("Succesfully created.");
 
