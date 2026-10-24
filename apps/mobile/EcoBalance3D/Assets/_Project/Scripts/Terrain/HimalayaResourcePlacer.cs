@@ -19,8 +19,13 @@ public class HimalayaResourcePlacer : MonoBehaviour
     [SerializeField] Color waterColor = new Color(0.25f, 0.55f, 0.95f, 1f);
     [Tooltip("Patches are skipped on slopes steeper than this (animals can't reach them).")]
     [SerializeField] float maxPatchSlope = 30f;
+    [Tooltip("Water patches placed in the lowest valleys when the online river data can't be loaded.")]
+    [SerializeField] int fallbackWaterPatches = 12;
+    [Tooltip("Minimum gap between fallback water patches, as a fraction of the map width.")]
+    [SerializeField] float fallbackWaterSpacing = 0.06f;
 
     readonly List<GameObject> spawned = new List<GameObject>();
+    Mesh grassTuft;
 
     public void Clear()
     {
@@ -33,6 +38,9 @@ public class HimalayaResourcePlacer : MonoBehaviour
         if (grass == null) return;
         var rng = new System.Random(config.seed + 1);
         var material = MakeMaterial(grassColor);
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): real blades instead of a cube; two-sided so they show from any angle
+        if (material.HasProperty("_Cull")) material.SetFloat("_Cull", (float)CullMode.Off);
+        if (grassTuft == null) grassTuft = GrassTuftMesh.Build(config.seed);
         int placed = 0, tries = 0, maxTries = Mathf.Max(1, config.grassPatches) * 40;
 
         while (placed < config.grassPatches && tries++ < maxTries)
@@ -42,7 +50,7 @@ public class HimalayaResourcePlacer : MonoBehaviour
             if (tb.ElevationMeters(u, v) > config.snowLineMeters) continue;
             if (tb.SlopeDegrees(u, v) > maxPatchSlope) continue;
 
-            Spawn(grass, tb.WorldPosition(u, v), grassSize, material, $"Grass Patch {placed + 1}");
+            SpawnTuft(grass, tb.WorldPosition(u, v), (float)rng.NextDouble() * 360f, material, $"Grass Patch {placed + 1}");
             placed++;
         }
         Debug.Log($"[Himalaya] Grass patches: {placed}");
@@ -50,7 +58,8 @@ public class HimalayaResourcePlacer : MonoBehaviour
 
     public void PlaceWater(HimalayaTerrainBuilder tb, List<WaterFeature> features, int maxRivers = -1)
     {
-        if (water == null || features == null) return;
+        if (water == null) return;
+        if (features == null || features.Count == 0) { PlaceFallbackWater(tb); return; }
         if (maxRivers > 0) features = LimitRivers(features, maxRivers);
         var material = MakeMaterial(waterColor);
         int placed = 0;
@@ -120,6 +129,36 @@ public class HimalayaResourcePlacer : MonoBehaviour
         return true;
     }
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // No online river data (offline tablet, slow server): put water in the lowest gentle spots,
+    // where streams would collect, so animals that need water can still drink.
+    void PlaceFallbackWater(HimalayaTerrainBuilder tb)
+    {
+        var rng = new System.Random(config.seed + 2);
+        var candidates = new List<(float elev, Vector2 uv)>();
+        for (int i = 0; i < 3000; i++)
+        {
+            var uv = new Vector2((float)rng.NextDouble(), (float)rng.NextDouble());
+            if (tb.SlopeDegrees(uv.x, uv.y) > maxPatchSlope) continue;
+            candidates.Add((tb.ElevationMeters(uv.x, uv.y), uv));
+        }
+        candidates.Sort((a, b) => a.elev.CompareTo(b.elev));
+
+        var material = MakeMaterial(waterColor);
+        var used = new List<Vector2>();
+        int placed = 0, wanted = Mathf.Min(fallbackWaterPatches, config.maxWaterPatches);
+        foreach (var c in candidates)
+        {
+            if (placed >= wanted) break;
+            bool tooClose = false;
+            foreach (var u in used) if ((u - c.uv).sqrMagnitude < fallbackWaterSpacing * fallbackWaterSpacing) { tooClose = true; break; }
+            if (tooClose) continue;
+            if (TryPlace(tb, c.uv, material, ref placed)) used.Add(c.uv);
+        }
+        Debug.Log($"[Himalaya] No online water data; placed {placed} water patches in the lowest valleys.");
+    }
+    // [AI-GENERATED END]
+
     static bool Inside(Vector2 uv) => uv.x >= 0f && uv.x <= 1f && uv.y >= 0f && uv.y <= 1f;
 
     bool IsGrassClass(int c)
@@ -140,6 +179,22 @@ public class HimalayaResourcePlacer : MonoBehaviour
         go.AddComponent<ResourcePatch>().Configure(def);
         spawned.Add(go);
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // A clump of grass blades. ResourcePatch shrinks it as it is eaten and grows it back as it regrows.
+    void SpawnTuft(ResourceDefinition def, Vector3 position, float spin, Material material, string objectName)
+    {
+        var go = new GameObject(objectName);
+        go.transform.SetParent(transform, true);
+        go.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, spin, 0f));
+        go.AddComponent<MeshFilter>().sharedMesh = grassTuft;
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.sharedMaterial = material;
+        mr.shadowCastingMode = ShadowCastingMode.Off;   // hundreds of thin blades: shadows cost a lot on a tablet
+        go.AddComponent<ResourcePatch>().Configure(def);
+        spawned.Add(go);
+    }
+    // [AI-GENERATED END]
 
     static Material MakeMaterial(Color color)
     {

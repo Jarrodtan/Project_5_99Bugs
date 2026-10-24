@@ -1444,6 +1444,7 @@ GameObject:
   - component: {fileID: 330585545}
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
+  - component: {fileID: 330585548}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1569,6 +1570,36 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &330585548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31752d6178e4f314498f3e11d5266c80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TerrainCameraController
+  terrain: {fileID: 86107047}
+  minHeightAboveGround: 2
+  minDistance: 3
+  maxDistance: 250
+  startDistance: 150
+  wheelZoomStep: 0.12
+  minPitch: 5
+  maxPitch: 85
+  startPitch: 45
+  startYaw: 0
+  rotateSpeed: 0.25
+  smoothTime: 0.12
+  keyPanSpeed: 0.8
+  followDistance: 12
+  povEyeHeight: 1.2
+  tapMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &382773948
 GameObject:
   m_ObjectHideFlags: 0
@@ -2250,6 +2281,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 436495471}
   m_CullTransparentMesh: 1
+--- !u!1 &436700030 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3379243011467935674, guid: 3b5bed4f23486f741a6515d0e9fa8ef6, type: 3}
+  m_PrefabInstance: {fileID: 2006610912622576631}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &437800970
 GameObject:
   m_ObjectHideFlags: 0
@@ -5138,12 +5174,25 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5414756797660839917, guid: 3b5bed4f23486f741a6515d0e9fa8ef6, type: 3}
   m_PrefabInstance: {fileID: 2006610912622576631}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 436700030}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d732bb774ccd5b24481de256b7fc2312, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HimalayaWorldBuilder
+--- !u!114 &1625052487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 436700030}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e4a284ce56f7ae46b619efd65583597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TerrainOrbitTarget
+  world: {fileID: 1625052479}
 --- !u!1 &1668002399
 GameObject:
   m_ObjectHideFlags: 0
@@ -5503,7 +5552,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3379243011467935674, guid: 3b5bed4f23486f741a6515d0e9fa8ef6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1625052487}
   m_SourcePrefab: {fileID: 100100000, guid: 3b5bed4f23486f741a6515d0e9fa8ef6, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
