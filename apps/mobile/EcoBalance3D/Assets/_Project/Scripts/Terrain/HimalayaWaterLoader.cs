@@ -38,6 +38,7 @@ public class HimalayaWaterLoader : MonoBehaviour
 
             using (var req = UnityWebRequest.Get(url))
             {
+                req.timeout = 15;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): a slow server must not stop the world from finishing
                 yield return req.SendWebRequest();
                 if (req.result != UnityWebRequest.Result.Success)
                 {

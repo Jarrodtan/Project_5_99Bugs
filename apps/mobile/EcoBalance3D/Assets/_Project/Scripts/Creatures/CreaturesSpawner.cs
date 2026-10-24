@@ -51,6 +51,7 @@ public class CreatureSpawner : MonoBehaviour {
     [Min(1f)] public float populationPerVisual = 5f;
 
     private List<GameObject> spawned = new List<GameObject>();
+    private bool warnedNoSpawn;
 
     public void RefreshVisuals() {
         if (!simulator.populations.ContainsKey(species)) return;
@@ -61,7 +62,16 @@ public class CreatureSpawner : MonoBehaviour {
 
         while (spawned.Count < targetCount)
         {
-            if (!TryGetSpawnPoint(out var spawnPos)) break;
+            if (!TryGetSpawnPoint(out var spawnPos))
+            {
+                // [AI-GENERATED] Claude Code (Claude Opus 5.5): say why nothing spawned instead of failing silently
+                if (!warnedNoSpawn)
+                {
+                    warnedNoSpawn = true;
+                    Debug.LogWarning($"[Spawner] {species.name}: no spawn point (world {(world == null ? "none" : world.IsReady ? "ready" : "not ready")}, NavMesh triangles {NavMesh.CalculateTriangulation().indices.Length / 3}).");
+                }
+                break;
+            }
 
             // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
             // Random heading so idle animals don't all face the same way.
