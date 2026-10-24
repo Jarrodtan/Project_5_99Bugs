@@ -57,11 +57,9 @@ public class SpatialGridView : MonoBehaviour
     void OnGUI()
     {
         label ??= new GUIStyle(GUI.skin.label) { fontSize = 22, normal = { textColor = Color.white } };
+        // No on-screen hint, so recordings stay clean; press G to show the grid.
         if (!visible)
-        {
-            GUI.Label(new Rect(10, Screen.height - 34, 400, 30), "G: show spatial grid", label);
             return;
-        }
 
         var text = $"Spatial grid ({EcoRegistry.CellSize} m cells, grid from {EcoRegistry.GridThreshold}+)\n";
         if (sim != null)

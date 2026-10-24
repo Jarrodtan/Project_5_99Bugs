@@ -31,7 +31,11 @@ public class CreatureSpawner : MonoBehaviour {
             NavMeshHit hit;
             if (NavMesh.SamplePosition(pos, out hit, 4f, NavMesh.AllAreas))
             {
-                GameObject go = Instantiate(species.visualPrefab, hit.position, Quaternion.identity, transform);
+                // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+                // Random heading so idle animals don't all face the same way.
+                var facing = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                GameObject go = Instantiate(species.visualPrefab, hit.position, facing, transform);
+                // [AI-GENERATED END]
 
                 var entity = go.GetComponent<EcoEntity>();
                 if (entity == null) entity = go.AddComponent<EcoEntity>();

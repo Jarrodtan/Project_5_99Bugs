@@ -19,7 +19,8 @@ public class SimDebugOverlay : MonoBehaviour
     EcosystemSimulator sim;
     PopulationHistoryRecorder recorder;
     CaseDetector detector;
-    bool visible = true;
+    // Hidden by default so demos and recordings show the real UI; ` opens it.
+    bool visible;
     string banner;
     float bannerUntil;
     GUIStyle box, label, title, bannerStyle;
@@ -81,8 +82,8 @@ public class SimDebugOverlay : MonoBehaviour
             GUI.Box(new Rect(Screen.width / 2f - 260, 20, 520, 48), banner, bannerStyle);
 
         float w = 320;
-        if (GUI.Button(new Rect(Screen.width - w - 10, 10, 90, 24), visible ? "Hide debug" : "Debug")) visible = !visible;
         if (!visible) return;
+        if (GUI.Button(new Rect(Screen.width - w - 10, 10, 90, 24), "Hide debug")) visible = false;
 
         var lines = new List<(string text, GUIStyle style)>();
         lines.Add(($"Day {sim.TickCount}  ·  mode {sim.mode}", title));
