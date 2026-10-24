@@ -11,6 +11,7 @@ public class AnimalInfoUI : MonoBehaviour
     [Header("Text")]
     public TMP_Text nameText;
     public TMP_Text hungerText;
+    public TMP_Text thirstText;
     public TMP_Text actionText;
     public TMP_Text targetText;
 
@@ -86,6 +87,15 @@ public class AnimalInfoUI : MonoBehaviour
                 $"Hunger: {selectedAnimal.curr_hunger:0}%";
         }
 
+        // Thirst (blank for species that don't need water)
+        if (thirstText != null)
+        {
+            thirstText.text =
+                selectedAnimal.HasThirst
+                    ? $"Thirst: {selectedAnimal.curr_thirst:0}%"
+                    : "";
+        }
+
         // Current action
         if (actionText != null)
         {
@@ -125,6 +135,9 @@ public class AnimalInfoUI : MonoBehaviour
 
             case AnimalBrain.AnimalAction.Fleeing:
                 return "Fleeing";
+
+            case AnimalBrain.AnimalAction.Reproducing:
+                return "Reproducing";
 
             case AnimalBrain.AnimalAction.Roaming:
             default:
