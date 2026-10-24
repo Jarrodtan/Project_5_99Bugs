@@ -78,6 +78,8 @@ public class AnimalMotionBridge : MonoBehaviour
                 return standing ? MotionState.Eat : MotionState.Walk;
             case AnimalBrain.AnimalAction.DrinkingWater:
                 return standing ? MotionState.Drink : MotionState.Walk;
+            case AnimalBrain.AnimalAction.Reproducing:
+                return standing ? MotionState.Idle : MotionState.Walk;
             default: // Roaming
                 if (predatorNear) return MotionState.Alert;
                 if (preyNear) return MotionState.Stalk;
