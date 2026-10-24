@@ -49,9 +49,21 @@ public class SpeciesCounter : MonoBehaviour
         Refresh();
     }
 
+    public void SetCount(int count)
+    {
+        startCount = count;
+        Count = Mathf.Clamp(count, minCount, maxCount);
+        if (countInput != null)
+        {
+            countInput.text = Count.ToString();
+        }
+    }
+
     void Refresh()
     {
         if (countInput != null)
             countInput.SetTextWithoutNotify(Count.ToString());
     }
+
+   
 }

@@ -66,6 +66,8 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
         // so each run starts from the configured starting amount.
         foreach (var r in resources)
             r.currentAmount = Mathf.Min(r.startingAmount, r.maxAmount);
+        TickCount = 0;
+        EcosystemReset?.Invoke();
         // [AI-GENERATED END]
     }
 
@@ -99,11 +101,26 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
     }
     // [AI-GENERATED END]
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    /// <summary>Completed ticks since the last reset (one tick = one simulated day).</summary>
+    public int TickCount { get; private set; }
+
+    /// <summary>Raised after each completed <see cref="Tick"/>, once populations and resources are updated.</summary>
+    public event System.Action Ticked;
+
+    /// <summary>Raised after <see cref="ResetEcosystem"/> restores the starting state.</summary>
+    public event System.Action EcosystemReset;
+
     public void Tick()
     {
-        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
         if (!ValidateConfiguration()) return;
+        Step();
+        TickCount++;
+        Ticked?.Invoke();
+    }
 
+    void Step()
+    {
         if (mode == SimulationMode.Events)
         {
             // Populations change only through RecordPredation / RecordEat / RecordStarvation.
@@ -262,6 +279,33 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
         AddPopulation(species, -1f);
         StarvationRecorded?.Invoke(species);
     }
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    [Tooltip("Events mode: a species can't grow past this many animals through births (keeps the tablet fast).")]
+    [Min(1f)] public float maxPopulationPerSpecies = 200f;
+
+    /// <summary>Raised after <see cref="RecordBirth"/> adds animals: (species, how many were born).</summary>
+    public event System.Action<SpeciesDefinition, int> BirthRecorded;
+
+    /// <summary>
+    /// Animals of <paramref name="species"/> reproduced: species +<paramref name="count"/>, capped at
+    /// <see cref="maxPopulationPerSpecies"/>. The 3D model appears on the next RefreshVisuals.
+    /// Returns how many were actually born (0 if the species is unknown, extinct or already at the cap).
+    /// </summary>
+    public int RecordBirth(SpeciesDefinition species, int count = 1)
+    {
+        if (species == null || count < 1 || !populations.TryGetValue(species, out var pop)) return 0;
+        if (pop < 1f) return 0; // an extinct species can't reproduce
+        int born = Mathf.Min(count, Mathf.FloorToInt(maxPopulationPerSpecies - pop));
+        if (born <= 0) return 0;
+        AddPopulation(species, born);
+        BirthRecorded?.Invoke(species, born);
+        return born;
+    }
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 
     void AddPopulation(SpeciesDefinition s, float delta)
     {

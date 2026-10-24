@@ -44,11 +44,19 @@ Scenes live in `Assets/Scenes/` (referenced by Build Settings); personal test sc
 - **Storage:** binary files (`.png .jpg .jpeg .psd .tga .exr .tif .fbx .obj .glb .gltf .blend .wav .mp3 .ogg .mp4 .ttf .otf .raw .r16`) go through **Git LFS** to our Gitea server automatically (rules in `.gitattributes`). To add a new binary type, add it to `.gitattributes` **before** committing the first file.
 - **Export:** simulation metrics go out as CSV (T05).
 
+## Investigation cases (Field Journal, M2)
+
+- **Create:** right-click in `Assets/_Project/Resources/Cases/` → **Create → EcoSim → Investigation Case**. Name files `Case_NN_ShortName`.
+- **Fields:** `caseId` (stable, never change it after release), `title`, `hint` (shown while locked), `explanation` (shown once unlocked), `earliestDay`, and `conditions` (all must be true on the same day).
+- **Condition types:** `AtMost`, `AtLeast`, `ReachedZero`, `DroppedByFraction` / `RoseByFraction` (0.5 = 50%, compared with `windowDays` ago), `RatioAtLeast` (subject ÷ other). `subject` and `other` are species or resource assets.
+- **Check:** `CaseAssetTests` fails if a case has no title, hint or conditions, a duplicate id, or a subject that isn't a species or resource. In Play mode the dev overlay (backquote key) shows each case's status.
+
 ## Validation rules
 
 - `EcosystemSimulator` checks its configuration on reset and before each tick. Empty entries in Species, Resources or a species' Relationships are removed and a warning is logged, instead of crashing the simulation.
 - Rates (`reproductionRate`, `predationRate`, `starvationThreshold`) must be ≥ 0, and `currentAmount` must be ≤ `maxAmount`.
-- EditMode tests (package + app) run in CI on every PR. A PR must not be merged while tests are failing.
+- EditMode tests (package + app) and repo checks run in CI on every PR. A PR must not be merged while they are failing.
+- **Repo checks** (`python tools/ci/repo-checks.py`; run it locally before a PR): every asset has a `.meta`, no orphan `.meta`, no file over 5 MB stored outside LFS, no merge-conflict markers, no `using UnityEditor` in runtime code.
 
 ---
 *Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed and edited by Tan Wei Leong.*

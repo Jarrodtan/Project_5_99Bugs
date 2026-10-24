@@ -16,8 +16,8 @@ MonoBehaviour:
   dragDeltaAction: {fileID: 11400000, guid: a6000000000000000000000000000002, type: 2}
   zoomAction: {fileID: 11400000, guid: a6000000000000000000000000000003, type: 2}
   rotationSpeed: 0.2
-  minPitch: 10
-  maxPitch: 80
+  minPitch: -89
+  maxPitch: 89
   zoomSpeed: 1
   minDistance: 5
   maxDistance: 40

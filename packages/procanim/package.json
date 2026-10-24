@@ -1,0 +1,8 @@
+{
+  "name": "com.99bugs.procanim",
+  "version": "0.1.0",
+  "displayName": "ProcAnim (procedural animation)",
+  "description": "Procedural motion system for static (unrigged) models: data-driven motion states (idle, walk, run, flee, stalk, eat, drink, alert, die) with blending, spring-driven turn lean and start/stop settle, and a spawn pop. Replaces Unity's Animator for EcoBalance animals. No dependency on the EcoBalance app or EcoSim.",
+  "unity": "6000.6",
+  "author": { "name": "99 Bugs (DigiPen CSD3401)" }
+}

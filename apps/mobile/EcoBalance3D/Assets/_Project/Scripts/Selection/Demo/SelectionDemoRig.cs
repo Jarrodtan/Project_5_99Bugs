@@ -115,12 +115,20 @@ public class SelectionDemoRig : MonoBehaviour
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
     // CreatePrimitive gives the built-in default material, which URP cannot draw in a player build
-    // (shows magenta on Android). Swap in the pipeline's default material (URP Lit) before tinting.
+    // (shows magenta on Android). Swap in URP Lit before tinting. pipeline.defaultMaterial is
+    // editor-only (null in player builds), so fall back to the Lit shader, which project
+    // materials already reference and therefore ship in the build.
     static void ApplyColor(Renderer renderer, Color color)
     {
         var pipeline = GraphicsSettings.currentRenderPipeline;
         if (pipeline != null && pipeline.defaultMaterial != null)
             renderer.sharedMaterial = new Material(pipeline.defaultMaterial);
+        else
+        {
+            var lit = Shader.Find("Universal Render Pipeline/Lit");
+            if (lit != null)
+                renderer.sharedMaterial = new Material(lit);
+        }
         renderer.material.color = color;
     }
     // [AI-GENERATED END]

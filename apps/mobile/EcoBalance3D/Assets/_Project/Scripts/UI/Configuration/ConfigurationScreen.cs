@@ -13,6 +13,11 @@ public class ConfigurationScreen : MonoBehaviour
 
     private void Start()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.simu.TransitionTo(0f);
+        }
+
         // Pause the game while the player is configuring the ecosystem.
         Time.timeScale = 0f;
 
@@ -92,6 +97,11 @@ public class ConfigurationScreen : MonoBehaviour
         if (configurationUI != null)
         {
             configurationUI.SetActive(false);
+        }
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SwitchToSimu();
         }
     }
 }
