@@ -8,6 +8,43 @@ public class CreatureSpawner : MonoBehaviour {
     public int maxVisible = 10;
     public float spawnRadius = 8f;
 
+    public HimalayaWorldBuilder world;
+    [Range(0.05f, 1f)] public float maxElevationFraction = 0.2f;  // lowest 20% of the height range
+    public float maxSpawnSlope = 25f;
+
+    void OnEnable() { if (world != null) world.Built += RefreshVisuals; }
+    void OnDisable() { if (world != null) world.Built -= RefreshVisuals; }
+
+    bool TryGetSpawnPoint(out Vector3 point)
+    {
+        point = default;
+
+        // No world builder assigned: old flat-island behaviour.
+        if (world == null)
+        {
+            var pos = new Vector3(Random.Range(-spawnRadius, spawnRadius), 0.5f, Random.Range(-spawnRadius, spawnRadius));
+            if (NavMesh.SamplePosition(pos, out var h, 4f, NavMesh.AllAreas)) { point = h.position; return true; }
+            return false;
+        }
+
+        if (!world.IsReady) return false;   // NavMesh doesn't exist yet
+
+        var tb = world.TerrainBuilder;
+        float maxElev = tb.MinElevation + (tb.MaxElevation - tb.MinElevation) * maxElevationFraction;
+        for (int i = 0; i < 200; i++)
+        {
+            float u = Random.value, v = Random.value;
+            if (tb.ElevationMeters(u, v) > maxElev) continue;
+            if (tb.SlopeDegrees(u, v) > maxSpawnSlope) continue;
+            if (NavMesh.SamplePosition(tb.WorldPosition(u, v), out var hit, 6f, NavMesh.AllAreas))
+            {
+                point = hit.position;
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     // [AI-GENERATED] Claude Code (Claude Opus 5.5): one visual per N animals, so the number of
     // visible agents follows real populations (e.g. 50 sheep) instead of sitting at maxVisible.
@@ -22,31 +59,21 @@ public class CreatureSpawner : MonoBehaviour {
         float pop = simulator.populations[species];
         int targetCount = Mathf.Min(maxVisible, Mathf.RoundToInt(pop / populationPerVisual)); // [AI-GENERATED] Claude Code (Claude Opus 5.5): round like PopulationDisplay so models match the label
 
-        while (spawned.Count < targetCount) {
-            Vector3 pos = new Vector3(
-                Random.Range(-spawnRadius, spawnRadius),
-                0.5f,
-                Random.Range(-spawnRadius, spawnRadius)
-            );
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(pos, out hit, 4f, NavMesh.AllAreas))
-            {
-                // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-                // Random heading so idle animals don't all face the same way.
-                var facing = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-                GameObject go = Instantiate(species.visualPrefab, hit.position, facing, transform);
-                // [AI-GENERATED END]
+        while (spawned.Count < targetCount)
+        {
+            if (!TryGetSpawnPoint(out var spawnPos)) break;
 
-                var entity = go.GetComponent<EcoEntity>();
-                if (entity == null) entity = go.AddComponent<EcoEntity>();
-                entity.SetDefinition(species);
+            // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+            // Random heading so idle animals don't all face the same way.
+            var facing = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            GameObject go = Instantiate(species.visualPrefab, spawnPos, facing, transform);
+            // [AI-GENERATED END]
 
-                spawned.Add(go);
-            }
-            else
-            {
-                break;
-            }
+            var entity = go.GetComponent<EcoEntity>();
+            if (entity == null) entity = go.AddComponent<EcoEntity>();
+            entity.SetDefinition(species);
+
+            spawned.Add(go);
         }
 
         while (spawned.Count > targetCount) {
