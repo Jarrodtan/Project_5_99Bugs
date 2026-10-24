@@ -2566,8 +2566,8 @@ MonoBehaviour:
   maxVisible: 100
   spawnRadius: 6
   world: {fileID: 1625052479}
-  maxElevationFraction: 0.2
-  maxSpawnSlope: 25
+  maxElevationFraction: 0.35
+  maxSpawnSlope: 35
   populationPerVisual: 1
 --- !u!4 &502627226
 Transform:
@@ -3207,8 +3207,8 @@ MonoBehaviour:
   maxVisible: 100
   spawnRadius: 6
   world: {fileID: 1625052479}
-  maxElevationFraction: 0.2
-  maxSpawnSlope: 25
+  maxElevationFraction: 0.35
+  maxSpawnSlope: 35
   populationPerVisual: 1
 --- !u!4 &977121266
 Transform:
