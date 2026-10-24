@@ -6,7 +6,7 @@ public class ConfigurationScreen : MonoBehaviour
     public SpeciesCounter[] counters;
 
     [Tooltip("Scene containing the ecosystem.")]
-    public string simulationSceneName = "SampleScene";
+    public string simulationSceneName = "HimalayaSimulation";
 
     [Tooltip("The whole configuration menu that disappears after Start.")]
     public GameObject configurationUI;

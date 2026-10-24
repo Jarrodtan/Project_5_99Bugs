@@ -42,12 +42,12 @@ public class SceneSmokeTests
     [Test]
     public void SimulationScene_SimulatorIsWiredToRealAssets()
     {
-        var path = BuildScenes().FirstOrDefault(p => p.EndsWith("SampleScene.unity"));
-        Assume.That(path, Is.Not.Null, "SampleScene is not in Build Settings");
+        var path = BuildScenes().FirstOrDefault(p => p.EndsWith("HimalayaSimulation.unity"));
+        Assume.That(path, Is.Not.Null, "HimalayaSimulation is not in Build Settings");
         EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
 
         var sims = Object.FindObjectsByType<EcosystemSimulator>(FindObjectsSortMode.None);
-        Assert.AreEqual(1, sims.Length, "expected exactly one EcosystemSimulator in SampleScene");
+        Assert.AreEqual(1, sims.Length, "expected exactly one EcosystemSimulator in HimalayaSimulation");
         var sim = sims[0];
         Assert.IsNotEmpty(sim.species, "simulator has no species");
         Assert.IsTrue(sim.species.All(s => s != null), "simulator has an empty species slot");

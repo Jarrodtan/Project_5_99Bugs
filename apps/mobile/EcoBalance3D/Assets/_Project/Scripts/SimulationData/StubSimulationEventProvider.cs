@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// Empty <see cref="ISimulationEventProvider"/> placeholder until T02 emits behaviour events.
-/// Returns an empty list only. Do not wire to SampleScene yet.
+/// Returns an empty list only. Do not wire to HimalayaSimulation yet.
 /// See docs/t02-simulation-data-sync.md.
 /// </summary>
 public class StubSimulationEventProvider : MonoBehaviour, ISimulationEventProvider

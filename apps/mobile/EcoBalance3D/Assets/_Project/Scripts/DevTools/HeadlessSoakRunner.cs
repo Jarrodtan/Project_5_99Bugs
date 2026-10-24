@@ -55,7 +55,7 @@ public class HeadlessSoakRunner : MonoBehaviour
         var r = go.AddComponent<HeadlessSoakRunner>();
         r.targetDays = days;
         r.reportPath = Arg("-soakReport") ?? "soak-report.json";
-        r.sceneName = Arg("-soakScene") ?? "SampleScene";
+        r.sceneName = Arg("-soakScene") ?? "HimalayaSimulation";
         r.timeScale = ArgFloat("-soakTimeScale", 10f);
         r.maxSeconds = ArgFloat("-soakMaxSeconds", 3600f);
     }

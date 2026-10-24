@@ -66,7 +66,7 @@ The simulator has two modes (`EcosystemSimulator.mode`):
 | Mode | How populations change | Used by |
 |---|---|---|
 | **Formula** (default) | Each `Tick()`: predation = rate × predators × prey; grazers share grass; well-fed species grow, underfed ones starve. Deterministic. | EditMode tests, balancing |
-| **Events** | Only from what the 3D animals do: leopard catches sheep → sheep −1; no food for 15 s (sheep) / 20 s (leopard) → −1. Eating only feeds the animal: there is **no reproduction yet** (the `eatingAddsOffspring` switch, off by default, would add +1 per meal as a stand-in until the reproduction system exists). `Tick()` only regrows grass and water (+3). | SampleScene demo |
+| **Events** | Only from what the 3D animals do: leopard catches sheep → sheep −1; no food for 15 s (sheep) / 20 s (leopard) → −1. Eating only feeds the animal: there is **no reproduction yet** (the `eatingAddsOffspring` switch, off by default, would add +1 per meal as a stand-in until the reproduction system exists). `Tick()` only regrows grass and water (+3). | HimalayaSimulation demo |
 
 In both modes the numbers live in the simulator and `CreatureSpawner` keeps one model per animal; the animal that was caught or starved is the one removed.
 
@@ -95,9 +95,9 @@ flowchart TB
 Solid box `packages/ecosim` = reusable core; everything in `apps/mobile` depends on it, never the reverse (see §7).
 
 **How the parts communicate**
-- **App flow (F01):** `HomeScreen` → `MainMenu` loads `ConfigurationScreen`, which loads `SampleScene` additively behind the menu with time paused. The player sets starting numbers with `SpeciesCounter`; **Start** stores them in `EcosystemSimulator.StartingPopulationOverrides`, resets the ecosystem and resumes time.
+- **App flow (F01):** `HomeScreen` → `MainMenu` loads `ConfigurationScreen`, which loads `HimalayaSimulation` additively behind the menu with time paused. The player sets starting numbers with `SpeciesCounter`; **Start** stores them in `EcosystemSimulator.StartingPopulationOverrides`, resets the ecosystem and resumes time.
 - **Tick loop:** `SimulationClock.Update()` calls `EcosystemSimulator.Tick()`, then `PopulationDisplay.Refresh()` and `CreatureSpawner.RefreshVisuals()`. Play / Pause / Reset / speed (x1-x8) are on the clock, driven by `SimulationSpeedController` buttons. Reset calls `ResetEcosystem()` (starting populations).
-- **Agents:** `CreatureSpawner` keeps the number of 3D animals in line with the population (one model per animal, rounded like the label) and registers each one in `EcoRegistry`. In SampleScene each animal runs `AnimalBrain`: flee > hunt > go to grass/water > wander, with a hunger timer; in Events mode it reports `RecordPredation` / `RecordEat` / `RecordStarvation` to the simulator. Each animal's `GoalOrientedAnimalBrain` scores its goals by need urgency and runs behaviour-tree actions: Seek finds the nearest `ResourcePatch`, Flee and Hunt ask `EcoRegistry` for the nearest predator / prey (from the Eats relationships).
+- **Agents:** `CreatureSpawner` keeps the number of 3D animals in line with the population (one model per animal, rounded like the label) and registers each one in `EcoRegistry`. In HimalayaSimulation each animal runs `AnimalBrain`: flee > hunt > go to grass/water > wander, with a hunger timer; in Events mode it reports `RecordPredation` / `RecordEat` / `RecordStarvation` to the simulator. Each animal's `GoalOrientedAnimalBrain` scores its goals by need urgency and runs behaviour-tree actions: Seek finds the nearest `ResourcePatch`, Flee and Hunt ask `EcoRegistry` for the nearest predator / prey (from the Eats relationships).
 - **Animation:** `AnimalBrain` adds an `AnimalMotionBridge`, which adds a `ProcAnimator` (our procedural animation, `packages/procanim`) and turns the brain's action into a motion state each frame (walk, run, flee, stalk, eat, drink, alert, die). `ProcAnimator` measures speed and turning from how the NavMeshAgent moved the animal, finds the legs, head and tail in the static mesh, and animates a pivot child plus the mesh's vertices. Settings per species: `Resources/Motion/<species asset name>`.
 - **Spatial grid:** `EcoRegistry` answers nearest-prey/predator/food queries from an 8 m spatial hash grid once a species has 32+ animals (rebuilt once per frame, searched ring by ring); smaller groups use a plain scan. Measured: 500 animals 0.87 ms per frame (`PerformanceTests`). Press **G** in Play mode (Editor/dev builds) for the debug view.
 - **Data in:** the simulator and AI read `SpeciesDefinition` / `ResourceDefinition` assets. Prey comes from `SpeciesDefinition.GetSpeciesTargets(RelationshipType.Eats)`.
@@ -191,7 +191,7 @@ Project_5_99Bugs/
 │   └── mobile/
 │       └── EcoBalance3D/                  # Unity app (assembly: Assembly-CSharp)
 │           ├── Assets/
-│           │   ├── Scenes/                # HomeScreen → ConfigurationScreen → SampleScene (M1 flow), IslandPlatform, T02_Test
+│           │   ├── Scenes/                # HomeScreen → ConfigurationScreen → HimalayaSimulation (M1 flow), IslandPlatform, T02_Test
 │           │   └── _Project/
 │           │       ├── Audio/             # BGM + SFX
 │           │       ├── Data/              # app assets: AI needs/goals/actions, islands, camera, UI config
