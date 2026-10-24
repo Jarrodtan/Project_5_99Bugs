@@ -1,0 +1,150 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3379243011467935674
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3499293428285936648}
+  - component: {fileID: 4065406572402915492}
+  - component: {fileID: 4087891693667200797}
+  - component: {fileID: 6344119771323993324}
+  - component: {fileID: 2758835584807484619}
+  - component: {fileID: 8941560063565169922}
+  - component: {fileID: 3668216065132180449}
+  - component: {fileID: 5414756797660839917}
+  m_Layer: 0
+  m_Name: Himalaya
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3499293428285936648
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3379243011467935674}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -81.45176, y: 0.00002, z: -44.20469}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4065406572402915492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3379243011467935674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea3d2dcdf5ddbeb4d9acd6f55248512b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HimalayaTerrainBuilder
+  config: {fileID: 11400000, guid: 0dd6e4796c6ddc64a88ecc69f926bb08, type: 2}
+  terrain: {fileID: 0}
+--- !u!114 &4087891693667200797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3379243011467935674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41ead67d63003b549b8497d07f705de5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HimalayaSplatPainter
+  config: {fileID: 11400000, guid: 0dd6e4796c6ddc64a88ecc69f926bb08, type: 2}
+--- !u!114 &6344119771323993324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3379243011467935674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a7630a4c4dafcf438ff333b48360f0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HimalayaTreePlacer
+  config: {fileID: 11400000, guid: 0dd6e4796c6ddc64a88ecc69f926bb08, type: 2}
+--- !u!114 &2758835584807484619
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3379243011467935674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbbeb608c984ece458040e3d67da9618, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HimalayaWaterLoader
+  config: {fileID: 11400000, guid: 0dd6e4796c6ddc64a88ecc69f926bb08, type: 2}
+--- !u!114 &8941560063565169922
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3379243011467935674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 959a99320bc23d34ba25edf75286a533, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HimalayaResourcePlacer
+  config: {fileID: 11400000, guid: 0dd6e4796c6ddc64a88ecc69f926bb08, type: 2}
+  grass: {fileID: 11400000, guid: 76da2c5da0148784389995384801e63e, type: 2}
+  water: {fileID: 11400000, guid: f6b50b4acdcea254cb9ed2f6fa536c22, type: 2}
+  grassSize: {x: 1.2, y: 0.25, z: 1.2}
+  waterSize: {x: 1.5, y: 0.2, z: 1.5}
+  grassColor: {r: 0.3, g: 0.75, b: 0.3, a: 1}
+  waterColor: {r: 0.25, g: 0.55, b: 0.95, a: 1}
+  maxPatchSlope: 30
+--- !u!114 &3668216065132180449
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3379243011467935674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78979f259f6b5fd40847b3417747dfd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HimalayaSightings
+  config: {fileID: 11400000, guid: 0dd6e4796c6ddc64a88ecc69f926bb08, type: 2}
+  sources: []
+  limit: 300
+--- !u!114 &5414756797660839917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3379243011467935674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d732bb774ccd5b24481de256b7fc2312, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HimalayaWorldBuilder
+  config: {fileID: 11400000, guid: 0dd6e4796c6ddc64a88ecc69f926bb08, type: 2}
+  terrainBuilder: {fileID: 4065406572402915492}
+  splatPainter: {fileID: 4087891693667200797}
+  treePlacer: {fileID: 6344119771323993324}
+  waterLoader: {fileID: 2758835584807484619}
+  resourcePlacer: {fileID: 8941560063565169922}
+  sightings: {fileID: 3668216065132180449}
+  navSurface: {fileID: 0}
+  clockToEnable: {fileID: 0}
+  buildOnStart: 1
