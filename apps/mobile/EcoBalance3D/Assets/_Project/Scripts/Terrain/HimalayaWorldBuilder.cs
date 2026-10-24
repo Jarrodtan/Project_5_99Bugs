@@ -32,7 +32,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
     public HimalayaSightings Sightings => sightings;
     public bool IsReady { get; private set; }
 
-    /// <summary>Raised when everything is built and the NavMesh is baked.</summary>
+    /// <summary>Raised when the terrain, grass and NavMesh are ready (online water/sightings may still be loading).</summary>
     public event Action Built;
 
     int treeCap = -1;    // -1 = use the config's maxTrees
@@ -99,16 +99,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
             {
                 resourcePlacer.Clear();
                 resourcePlacer.PlaceGrass(terrainBuilder, landCover);
-
-                if (waterLoader != null)
-                {
-                    List<WaterFeature> water = null;
-                    yield return waterLoader.Fetch(r => water = r);
-                    resourcePlacer.PlaceWater(terrainBuilder, water, riverCap);
-                }
             }
-
-            if (sightings != null) yield return sightings.FetchAll();
 
             yield return null;                       // let the TerrainCollider pick up the new heights
             if (navSurface != null) navSurface.BuildNavMesh();
@@ -116,6 +107,19 @@ public class HimalayaWorldBuilder : MonoBehaviour
 
             IsReady = true;
             Built?.Invoke();
+
+            // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+            // Online extras load after the world is playable, so a slow or missing
+            // connection never holds up the animals.
+            if (resourcePlacer != null && waterLoader != null)
+            {
+                List<WaterFeature> water = null;
+                yield return waterLoader.Fetch(r => water = r);
+                resourcePlacer.PlaceWater(terrainBuilder, water, riverCap);
+            }
+
+            if (sightings != null) yield return sightings.FetchAll();
+            // [AI-GENERATED END]
         }
         finally
         {
