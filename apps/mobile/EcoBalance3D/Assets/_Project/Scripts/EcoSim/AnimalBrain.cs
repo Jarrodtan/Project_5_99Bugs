@@ -663,6 +663,11 @@ public class AnimalBrain : MonoBehaviour
             wander_timer = 0f;
         }
 
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a hunt starting is the big moment to show the player
+        if (best == AnimalAction.Hunting && CurrentAction != AnimalAction.Hunting && prey != null)
+            DramaDirector.Report(DramaDirector.Moment.Hunt, transform,
+                $"A {SpeciesLabel(species_data)} is stalking a {SpeciesLabel(prey_brain != null ? prey_brain.species_data : null)}!");
+
         CurrentAction = best;
         CurrentTargetName = TargetName(best);
     }
@@ -993,6 +998,8 @@ public class AnimalBrain : MonoBehaviour
             if (prey_brain != null)
             {
                 prey_brain.MarkCaught();
+                DramaDirector.Report(DramaDirector.Moment.Catch, transform,   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+                    $"The {SpeciesLabel(species_data)} caught a {SpeciesLabel(prey_brain.species_data)}. Hunting is how it feeds its family.");
 
                 if (EventsMode)
                 {
@@ -1079,6 +1086,9 @@ public class AnimalBrain : MonoBehaviour
             if (look.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(look);
         }
         HeartPop.Spawn(transform.position + Vector3.up * HeartHeight(), recordBirth ? 3 : 2);
+        if (recordBirth)
+            DramaDirector.Report(DramaDirector.Moment.Mating, transform,
+                $"Two {SpeciesLabel(species_data, plural: true)} are starting a family! ♥");
         // [AI-GENERATED END]
 
         reproduce_cooldown =
@@ -1112,6 +1122,13 @@ public class AnimalBrain : MonoBehaviour
             simulator.RecordBirth(
                 species_data);
         }
+    }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): readable species name for captions, e.g. "snow leopard"
+    public static string SpeciesLabel(SpeciesDefinition s, bool plural = false)
+    {
+        string name = s != null && !string.IsNullOrEmpty(s.speciesName) ? s.speciesName.ToLowerInvariant() : "animal";
+        return plural ? (name.EndsWith("sheep") ? name : name + "s") : name;
     }
 
     // [AI-GENERATED] Claude Code (Claude Opus 5.5): just above the model's top, whatever its size

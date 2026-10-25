@@ -192,6 +192,8 @@ public class CreatureSpawner : MonoBehaviour {
                 babyEntity.SetDefinition(species);
                 if (baby.TryGetComponent(out AnimalBrain babyBrain)) { babyBrain.MakeBaby(mother); babyBrain.SetHabitat(minElevationFraction, maxElevationFraction); babyBrain.CopyHome(mother); }
                 spawned.Add(baby);
+                DramaDirector.Report(DramaDirector.Moment.Birth, baby.transform,   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+                    $"A baby {AnimalBrain.SpeciesLabel(species)} is born! Watch it follow its mum.");
                 Debug.Log($"[Birth] {species.name} baby placed beside its mother at {nearMum.position} (brain {(babyBrain != null ? "yes" : "MISSING")}).", baby);
                 continue;
             }
