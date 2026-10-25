@@ -61,7 +61,7 @@ public class AnimalInfoUI : MonoBehaviour
         rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
         rt.pivot = new Vector2(1f, 0.5f);
         rt.anchoredPosition = new Vector2(-40f, 0f);
-        rt.sizeDelta = new Vector2(640f, 760f);
+        rt.sizeDelta = new Vector2(680f, 900f);
         rt.localScale = Vector3.one;
         if (!panel.TryGetComponent(out UnityEngine.UI.Image bg)) bg = panel.AddComponent<UnityEngine.UI.Image>();
         bg.color = new Color(0.97f, 0.97f, 0.95f, 0.92f);
@@ -70,8 +70,8 @@ public class AnimalInfoUI : MonoBehaviour
         TMP_Text fact = funFact != null ? funFact.GetComponent<TMP_Text>() : null;
         var rows = new (TMP_Text text, float height, float size)[]
         {
-            (nameText, 90f, 54f), (hungerText, 64f, 38f), (thirstText, 64f, 38f),
-            (actionText, 64f, 38f), (targetText, 64f, 38f), (fact, 260f, 32f),
+            (nameText, 90f, 52f), (hungerText, 70f, 38f), (thirstText, 70f, 38f),
+            (actionText, 70f, 38f), (targetText, 70f, 38f), (fact, 330f, 32f),
         };
 
         float y = -40f;
@@ -85,9 +85,13 @@ public class AnimalInfoUI : MonoBehaviour
             t.offsetMin = new Vector2(40f, 0f); t.offsetMax = new Vector2(-110f, 0f);   // room for the X on the right
             t.anchoredPosition = new Vector2(t.anchoredPosition.x, y);
             t.sizeDelta = new Vector2(t.sizeDelta.x, height);
-            text.fontSize = size;
+            // Shrink to fit its row instead of spilling out of the card (long names, long fun facts).
+            text.enableAutoSizing = true;
+            text.fontSizeMax = size;
+            text.fontSizeMin = size * 0.5f;
             text.alignment = TextAlignmentOptions.TopLeft;
             text.textWrappingMode = TextWrappingModes.Normal;
+            text.overflowMode = TextOverflowModes.Ellipsis;
             y -= height + 12f;
         }
     }

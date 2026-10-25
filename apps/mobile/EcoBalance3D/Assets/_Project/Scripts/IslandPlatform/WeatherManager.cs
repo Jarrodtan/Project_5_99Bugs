@@ -35,8 +35,32 @@ public class WeatherManager : MonoBehaviour
     public static string LiveCondition;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
     public static float LiveTemperature;
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // The lat/lon above is Everest's summit (8,849 m). Air warms about 6.5 °C per 1,000 m lower down,
+    // so the valleys where the herds live (~4,500 m) are much warmer than the summit reading.
+    const float SummitMetres = 8849f, ValleyMetres = 4500f, LapseRatePerMetre = 0.0065f;
+    public static float ValleyTemperature => LiveTemperature + (SummitMetres - ValleyMetres) * LapseRatePerMetre;
+    public static bool HasLiveData => LiveCondition != null;
+
+    // The text was placed from the screen centre and got cut off at the bottom; pin it to the bottom-left corner.
+    void PinText()
+    {
+        if (txt == null) return;
+        var rt = txt.rectTransform;
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 0f);
+        rt.anchoredPosition = new Vector2(40f, 40f);
+        rt.sizeDelta = new Vector2(900f, 150f);
+        rt.localScale = Vector3.one;
+        txt.enableAutoSizing = true;
+        txt.fontSizeMax = 40f;
+        txt.fontSizeMin = 22f;
+        txt.alignment = TextAlignmentOptions.BottomLeft;
+    }
+    // [AI-GENERATED END]
+
     void Start()
     {
+        PinText();
         StartCoroutine(FetchHimalayanWeather());
     }
 
@@ -62,7 +86,7 @@ public class WeatherManager : MonoBehaviour
                     LiveTemperature = curr_temp;
                     if (txt != null)
                     {
-                        txt.text = $"Himalayas Live Temp: {curr_temp}°C\nCondition: {condi}";
+                        txt.text = $"Live Everest summit: {curr_temp:0}°C, {condi}\nValleys (about 4,500 m): {ValleyTemperature:0}°C";
                     }
                     Debug.Log($"Live Himalayan Temp: {curr_temp}°C, Condition: {condi}");
 

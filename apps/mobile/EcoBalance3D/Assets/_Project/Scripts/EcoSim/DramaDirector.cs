@@ -158,13 +158,15 @@ public class DramaDirector : MonoBehaviour
         var prt = (RectTransform)pill.transform;
         prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(1f, 0f);
         prt.anchoredPosition = new Vector2(-40f, 40f);
-        prt.sizeDelta = new Vector2(620f, 90f);
+        prt.sizeDelta = new Vector2(820f, 90f);
         pill.GetComponent<Image>().color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
         status = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
         status.transform.SetParent(pill.transform, false);
         var srt = status.rectTransform;
         srt.anchorMin = Vector2.zero; srt.anchorMax = Vector2.one; srt.offsetMin = srt.offsetMax = Vector2.zero;
-        status.fontSize = 40f;
+        status.enableAutoSizing = true;   // shrink rather than spill out of the pill
+        status.fontSizeMax = 40f;
+        status.fontSizeMin = 24f;
         status.color = Color.white;
         status.alignment = TextAlignmentOptions.Center;
     }

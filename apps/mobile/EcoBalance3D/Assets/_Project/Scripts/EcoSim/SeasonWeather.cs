@@ -23,6 +23,15 @@ public class SeasonWeather : MonoBehaviour
     public static Season CurrentSeason { get; private set; }
     public static Weather CurrentWeather { get; private set; }
 
+    /// <summary>Valley temperature today (°C).</summary>
+    public static float Temperature { get; private set; }
+    /// <summary>Heat makes animals thirsty faster (1 = normal). Read by AnimalBrain.</summary>
+    public static float ThirstDrainMultiplier { get; private set; } = 1f;
+    /// <summary>Hard cold makes animals hungry faster: they burn energy keeping warm (1 = normal).</summary>
+    public static float HungerDrainMultiplier { get; private set; } = 1f;
+
+    int seasonOffset;   // so day 1 starts in the season that fits the real temperature
+
     ClockService clock;
     int lastDay = -1;
     Season lastSeason;
@@ -76,11 +85,20 @@ public class SeasonWeather : MonoBehaviour
     {
         bool first = lastDay < 0;
         lastDay = day;
-        CurrentSeason = (Season)(((Mathf.Max(1, day) - 1) / Mathf.Max(1, daysPerSeason)) % 4);
+
+        // Day 1: the real valley temperature picks the starting season (a freezing real day starts in winter).
+        if (first && WeatherManager.HasLiveData)
+        {
+            float t = WeatherManager.ValleyTemperature;
+            seasonOffset = t >= 8f ? (int)Season.Summer : t >= 0f ? (int)Season.Spring : t >= -10f ? (int)Season.Autumn : (int)Season.Winter;
+        }
+        CurrentSeason = (Season)((seasonOffset + (Mathf.Max(1, day) - 1) / Mathf.Max(1, daysPerSeason)) % 4);
         CurrentWeather = first ? FromLive(WeatherManager.LiveCondition) : Roll(CurrentSeason);
+        Temperature = first && WeatherManager.HasLiveData ? WeatherManager.ValleyTemperature : RollTemperature(CurrentSeason, CurrentWeather);
+        if (!first && CurrentSeason == Season.Summer && Temperature > 16f) CurrentWeather = Weather.Drought;   // heatwave dries the land
         ApplyEffects();
 
-        string status = $"{CurrentSeason} · Day {day} · {Describe(CurrentWeather)}";
+        string status = $"{CurrentSeason} · Day {day} · {Describe(CurrentWeather)} · {Temperature:0}°C";
         DramaDirector.SetStatus(status);
 
         if (first || CurrentSeason != lastSeason)
@@ -106,6 +124,19 @@ public class SeasonWeather : MonoBehaviour
         }
         ResourcePatch.PlantGrowthMultiplier = plants;
         ResourcePatch.WaterGrowthMultiplier = water;
+
+        // 20 °C → 1.5x thirst; -25 °C → 1.45x hunger. Mild days change nothing.
+        ThirstDrainMultiplier = Temperature > 10f ? 1f + (Temperature - 10f) * 0.05f : 1f;
+        HungerDrainMultiplier = Temperature < -10f ? 1f + (-10f - Temperature) * 0.03f : 1f;
+    }
+
+    static float RollTemperature(Season s, Weather w)
+    {
+        float t = s switch { Season.Spring => 4f, Season.Summer => 12f, Season.Autumn => 0f, _ => -15f };
+        t += Random.Range(-4f, 4f);
+        if (w == Weather.Drought) t += 6f;
+        if (w == Weather.Snow) t -= 5f;
+        return t;
     }
 
     static Weather Roll(Season s)

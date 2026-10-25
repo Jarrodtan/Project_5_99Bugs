@@ -556,15 +556,16 @@ public class AnimalBrain : MonoBehaviour
 
         reproduce_cooldown -= dt;
 
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): weather matters: heat dries animals out, hard cold burns energy
         curr_hunger = Mathf.Max(
             0f,
-            curr_hunger - dt / StarveAfter * 100f);
+            curr_hunger - dt / StarveAfter * 100f * SeasonWeather.HungerDrainMultiplier);
 
         if (HasThirst)
         {
             curr_thirst = Mathf.Max(
                 0f,
-                curr_thirst - dt / dehydrateAfterSeconds * 100f);
+                curr_thirst - dt / dehydrateAfterSeconds * 100f * SeasonWeather.ThirstDrainMultiplier);
         }
 
         // Only Events mode lets animals die; in Formula mode
