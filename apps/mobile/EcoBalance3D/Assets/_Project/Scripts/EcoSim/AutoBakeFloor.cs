@@ -3,17 +3,34 @@ using Unity.AI.Navigation;
 
 public class AutoBakeFloor : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [Tooltip("Builds the Himalaya terrain, trees, water and grass, then bakes the NavMesh and starts the clock. Leave empty to use the old behaviour (bake only).")]
+    [SerializeField] HimalayaWorldBuilder worldBuilder;
+
+    bool hasLocation;
+    double centerLat, centerLon;
+
+    /// <summary>Optional: build the world around this point instead of the box in HimalayaConfig. Call before Bake.</summary>
+    public void SetLocation(double lat, double lon)
     {
-        //Delay baking process by 0.5s so that it gives time for the floor to be generated
-        // before the floor turns into a walkable floor
-        Invoke("Bake", 0.5f);
+        hasLocation = true;
+        centerLat = lat;
+        centerLon = lon;
     }
 
-    // Generate the walkable pathfinding grid
-    void Bake()
+    // Called by TerrainConfig once its API request has finished.
+    public void Bake(int tree, int river, int hill, int mud)
     {
+        Debug.Log($"[LEVEL GENERATION] Ready to spawn {tree} trees, {river} rivers, {hill} hills, {mud} mud.");
+
+        if (worldBuilder != null)
+        {
+            // The builder downloads data, so it bakes the NavMesh and enables the clock itself when it finishes.
+            if (hasLocation) worldBuilder.BuildFromCounts(tree, river, hill, mud, centerLat, centerLon);
+            else worldBuilder.BuildFromCounts(tree, river, hill, mud);
+            hasLocation = false;
+            return;
+        }
+
         GetComponent<NavMeshSurface>().BuildNavMesh();
         Debug.Log("Succesfully created.");
 
