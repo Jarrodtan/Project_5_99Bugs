@@ -2599,7 +2599,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CreatureSpawner
   species: {fileID: 11400000, guid: 2829b3f512f18b14d931a7a5801afa6d, type: 2}
   simulator: {fileID: 933990895}
-  maxVisible: 100
+  maxVisible: 250
   spawnRadius: 6
   world: {fileID: 1625052479}
   maxElevationFraction: 0.49
@@ -3134,7 +3134,7 @@ MonoBehaviour:
   resources:
   - {fileID: 11400000, guid: 76da2c5da0148784389995384801e63e, type: 2}
   - {fileID: 11400000, guid: f6b50b4acdcea254cb9ed2f6fa536c22, type: 2}
-  maxPopulationPerSpecies: 200
+  maxPopulationPerSpecies: 250
 --- !u!4 &933990896
 Transform:
   m_ObjectHideFlags: 0
@@ -3247,7 +3247,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CreatureSpawner
   species: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
   simulator: {fileID: 933990895}
-  maxVisible: 100
+  maxVisible: 250
   spawnRadius: 6
   world: {fileID: 1625052479}
   maxElevationFraction: 0.18

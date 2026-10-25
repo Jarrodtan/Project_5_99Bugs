@@ -23,6 +23,7 @@ public class AnimalInfoUI : MonoBehaviour
 
         if (panel != null)
         {
+            LayoutCard();
             AddCloseButton();
             panel.SetActive(false);
         }
@@ -50,6 +51,47 @@ public class AnimalInfoUI : MonoBehaviour
     }
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // The panel was set to stretch over the whole screen with its texts placed from the screen centre,
+    // so on a tablet it covered the view and drifted. Make it a fixed card on the right edge, middle height,
+    // with the texts stacked top to bottom inside it.
+    void LayoutCard()
+    {
+        var rt = panel.transform as RectTransform;
+        if (rt == null) return;
+        rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
+        rt.pivot = new Vector2(1f, 0.5f);
+        rt.anchoredPosition = new Vector2(-40f, 0f);
+        rt.sizeDelta = new Vector2(640f, 760f);
+        rt.localScale = Vector3.one;
+        if (!panel.TryGetComponent(out UnityEngine.UI.Image bg)) bg = panel.AddComponent<UnityEngine.UI.Image>();
+        bg.color = new Color(0.97f, 0.97f, 0.95f, 0.92f);
+
+        var funFact = panel.transform.Find("DidYouKnow") as RectTransform;
+        TMP_Text fact = funFact != null ? funFact.GetComponent<TMP_Text>() : null;
+        var rows = new (TMP_Text text, float height, float size)[]
+        {
+            (nameText, 90f, 54f), (hungerText, 64f, 38f), (thirstText, 64f, 38f),
+            (actionText, 64f, 38f), (targetText, 64f, 38f), (fact, 260f, 32f),
+        };
+
+        float y = -40f;
+        foreach (var (text, height, size) in rows)
+        {
+            if (text == null) continue;
+            var t = text.rectTransform;
+            t.anchorMin = new Vector2(0f, 1f); t.anchorMax = new Vector2(1f, 1f);
+            t.pivot = new Vector2(0.5f, 1f);
+            t.localScale = Vector3.one;
+            t.offsetMin = new Vector2(40f, 0f); t.offsetMax = new Vector2(-110f, 0f);   // room for the X on the right
+            t.anchoredPosition = new Vector2(t.anchoredPosition.x, y);
+            t.sizeDelta = new Vector2(t.sizeDelta.x, height);
+            text.fontSize = size;
+            text.alignment = TextAlignmentOptions.TopLeft;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            y -= height + 12f;
+        }
+    }
+
     // A big "X" in the panel's top-right corner, built in code so the scene doesn't need changing.
     void AddCloseButton()
     {
