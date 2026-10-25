@@ -319,6 +319,7 @@ public class TerrainCameraController : MonoBehaviour
             if (entity != null) { Follow(entity.transform); return; }
         }
         StopFollowing();
+        if (AnimalInfoUI.Instance != null) AnimalInfoUI.Instance.HidePanel();   // tapping empty ground closes the animal card
     }
 
     // ---------- Camera maths ----------

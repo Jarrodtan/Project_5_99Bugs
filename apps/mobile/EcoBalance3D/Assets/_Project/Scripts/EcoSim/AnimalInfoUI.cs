@@ -23,6 +23,7 @@ public class AnimalInfoUI : MonoBehaviour
 
         if (panel != null)
         {
+            AddCloseButton();
             panel.SetActive(false);
         }
     }
@@ -30,10 +31,47 @@ public class AnimalInfoUI : MonoBehaviour
     private void Update()
     {
         if (selectedAnimal == null)
+        {
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): the animal was removed (died) while selected
+            if (panel != null && panel.activeSelf) HidePanel();
             return;
+        }
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): Esc closes it too, and a dead animal's card goes away
+        if ((UnityEngine.InputSystem.Keyboard.current != null &&
+             UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame) ||
+            selectedAnimal.IsCaught)
+        {
+            HidePanel();
+            return;
+        }
 
         UpdateUI();
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // A big "X" in the panel's top-right corner, built in code so the scene doesn't need changing.
+    void AddCloseButton()
+    {
+        var go = new GameObject("Close", typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
+        go.transform.SetParent(panel.transform, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 1f);
+        rt.anchoredPosition = new Vector2(-12f, -12f);
+        rt.sizeDelta = new Vector2(90f, 90f);   // big enough for a child's finger
+        go.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.35f);
+        go.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(HidePanel);
+
+        var label = new GameObject("X", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+        label.transform.SetParent(go.transform, false);
+        var lrt = label.rectTransform;
+        lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one; lrt.offsetMin = lrt.offsetMax = Vector2.zero;
+        label.text = "✕";
+        label.fontSize = 56f;
+        label.color = Color.white;
+        label.alignment = TextAlignmentOptions.Center;
+    }
+    // [AI-GENERATED END]
 
     public void ShowAnimal(AnimalBrain animal)
     {
