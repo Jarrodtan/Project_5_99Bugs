@@ -48,8 +48,8 @@ public class WeatherManager : MonoBehaviour
         if (txt == null) return;
         var rt = txt.rectTransform;
         rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 0f);
-        rt.anchoredPosition = new Vector2(40f, 40f);
-        rt.sizeDelta = new Vector2(900f, 150f);
+        rt.anchoredPosition = new Vector2(40f, 150f);   // above the speed buttons' row, so they never overlap
+        rt.sizeDelta = new Vector2(700f, 130f);
         rt.localScale = Vector3.one;
         txt.enableAutoSizing = true;
         txt.fontSizeMax = 40f;

@@ -66,8 +66,9 @@ public class AnimalInfoUI : MonoBehaviour
         if (!panel.TryGetComponent(out UnityEngine.UI.Image bg)) bg = panel.AddComponent<UnityEngine.UI.Image>();
         bg.color = new Color(0.97f, 0.97f, 0.95f, 0.92f);
 
-        var funFact = panel.transform.Find("DidYouKnow") as RectTransform;
-        TMP_Text fact = funFact != null ? funFact.GetComponent<TMP_Text>() : null;
+        TMP_Text fact = null;
+        foreach (var t in panel.GetComponentsInChildren<TMP_Text>(true))
+            if (t.name == "DidYouKnow") { fact = t; break; }
         var rows = new (TMP_Text text, float height, float size)[]
         {
             (nameText, 90f, 52f), (hungerText, 70f, 38f), (thirstText, 70f, 38f),
@@ -79,6 +80,9 @@ public class AnimalInfoUI : MonoBehaviour
         {
             if (text == null) continue;
             var t = text.rectTransform;
+            // Some texts sat inside another box in the card, so positions were measured from the wrong place.
+            // Put every row directly in the card.
+            if (t.parent != panel.transform) t.SetParent(panel.transform, false);
             t.anchorMin = new Vector2(0f, 1f); t.anchorMax = new Vector2(1f, 1f);
             t.pivot = new Vector2(0.5f, 1f);
             t.localScale = Vector3.one;

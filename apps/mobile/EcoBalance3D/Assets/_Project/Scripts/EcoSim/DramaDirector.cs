@@ -157,8 +157,8 @@ public class DramaDirector : MonoBehaviour
         pill.transform.SetParent(canvasGo.transform, false);
         var prt = (RectTransform)pill.transform;
         prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(1f, 1f);
-        prt.anchoredPosition = new Vector2(-40f, -40f);
-        prt.sizeDelta = new Vector2(680f, 90f);
+        prt.anchoredPosition = new Vector2(-40f, -170f);   // below the Play/Pause/Reset row, so narrow tablets don't overlap
+        prt.sizeDelta = new Vector2(620f, 84f);
         pill.GetComponent<Image>().color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
         status = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
         status.transform.SetParent(pill.transform, false);

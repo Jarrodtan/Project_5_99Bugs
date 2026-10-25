@@ -153,7 +153,12 @@ public class TabbedStatsPanel : MonoBehaviour
         canvasGo.transform.SetParent(transform, false);
         canvas = canvasGo.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvasGo.AddComponent<CanvasScaler>();
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): scale with the screen (was constant pixel size, so it
+        // looked tiny on a high-resolution tablet). Sizes in the config were made for a ~1920x1080 view.
+        var scaler = canvasGo.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.matchWidthOrHeight = 0.5f;
         canvasGo.AddComponent<GraphicRaycaster>();
 
         root = CreateRect("StatsTabs", canvasGo.transform);
