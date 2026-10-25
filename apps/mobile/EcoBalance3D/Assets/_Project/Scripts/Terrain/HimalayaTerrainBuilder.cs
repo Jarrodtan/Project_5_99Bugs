@@ -174,6 +174,14 @@ public class HimalayaTerrainBuilder : MonoBehaviour
         return new Vector3(origin.x + u * td.size.x, origin.y + td.GetInterpolatedHeight(u, v), origin.z + v * td.size.z);
     }
 
+    /// <summary>Inverse of WorldPosition(u, v): where a world point falls on the terrain, 0-1 (may be outside).</summary>
+    public Vector2 WorldToUV(Vector3 world)   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+    {
+        var td = terrain.terrainData;
+        var origin = terrain.transform.position;
+        return new Vector2((world.x - origin.x) / td.size.x, (world.z - origin.z) / td.size.z);
+    }
+
     public Vector3 WorldPosition(double lat, double lon)
     {
         var uv = Bounds.ToUV(lat, lon);

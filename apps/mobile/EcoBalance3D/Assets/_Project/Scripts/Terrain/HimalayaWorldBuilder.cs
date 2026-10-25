@@ -98,6 +98,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
             if (resourcePlacer != null)
             {
                 resourcePlacer.Clear();
+                resourcePlacer.PlaceRiver(terrainBuilder);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): before the bake, so it blocks walking
                 resourcePlacer.PlaceGrass(terrainBuilder, landCover);
             }
 

@@ -24,6 +24,25 @@ public class HimalayaResourcePlacer : MonoBehaviour
     [Tooltip("Minimum gap between fallback water patches, as a fraction of the map width.")]
     [SerializeField] float fallbackWaterSpacing = 0.06f;
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    [Header("Meadows")]
+    [Tooltip("Grass clumps per meadow (each is one food patch).")]
+    [SerializeField] int meadowMinClumps = 3;
+    [SerializeField] int meadowMaxClumps = 5;
+    [Tooltip("Distance between neighbouring clumps in a meadow. About a clump's width, so they join into one lawn.")]
+    [SerializeField] float meadowClumpSpacing = 4.2f;
+    [Tooltip("Grass regrown per second on each patch (a full patch is 100).")]
+    [SerializeField] float grassRegrowPerSecond = 5f;
+
+    [Header("3D water")]
+    [SerializeField] float streamWidth = 2.5f;
+    [SerializeField] float riverWidth = 5f;
+    [Tooltip("One traced river from a mountain down the valleys, dividing the map in two. Off = scattered map streams instead.")]
+    [SerializeField] bool useRiver = true;
+    [SerializeField] float riverSourceWidth = 2f;
+    [SerializeField] float riverMouthWidth = 7f;
+    // [AI-GENERATED END]
+
     readonly List<GameObject> spawned = new List<GameObject>();
     Mesh grassTuft;
 
@@ -37,32 +56,99 @@ public class HimalayaResourcePlacer : MonoBehaviour
     {
         if (grass == null) return;
         var rng = new System.Random(config.seed + 1);
-        var material = MakeMaterial(grassColor);
-        // [AI-GENERATED] Claude Code (Claude Opus 5.5): real blades instead of a cube; two-sided so they show from any angle
-        if (material.HasProperty("_Cull")) material.SetFloat("_Cull", (float)CullMode.Off);
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+        // Meadows: each seed spot grows into a lawn of several touching clumps, below the tree line
+        // (alpine grassland, where blue sheep graze). Blades sway in the wind (EcoBalance/GrassWind).
+        var material = MakeGrassMaterial();
         if (grassTuft == null) grassTuft = GrassTuftMesh.Build(config.seed);
-        int placed = 0, tries = 0, maxTries = Mathf.Max(1, config.grassPatches) * 40;
+        float meadowTop = Mathf.Min(config.treeLineMeters, config.snowLineMeters);
+        int meadows = 0, placed = 0, tries = 0, maxTries = Mathf.Max(1, config.grassPatches) * 40;
 
-        while (placed < config.grassPatches && tries++ < maxTries)
+        while (meadows < config.grassPatches && tries++ < maxTries)
         {
             float u = (float)rng.NextDouble(), v = (float)rng.NextDouble();
-            if (landCover != null && !IsGrassClass(landCover.ClassAt(u, v))) continue;
-            if (tb.ElevationMeters(u, v) > config.snowLineMeters) continue;
-            if (tb.SlopeDegrees(u, v) > maxPatchSlope) continue;
+            if (!GoodGrassSpot(tb, landCover, u, v, meadowTop)) continue;
+            meadows++;
 
-            SpawnTuft(grass, tb.WorldPosition(u, v), (float)rng.NextDouble() * 360f, material, $"Grass Patch {placed + 1}");
+            Vector3 centre = tb.WorldPosition(u, v);
+            int clumps = meadowMinClumps + rng.Next(meadowMaxClumps - meadowMinClumps + 1);
+            for (int c = 0; c < clumps; c++)
+            {
+                // First clump at the centre, the rest in a ring around it so the lawn has no gaps.
+                float ang = (float)rng.NextDouble() * Mathf.PI * 2f;
+                float dist = c == 0 ? 0f : meadowClumpSpacing * (0.8f + 0.5f * (float)rng.NextDouble());
+                Vector3 p = centre + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * dist;
+                Vector2 puv = tb.WorldToUV(p);
+                if (c > 0 && !GoodGrassSpot(tb, landCover, puv.x, puv.y, meadowTop)) continue;
+
+                SpawnTuft(grass, tb.WorldPosition(puv.x, puv.y), (float)rng.NextDouble() * 360f, material, $"Grass Patch {placed + 1}");
+                placed++;
+            }
+        }
+        Debug.Log($"[Himalaya] Meadows: {meadows}, grass patches: {placed}");
+    }
+
+    bool GoodGrassSpot(HimalayaTerrainBuilder tb, HimalayaLandCover landCover, float u, float v, float topMeters)
+    {
+        if (u < 0f || u > 1f || v < 0f || v > 1f) return false;
+        if (landCover != null && !IsGrassClass(landCover.ClassAt(u, v))) return false;
+        if (tb.ElevationMeters(u, v) > topMeters) return false;
+        if (HimalayaRiver.DistanceTo(tb.WorldPosition(u, v)) < riverMouthWidth) return false;   // not in or right beside the river
+        return tb.SlopeDegrees(u, v) <= maxPatchSlope;
+    }
+
+    Material MakeGrassMaterial()
+    {
+        var shader = Shader.Find("EcoBalance/GrassWind");
+        if (shader == null)
+        {
+            var m = MakeMaterial(grassColor);
+            if (m.HasProperty("_Cull")) m.SetFloat("_Cull", (float)CullMode.Off);
+            return m;
+        }
+        return new Material(shader) { name = "Grass (wind)" };
+    }
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    /// <summary>
+    /// One river from a mountain on one edge down the valleys to the other edge (see HimalayaRiver),
+    /// with drinking spots along both banks. Call before the NavMesh bake so the river blocks walking.
+    /// </summary>
+    public void PlaceRiver(HimalayaTerrainBuilder tb)
+    {
+        if (!useRiver || water == null) return;
+        var shader = Shader.Find("EcoBalance/WaterFlow");
+        var mat = shader != null ? new Material(shader) { name = "River (flowing)" } : MakeMaterial(waterColor);
+
+        var system = new GameObject("River System");
+        system.transform.SetParent(transform, true);
+        spawned.Add(system);
+
+        var banks = HimalayaRiver.Build(tb, system.transform, mat, riverSourceWidth, riverMouthWidth);
+        var spotMat = MakeMaterial(waterColor);
+        int placed = 0;
+        foreach (var p in banks)
+        {
+            if (placed >= config.maxWaterPatches) break;
+            Spawn(water, p, waterSize, spotMat, $"Water Patch {placed + 1}");
+            if (spawned[spawned.Count - 1].TryGetComponent(out Renderer r)) r.enabled = false;   // invisible drinking spot
             placed++;
         }
-        Debug.Log($"[Himalaya] Grass patches: {placed}");
+        Debug.Log($"[Himalaya] River: {HimalayaRiver.Path.Count} points, {placed} drinking spots on the banks.");
     }
+    // [AI-GENERATED END]
 
     public void PlaceWater(HimalayaTerrainBuilder tb, List<WaterFeature> features, int maxRivers = -1)
     {
         if (water == null) return;
+        if (useRiver && HimalayaRiver.Exists) return;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): the traced river replaces the scattered map streams
         if (features == null || features.Count == 0) { PlaceFallbackWater(tb); return; }
         if (maxRivers > 0) features = LimitRivers(features, maxRivers);
         var material = MakeMaterial(waterColor);
         int placed = 0;
+        bool drewWater = BuildWaterVisuals(tb, features);   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+        int firstWaterIndex = spawned.Count;                 // after the streams, so only drinking spots get hidden
 
         foreach (var f in features)
         {
@@ -95,8 +181,48 @@ public class HimalayaResourcePlacer : MonoBehaviour
                 }
             }
         }
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): with real streams drawn, the patches are just
+        // invisible drinking spots along them, not blue boxes.
+        if (drewWater)
+            for (int i = firstWaterIndex; i < spawned.Count; i++)
+                if (spawned[i] != null && spawned[i].TryGetComponent(out Renderer r)) r.enabled = false;
+
         Debug.Log($"[Himalaya] Water patches: {placed}");
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Flowing ribbons for streams and rivers, flat shimmering surfaces for lakes (EcoBalance/WaterFlow).
+    bool BuildWaterVisuals(HimalayaTerrainBuilder tb, List<WaterFeature> features)
+    {
+        var shader = Shader.Find("EcoBalance/WaterFlow");
+        if (shader == null) { Debug.LogWarning("[Himalaya] WaterFlow shader not found; keeping water boxes.", this); return false; }
+
+        var flowing = new Material(shader) { name = "Stream (flowing)" };
+        var still = new Material(shader) { name = "Lake (still)" };
+        still.SetFloat("_FlowSpeed", 0.08f);
+        still.SetFloat("_RippleScale", 0.3f);
+
+        int streams = 0, lakes = 0;
+        foreach (var f in features)
+        {
+            if (f.IsSpring) continue;
+            Mesh mesh = f.IsArea ? WaterMeshBuilder.Lake(tb, f.UV)
+                                 : WaterMeshBuilder.Stream(tb, f.UV, f.IsRiver ? riverWidth : streamWidth);
+            if (mesh == null) continue;
+
+            var go = new GameObject(f.IsArea ? $"Lake {lakes + 1}" : $"Stream {streams + 1}");
+            go.transform.SetParent(transform, true);   // keeps it at the world origin: the mesh is in world space
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var mr = go.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = f.IsArea ? still : flowing;
+            mr.shadowCastingMode = ShadowCastingMode.Off;
+            spawned.Add(go);
+            if (f.IsArea) lakes++; else streams++;
+        }
+        Debug.Log($"[Himalaya] 3D water: {streams} streams, {lakes} lakes.");
+        return streams + lakes > 0;
+    }
+    // [AI-GENERATED END]
 
     // Keeps the longest `max` rivers/streams, plus every lake and spring.
     static List<WaterFeature> LimitRivers(List<WaterFeature> all, int max)
@@ -191,7 +317,9 @@ public class HimalayaResourcePlacer : MonoBehaviour
         var mr = go.AddComponent<MeshRenderer>();
         mr.sharedMaterial = material;
         mr.shadowCastingMode = ShadowCastingMode.Off;   // hundreds of thin blades: shadows cost a lot on a tablet
-        go.AddComponent<ResourcePatch>().Configure(def);
+        var patch = go.AddComponent<ResourcePatch>();
+        patch.Configure(def);
+        patch.RegrowPerSecond = grassRegrowPerSecond;
         spawned.Add(go);
     }
     // [AI-GENERATED END]

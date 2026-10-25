@@ -48,6 +48,9 @@ public class ResourcePatch : MonoBehaviour
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
     // Sets the resource for a patch created from code (see ResourcePatchSpawner) and refills it.
+    /// <summary>Amount regrown per second, for patches created from code.</summary>
+    public float RegrowPerSecond { get => regrowPerSecond; set => regrowPerSecond = Mathf.Max(0f, value); }   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+
     public void Configure(ResourceDefinition value)
     {
         resource = value;

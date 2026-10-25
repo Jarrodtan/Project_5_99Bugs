@@ -10,6 +10,7 @@ public class WaterFeature
     public string Name;
     public bool IsSpring;
     public bool IsArea;
+    public bool IsRiver;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): wider than a stream
     public readonly List<Vector2> UV = new List<Vector2>();
 }
 
@@ -83,6 +84,7 @@ public class HimalayaWaterLoader : MonoBehaviour
             {
                 foreach (var p in e.geometry) f.UV.Add(b.ToUV(p.lat, p.lon));
                 f.IsArea = e.tags != null && e.tags.natural == "water";
+                f.IsRiver = e.tags != null && e.tags.waterway == "river";
             }
             else continue;
             result.Add(f);
