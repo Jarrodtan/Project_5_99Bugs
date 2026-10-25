@@ -10,7 +10,7 @@ using UnityEngine;
 /// </summary>
 public static class GrassTuftMesh
 {
-    public static Mesh Build(int seed, int blades = 140, float radius = 2.2f, float height = 0.7f, float width = 0.09f)
+    public static Mesh Build(int seed, int blades = 260, float radius = 2.4f, float height = 1.4f, float width = 0.06f)
     {
         var rng = new System.Random(seed);
         float R() => (float)rng.NextDouble();
@@ -29,7 +29,7 @@ public static class GrassTuftMesh
             float h = height * (0.5f + 0.7f * R()) * (1f - 0.4f * r / radius);   // shorter at the edge
             float facing = R() * Mathf.PI;
             var side = new Vector3(Mathf.Cos(facing), 0f, Mathf.Sin(facing)) * (width * (0.7f + 0.6f * R()));
-            var lean = new Vector3(R() - 0.5f, 0f, R() - 0.5f) * (h * 0.6f);
+            var lean = new Vector3(R() - 0.5f, 0f, R() - 0.5f) * (h * 0.45f);   // tall blades lean less
             var normal = Vector3.Cross(side, Vector3.up).normalized;
 
             int v = verts.Count;

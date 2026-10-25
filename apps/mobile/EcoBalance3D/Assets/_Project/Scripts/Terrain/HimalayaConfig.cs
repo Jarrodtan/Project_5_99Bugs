@@ -58,6 +58,9 @@ public class HimalayaConfig : ScriptableObject
 
     [Header("Network")]
     public string overpassUrl = "https://overpass-api.de/api/interpreter";
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): public Overpass servers are often busy, so try another before giving up
+    [Tooltip("Tried in order if the main Overpass server fails or times out.")]
+    public string[] overpassBackupUrls = { "https://maps.mail.ru/osm/tools/overpass/api/interpreter" };
     [Tooltip("Save downloads to disk and reuse them next run.")]
     public bool useCache = true;
 

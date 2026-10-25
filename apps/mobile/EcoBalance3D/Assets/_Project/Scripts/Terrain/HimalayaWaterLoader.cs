@@ -34,20 +34,31 @@ public class HimalayaWaterLoader : MonoBehaviour
                            $"way[\"natural\"=\"water\"]({box});" +
                            $"node[\"natural\"=\"spring\"]({box});" +
                            ");out geom;";
-            string url = config.overpassUrl + "?data=" + UnityWebRequest.EscapeURL(query);
+            // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+            // Main server first, then the backups. Runs in the background after the world is ready,
+            // and the first success is cached, so later runs don't need the network.
+            var servers = new List<string> { config.overpassUrl };
+            if (config.overpassBackupUrls != null) servers.AddRange(config.overpassBackupUrls);
 
-            using (var req = UnityWebRequest.Get(url))
+            foreach (var server in servers)
             {
-                req.timeout = 15;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): a slow server must not stop the world from finishing
-                yield return req.SendWebRequest();
-                if (req.result != UnityWebRequest.Result.Success)
+                if (string.IsNullOrEmpty(server)) continue;
+                using (var req = UnityWebRequest.Get(server + "?data=" + UnityWebRequest.EscapeURL(query)))
                 {
-                    Debug.LogError($"[Himalaya] Overpass request failed: {req.error}", this);
-                    done(new List<WaterFeature>());
-                    yield break;
+                    req.timeout = 30;
+                    yield return req.SendWebRequest();
+                    if (req.result == UnityWebRequest.Result.Success) { json = req.downloadHandler.text; break; }
+                    Debug.LogWarning($"[Himalaya] Overpass server {server} failed: {req.error}", this);
                 }
-                json = req.downloadHandler.text;
             }
+
+            if (json == null)
+            {
+                Debug.LogWarning("[Himalaya] No Overpass server answered; using valley water instead.", this);
+                done(new List<WaterFeature>());
+                yield break;
+            }
+            // [AI-GENERATED END]
             if (config.useCache) GeoCache.WriteText(file, json);
         }
 

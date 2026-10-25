@@ -35,6 +35,6 @@ MonoBehaviour:
   grassPatches: 40
   maxWaterPatches: 60
   waterPatchSpacing: 12
-  overpassUrl: https://overpass.kumi.systems/api/interpreter
+  overpassUrl: https://overpass-api.de/api/interpreter
   useCache: 1
   seed: 1
