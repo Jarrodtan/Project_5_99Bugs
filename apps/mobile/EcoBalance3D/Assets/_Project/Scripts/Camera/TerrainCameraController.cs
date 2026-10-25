@@ -23,17 +23,19 @@ public class TerrainCameraController : MonoBehaviour
     [SerializeField] Terrain terrain;
     [Tooltip("Camera never goes lower than this above the ground.")]
     [SerializeField] float minHeightAboveGround = 2f;
+    [Tooltip("The point the camera looks at stays this far inside the terrain's edges.")]
+    [SerializeField] float edgeMargin = 35f;
 
     [Header("Zoom (distance from the focus point)")]
     [SerializeField] float minDistance = 3f;
-    [SerializeField] float maxDistance = 250f;
+    [SerializeField] float maxDistance = 110f;
     [SerializeField] float startDistance = 110f;
     [Tooltip("Mouse wheel: fraction of the distance per notch.")]
     [SerializeField] float wheelZoomStep = 0.12f;
 
     [Header("Angles")]
     [SerializeField] float minPitch = 8f;
-    [SerializeField] float maxPitch = 85f;
+    [SerializeField] float maxPitch = 70f;
     [SerializeField] float startPitch = 30f;
     [SerializeField] float startYaw = 0f;
     [Tooltip("Degrees per pixel for rotate/tilt drags.")]
@@ -48,7 +50,7 @@ public class TerrainCameraController : MonoBehaviour
     [Header("Opening shot")]
     [Tooltip("Start high above the mountains, then glide down into the valley where the grass is.")]
     [SerializeField] bool introFlyIn = true;
-    [SerializeField] float introStartDistance = 230f;
+    [SerializeField] float introStartDistance = 140f;
     [SerializeField] float introStartPitch = 60f;
     [Tooltip("Smooth time during the fly-in. Larger = slower, gentler glide.")]
     [SerializeField] float introSmoothTime = 1.1f;
@@ -57,6 +59,10 @@ public class TerrainCameraController : MonoBehaviour
     [Header("Follow / POV")]
     [Tooltip("Distance used when following an animal starts.")]
     [SerializeField] float followDistance = 12f;
+    [Tooltip("Camera angle above the ground while following (low = more cinematic).")]
+    [SerializeField] float followPitch = 18f;
+    [Tooltip("How quickly the camera swings round behind a followed animal as it turns (0 = never).")]
+    [SerializeField] float followTurnSpeed = 1.5f;
     [Tooltip("Eye height above the animal's pivot in POV mode.")]
     [SerializeField] float povEyeHeight = 1.2f;
     [SerializeField] LayerMask tapMask = ~0;
@@ -128,7 +134,11 @@ public class TerrainCameraController : MonoBehaviour
     public void Follow(Transform target)
     {
         followTarget = target;
-        if (target != null) distTarget = Mathf.Min(distTarget, followDistance);
+        if (target == null) return;
+        // Documentary shot: close, low, just behind the animal.
+        distTarget = followDistance;
+        pitchTarget = followPitch;
+        yawTarget = target.eulerAngles.y;
     }
 
     public void StopFollowing()
@@ -165,7 +175,14 @@ public class TerrainCameraController : MonoBehaviour
         HandleScroll();
         HandleKeyboard();
 
-        if (followTarget != null) focusTarget = followTarget.position;
+        if (followTarget != null)
+        {
+            focusTarget = followTarget.position;
+            // Drift round behind the animal as it turns, unless the player is twisting the view themselves.
+            if (!pov && Touch.activeTouches.Count < 2 && (Mouse.current == null || !Mouse.current.rightButton.isPressed))
+                yawTarget = Mathf.MoveTowardsAngle(yawTarget, followTarget.eulerAngles.y,
+                    Mathf.Abs(Mathf.DeltaAngle(yawTarget, followTarget.eulerAngles.y)) * followTurnSpeed * Time.unscaledDeltaTime);
+        }
         ClampTargets();
         Ease();
         Apply();
@@ -313,8 +330,9 @@ public class TerrainCameraController : MonoBehaviour
 
         if (terrain != null && followTarget == null)
         {
-            var min = terrain.GetPosition();
-            var max = min + terrain.terrainData.size;
+            // Keep the view over the land: a margin from the edges, so the camera never shows the void beyond.
+            var min = terrain.GetPosition() + new Vector3(edgeMargin, 0f, edgeMargin);
+            var max = terrain.GetPosition() + terrain.terrainData.size - new Vector3(edgeMargin, 0f, edgeMargin);
             focusTarget.x = Mathf.Clamp(focusTarget.x, min.x, max.x);
             focusTarget.z = Mathf.Clamp(focusTarget.z, min.z, max.z);
             focusTarget.y = GroundHeight(focusTarget);

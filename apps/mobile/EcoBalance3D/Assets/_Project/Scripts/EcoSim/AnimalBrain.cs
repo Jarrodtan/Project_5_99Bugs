@@ -92,6 +92,9 @@ public class AnimalBrain : MonoBehaviour
     [Tooltip("Need (0-1) above which the animal searches further for food or water.")]
     [Range(0f, 1f)] public float desperateNeed = 0.6f;
 
+    [Tooltip("Predators hungrier than this (0-1) leave their high territory to look for prey.")]
+    [Range(0f, 1f)] public float predatorRoamHunger = 0.35f;
+
     [Tooltip("How much further a desperate animal searches (x forage radius).")]
     public float desperateSearchMultiplier = 2f;
 
@@ -604,9 +607,11 @@ public class AnimalBrain : MonoBehaviour
                 ? fleeWeight * (1f + Closeness(predator.position, fleeRadius))
                 : 0f;
 
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a leopard that is even a little hungry and sees prey goes for it
+        // (before, it waited until starving, so hunts were rare). A full leopard (just ate) still rests.
         scores[(int)AnimalAction.Hunting] =
-            prey != null
-                ? huntWeight * HungerNeed * DistanceFactor(prey.position, huntRadius)
+            prey != null && HungerNeed > 0.15f
+                ? huntWeight * (0.4f + HungerNeed) * DistanceFactor(prey.position, huntRadius)
                 : 0f;
 
         scores[(int)AnimalAction.EatingGrass] =
@@ -705,7 +710,7 @@ public class AnimalBrain : MonoBehaviour
             prey = EcoRegistry.NearestPrey(
                 species_data,
                 pos,
-                huntRadius * (HungerNeed >= desperateNeed ? desperateSearchMultiplier * 1.5f : 1f));   // [AI-GENERATED] Claude Code (Claude Opus 5.5): hungry leopards scan the slopes below
+                huntRadius * Mathf.Lerp(1f, 4f, HungerNeed));   // [AI-GENERATED] Claude Code (Claude Opus 5.5): the hungrier, the further a leopard scans the slopes below
 
             if (prey != null)
             {
@@ -1164,7 +1169,7 @@ public class AnimalBrain : MonoBehaviour
     float OutsideHabitat(Vector3 p)
     {
         // A hungry predator follows its prey down the mountain, like real snow leopards.
-        if (IsPredator && HungerNeed >= desperateNeed) return 0f;
+        if (IsPredator && HungerNeed >= predatorRoamHunger) return 0f;
         float f = HeightFraction(p);
         float outside = f < habitatMin ? habitatMin - f : f > habitatMax ? f - habitatMax : 0f;
         if (homeRadius > 0f)

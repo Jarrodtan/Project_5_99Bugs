@@ -1585,17 +1585,17 @@ MonoBehaviour:
   terrain: {fileID: 86107047}
   minHeightAboveGround: 2
   minDistance: 3
-  maxDistance: 250
+  maxDistance: 110
   startDistance: 45
   wheelZoomStep: 0.12
   minPitch: 5
-  maxPitch: 85
+  maxPitch: 70
   startPitch: 15
   startYaw: 0
   rotateSpeed: 0.25
   smoothTime: 0.12
   keyPanSpeed: 0.8
-  followDistance: 12
+  followDistance: 9
   povEyeHeight: 1.2
   tapMask:
     serializedVersion: 2
