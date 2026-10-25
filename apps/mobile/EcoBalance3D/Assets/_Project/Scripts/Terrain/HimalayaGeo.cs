@@ -68,6 +68,12 @@ public static class GeoCache
     {
         var p = Path.Combine(Dir, file);
         if (File.Exists(p)) { text = File.ReadAllText(p); return true; }
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): copy shipped with the game (Resources/HimalayaData),
+        // so the tablet has real data on first run even with no internet or busy servers.
+        var bundled = Resources.Load<TextAsset>("HimalayaData/" + Path.GetFileNameWithoutExtension(file));
+        if (bundled != null) { text = bundled.text; return true; }
+
         text = null;
         return false;
     }
