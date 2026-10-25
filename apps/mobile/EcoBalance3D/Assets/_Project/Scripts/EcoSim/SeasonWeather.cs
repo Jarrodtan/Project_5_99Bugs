@@ -45,6 +45,31 @@ public class SeasonWeather : MonoBehaviour
                      : CurrentWeather == Weather.Rain ? 0f : 0.15f;
         dryness = Mathf.MoveTowards(dryness, target, Time.deltaTime * 0.1f);
         Shader.SetGlobalFloat(DrynessId, dryness);
+
+        if (Time.time >= nextSync) { nextSync = Time.time + 0.5f; SyncResourceTotals(); }
+    }
+
+    float nextSync;
+    readonly System.Collections.Generic.Dictionary<ResourceDefinition, (float sum, int count)> totals = new();
+
+    // The simulator's Grass / Water numbers (HUD, graphs, investigation cases) used to be a separate pool
+    // that every bite drained, so it ran dry even with a flowing river and full meadows. Now they show the
+    // real average fullness of the patches on the map.
+    void SyncResourceTotals()
+    {
+        totals.Clear();
+        foreach (var p in ResourcePatch.All)
+        {
+            if (p == null || p.Resource == null) continue;
+            totals.TryGetValue(p.Resource, out var t);
+            totals[p.Resource] = (t.sum + p.Amount, t.count + 1);
+        }
+        foreach (var kv in totals)
+        {
+            var r = kv.Key;
+            float avgFill = kv.Value.count > 0 && r.maxAmount > 0f ? kv.Value.sum / kv.Value.count / r.maxAmount : 0f;
+            r.currentAmount = avgFill * r.maxAmount;
+        }
     }
 
     void NewDay(int day)
