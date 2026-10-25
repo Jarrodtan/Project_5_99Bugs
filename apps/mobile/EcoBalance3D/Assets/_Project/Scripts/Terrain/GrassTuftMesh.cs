@@ -10,7 +10,7 @@ using UnityEngine;
 /// </summary>
 public static class GrassTuftMesh
 {
-    public static Mesh Build(int seed, int blades = 260, float radius = 2.4f, float height = 1.4f, float width = 0.06f)
+    public static Mesh Build(int seed, int blades = 260, float radius = 2.4f, float height = 0.8f, float width = 0.06f)   // knee-high: sheep stay visible
     {
         var rng = new System.Random(seed);
         float R() => (float)rng.NextDouble();

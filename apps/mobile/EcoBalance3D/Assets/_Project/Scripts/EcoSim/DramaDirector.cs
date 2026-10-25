@@ -152,13 +152,13 @@ public class DramaDirector : MonoBehaviour
 
         banner.SetActive(false);
 
-        // Status pill, bottom-right (the top-right is used by the animal card and debug panel): season, day, weather.
+        // Status pill, top-right corner, above the animal card (bottom-right ran into the speed buttons).
         var pill = new GameObject("Status", typeof(RectTransform), typeof(Image));
         pill.transform.SetParent(canvasGo.transform, false);
         var prt = (RectTransform)pill.transform;
-        prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(1f, 0f);
-        prt.anchoredPosition = new Vector2(-40f, 40f);
-        prt.sizeDelta = new Vector2(820f, 90f);
+        prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(1f, 1f);
+        prt.anchoredPosition = new Vector2(-40f, -40f);
+        prt.sizeDelta = new Vector2(680f, 90f);
         pill.GetComponent<Image>().color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
         status = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
         status.transform.SetParent(pill.transform, false);

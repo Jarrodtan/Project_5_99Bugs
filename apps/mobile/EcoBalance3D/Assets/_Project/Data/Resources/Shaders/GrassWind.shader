@@ -8,7 +8,7 @@ Shader "EcoBalance/GrassWind"
     {
         _BaseColor ("Root colour", Color) = (0.16, 0.38, 0.12, 1)
         _TipColor ("Tip colour", Color) = (0.58, 0.80, 0.32, 1)
-        _BladeHeight ("Blade height (object units)", Float) = 1.4
+        _BladeHeight ("Blade height (object units)", Float) = 0.8
         _WindStrength ("Wind strength", Float) = 0.35
         _WindSpeed ("Wind speed", Float) = 1.6
     }

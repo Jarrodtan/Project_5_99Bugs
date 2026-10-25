@@ -82,9 +82,9 @@ public class AnimalInfoUI : MonoBehaviour
             t.anchorMin = new Vector2(0f, 1f); t.anchorMax = new Vector2(1f, 1f);
             t.pivot = new Vector2(0.5f, 1f);
             t.localScale = Vector3.one;
-            t.offsetMin = new Vector2(40f, 0f); t.offsetMax = new Vector2(-110f, 0f);   // room for the X on the right
-            t.anchoredPosition = new Vector2(t.anchoredPosition.x, y);
-            t.sizeDelta = new Vector2(t.sizeDelta.x, height);
+            // Left edge 40 in, right edge 110 in (room for the X); row at y, this tall.
+            t.offsetMin = new Vector2(40f, y - height);
+            t.offsetMax = new Vector2(text == nameText ? -110f : -40f, y);
             // Shrink to fit its row instead of spilling out of the card (long names, long fun facts).
             text.enableAutoSizing = true;
             text.fontSizeMax = size;
@@ -112,7 +112,7 @@ public class AnimalInfoUI : MonoBehaviour
         label.transform.SetParent(go.transform, false);
         var lrt = label.rectTransform;
         lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one; lrt.offsetMin = lrt.offsetMax = Vector2.zero;
-        label.text = "✕";
+        label.text = "X";   // the font has no ✕ symbol (it showed as an empty box)
         label.fontSize = 56f;
         label.color = Color.white;
         label.alignment = TextAlignmentOptions.Center;
