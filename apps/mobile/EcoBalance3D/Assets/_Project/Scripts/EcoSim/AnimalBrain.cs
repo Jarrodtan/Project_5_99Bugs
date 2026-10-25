@@ -60,10 +60,10 @@ public class AnimalBrain : MonoBehaviour
     // Predator / prey
     [Header("Predator / Prey")]
     [Tooltip("Predators notice prey within this distance.")]
-    public float huntRadius = 12f;
+    public float huntRadius = 35f;
 
     [Tooltip("Prey notices predators within this distance.")]
-    public float fleeRadius = 7f;
+    public float fleeRadius = 20f;
 
     [Tooltip("Distance at which a predator catches its prey.")]
     public float catchDistance = 1.5f;
@@ -79,17 +79,30 @@ public class AnimalBrain : MonoBehaviour
 
     // Eat / starve
     [Header("Eat / Starve")]
-    [Tooltip("Hunger goes from full to empty in this many seconds for plant-eaters.")]
-    public float preyStarveAfterSeconds = 15f;
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): timings follow the design spec, 1 real minute (at 1x) = 1 game day
+    [Tooltip("Hunger goes from full to empty in this many seconds for plant-eaters (180 = 3 game days).")]
+    public float preyStarveAfterSeconds = 180f;
 
-    [Tooltip("Hunger goes from full to empty in this many seconds for predators.")]
-    public float predatorStarveAfterSeconds = 20f;
+    [Tooltip("Hunger goes from full to empty in this many seconds for predators (300 = 5 game days).")]
+    public float predatorStarveAfterSeconds = 300f;
 
-    [Tooltip("Thirst goes from full to empty in this many seconds.")]
-    public float dehydrateAfterSeconds = 25f;
+    [Tooltip("Thirst goes from full to empty in this many seconds (90 = 1.5 game days).")]
+    public float dehydrateAfterSeconds = 90f;
+
+    [Tooltip("Need (0-1) above which the animal searches further for food or water.")]
+    [Range(0f, 1f)] public float desperateNeed = 0.6f;
+
+    [Tooltip("How much further a desperate animal searches (x forage radius).")]
+    public float desperateSearchMultiplier = 2f;
+
+    [Tooltip("Hunger restored by one full bite of grass (a part-empty patch gives less).")]
+    public float fullBiteFill = 50f;
+
+    [Tooltip("Thirst restored by one full drink (a part-empty patch gives less).")]
+    public float fullDrinkFill = 60f;
 
     [Tooltip("Plant-eaters look for grass / water within this distance.")]
-    public float forageRadius = 20f;
+    public float forageRadius = 60f;
 
     [Tooltip("Amount taken from a grass / water patch per visit.")]
     public float biteSize = 20f;
@@ -101,6 +114,13 @@ public class AnimalBrain : MonoBehaviour
     [Header("Reproduction")]
     [Tooltip("Looks for a mate of the same species within this distance.")]
     public float mateRadius = 10f;
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): snow leopards live alone and far apart and find mates
+    // by scent marks and calls, so a herd-sized radius meant they almost never met one.
+    [Tooltip("Mate search distance for predators, which live alone and far apart.")]
+    public float predatorMateRadius = 90f;
+
+    float MateRadius => IsPredator ? predatorMateRadius : mateRadius;
 
     [Tooltip("Distance at which two mates reproduce.")]
     public float mateDistance = 2f;
@@ -204,9 +224,47 @@ public class AnimalBrain : MonoBehaviour
             100f,
             Mathf.Min(curr_hunger, curr_thirst));
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Babies: start small beside their mother, follow her, grow to full size, and can't mate until grown.
+    [Header("Young")]
+    [Tooltip("Seconds (at 1x) for a baby to grow to adult size.")]
+    public float growUpSeconds = 60f;
+    [Tooltip("Baby size as a fraction of adult size.")]
+    [Range(0.2f, 1f)] public float babyScale = 0.45f;
+    [Tooltip("A baby walks back to its mother when it is further than this.")]
+    public float followMotherDistance = 2.5f;
+
+    public AnimalBrain Mother { get; private set; }
+    public bool IsYoung => age < growUpSeconds;
+    float age = float.MaxValue;   // spawned animals are adults
+    Vector3 adultScale;
+
+    /// <summary>Turns a freshly spawned model into a newborn of this mother.</summary>
+    public void MakeBaby(AnimalBrain mother)
+    {
+        Mother = mother;
+        age = 0f;
+        adultScale = transform.localScale;
+        transform.localScale = adultScale * babyScale;
+    }
+
+    void GrowUp(float dt)
+    {
+        if (!IsYoung) return;
+        age += dt;
+        float t = Mathf.Clamp01(age / growUpSeconds);
+        transform.localScale = adultScale * Mathf.Lerp(babyScale, 1f, t);
+        if (!IsYoung) Mother = null;   // grown up: independent
+    }
+
+    bool HasMotherNearby =>
+        Mother != null && Mother.isActiveAndEnabled && !Mother.IsCaught;
+    // [AI-GENERATED END]
+
     // Off cooldown, alive and well-fed enough to mate.
     public bool CanReproduce =>
         species_data != null &&
+        !IsYoung &&
         reproduce_cooldown <= 0f &&
         !IsCaught &&
         MatingReadiness > 0f;
@@ -216,6 +274,13 @@ public class AnimalBrain : MonoBehaviour
 
     // Counted in simulation time, so at x8 the body doesn't lie there 8 times longer.
     public bool IsCaught => caught_timer > 0f;
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    const float DeadHoldTimer = 0.001f;
+
+    /// <summary>Dead (Events mode) and the lie-down time is over: ready for the spawner to remove.</summary>
+    public bool DeathFinished => EventsMode && IsCaught && caught_timer <= DeadHoldTimer;
+    // [AI-GENERATED END]
 
     public void MarkCaught()
     {
@@ -336,7 +401,9 @@ public class AnimalBrain : MonoBehaviour
         // A caught animal stays still.
         if (IsCaught)
         {
-            caught_timer -= dt;
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): in Events mode the death was already counted,
+            // so the body stays down until CreatureSpawner removes it, instead of getting back up.
+            caught_timer = EventsMode ? Mathf.Max(DeadHoldTimer, caught_timer - dt) : caught_timer - dt;
             agent.isStopped = true;
             CurrentAction = AnimalAction.Hunting;
             return;
@@ -350,6 +417,8 @@ public class AnimalBrain : MonoBehaviour
 
         if (UpdateNeeds(dt))
             return;
+
+        GrowUp(dt);
 
         // Think a few times a second...
         decision_timer -= dt;
@@ -527,9 +596,12 @@ public class AnimalBrain : MonoBehaviour
         // Each score: weight x need x distance factor.
         // The distance factor is 0.5 at the edge of the radius and
         // 1 right next to the target, so anything in range counts.
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): fear beats hunger. Even at the edge of the flee
+        // radius this outscores the best possible eat/drink/mate score (about 1.1), and it doubles up close,
+        // so a hungry sheep no longer keeps grazing beside a leopard.
         scores[(int)AnimalAction.Fleeing] =
             predator != null
-                ? fleeWeight * DistanceFactor(predator.position, fleeRadius)
+                ? fleeWeight * (1f + Closeness(predator.position, fleeRadius))
                 : 0f;
 
         scores[(int)AnimalAction.Hunting] =
@@ -549,7 +621,7 @@ public class AnimalBrain : MonoBehaviour
 
         scores[(int)AnimalAction.Reproducing] =
             mate != null
-                ? reproduceWeight * MatingReadiness * DistanceFactor(mate.position, mateRadius)
+                ? reproduceWeight * MatingReadiness * DistanceFactor(mate.position, MateRadius)
                 : 0f;
 
         scores[(int)AnimalAction.Roaming] =
@@ -628,7 +700,7 @@ public class AnimalBrain : MonoBehaviour
             prey = EcoRegistry.NearestPrey(
                 species_data,
                 pos,
-                huntRadius);
+                huntRadius * (HungerNeed >= desperateNeed ? desperateSearchMultiplier * 1.5f : 1f));   // [AI-GENERATED] Claude Code (Claude Opus 5.5): hungry leopards scan the slopes below
 
             if (prey != null)
             {
@@ -647,7 +719,7 @@ public class AnimalBrain : MonoBehaviour
             food_patch = ResourcePatch.FindNearest(
                 pos,
                 food_resources,
-                forageRadius);
+                SearchRadius(HungerNeed));
         }
 
         if (water_resources.Count > 0)
@@ -655,7 +727,7 @@ public class AnimalBrain : MonoBehaviour
             water_patch = ResourcePatch.FindNearest(
                 pos,
                 water_resources,
-                forageRadius);
+                SearchRadius(ThirstNeed));
         }
 
         // Nearest animal of the same species, if both are ready to mate.
@@ -664,7 +736,7 @@ public class AnimalBrain : MonoBehaviour
             mate = EcoRegistry.Nearest(
                 pos,
                 species_data,
-                mateRadius,
+                MateRadius,
                 transform);
 
             if (mate != null &&
@@ -676,6 +748,15 @@ public class AnimalBrain : MonoBehaviour
             }
         }
     }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): a very hungry or thirsty animal looks further,
+    // so it travels to the next valley instead of wandering until it starves.
+    float SearchRadius(float need) =>
+        need >= desperateNeed ? forageRadius * desperateSearchMultiplier : forageRadius;
+
+    // 0 at the edge of the radius, 1 right next to the target.
+    float Closeness(Vector3 target, float radius) =>
+        radius <= 0f ? 1f : Mathf.Clamp01(1f - Vector3.Distance(transform.position, target) / radius);
 
     // 1 right next to the target, 0.5 at the edge of the radius.
     float DistanceFactor(Vector3 target, float radius)
@@ -789,7 +870,7 @@ public class AnimalBrain : MonoBehaviour
 
         Vector3 target =
             transform.position +
-            away.normalized * 6f;
+            away.normalized * 12f;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): longer dash, scaled for the big map
 
         NavMeshHit hit;
 
@@ -804,8 +885,8 @@ public class AnimalBrain : MonoBehaviour
                     Vector3.up,
                     away.normalized) *
                 (Random.value < 0.5f
-                    ? 6f
-                    : -6f);
+                    ? 12f
+                    : -12f);
 
             if (!NavMesh.SamplePosition(
                     transform.position + side,
@@ -848,27 +929,30 @@ public class AnimalBrain : MonoBehaviour
         if (to.magnitude <=
             catchDistance + 0.5f)
         {
-            patch.Consume(
-                biteSize);
+            // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+            // Fill up by what the patch actually gave: a nearly empty patch barely helps.
+            float taken = patch.Consume(biteSize);
+            float share = biteSize > 0f ? taken / biteSize : 1f;
 
             if (EventsMode)
             {
                 simulator.RecordEat(
                     species_data,
                     patch.Resource,
-                    biteSize);
+                    taken);
             }
 
             if (isWater)
             {
-                curr_thirst = 100f;
+                curr_thirst = Mathf.Min(100f, curr_thirst + share * fullDrinkFill);
                 water_patch = null;
             }
             else
             {
-                curr_hunger = 100f;
+                curr_hunger = Mathf.Min(100f, curr_hunger + share * fullBiteFill);
                 food_patch = null;
             }
+            // [AI-GENERATED END]
 
             busy_timer =
                 eatDuration;
@@ -969,8 +1053,8 @@ public class AnimalBrain : MonoBehaviour
         {
             // Only the one that arrives records the birth, so a pair
             // makes one baby, not two.
-            FinishMating(true);
-            mate_brain.FinishMating(false);
+            FinishMating(true, mate_brain);
+            mate_brain.FinishMating(false, this);
 
             return true;
         }
@@ -984,8 +1068,19 @@ public class AnimalBrain : MonoBehaviour
         return true;
     }
 
-    void FinishMating(bool recordBirth)
+    void FinishMating(bool recordBirth, AnimalBrain partner)
     {
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+        // Make the moment visible: turn to face the partner and float hearts above.
+        if (partner != null)
+        {
+            Vector3 look = partner.transform.position - transform.position;
+            look.y = 0f;
+            if (look.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(look);
+        }
+        HeartPop.Spawn(transform.position + Vector3.up * HeartHeight(), recordBirth ? 3 : 2);
+        // [AI-GENERATED END]
+
         reproduce_cooldown =
             reproduceCooldownSeconds;
 
@@ -1008,21 +1103,80 @@ public class AnimalBrain : MonoBehaviour
         // Events mode: +1 to the population; CreatureSpawner adds the
         // model on its next refresh. Formula mode already grows the
         // population from reproductionRate, so nothing is recorded there.
+        if (recordBirth)
+            Debug.Log($"[Birth] {species_data?.name} mated (Events mode: {EventsMode}); queuing baby beside mother.", this);
+
         if (recordBirth && EventsMode)
         {
+            CreatureSpawner.QueueBirth(this);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): baby appears beside this mother
             simulator.RecordBirth(
                 species_data);
         }
+    }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): just above the model's top, whatever its size
+    float HeartHeight()
+    {
+        var r = GetComponentInChildren<Renderer>();
+        return r != null ? r.bounds.max.y - transform.position.y + 0.3f : 1.5f;
     }
 
     // ---------------------------------------------------------
     // ROAM
     // ---------------------------------------------------------
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Home range as a height band of the terrain (0 = lowest valley, 1 = highest peak), set by the spawner.
+    // Wandering drifts back into it, so sheep stay on the lower grassy slopes and leopards up on the snowy ridges.
+    float habitatMin = 0f, habitatMax = 1f;
+    public void SetHabitat(float minFraction, float maxFraction) { habitatMin = minFraction; habitatMax = maxFraction; }
+
+    static float HeightFraction(Vector3 p)
+    {
+        var t = Terrain.activeTerrain;
+        if (t == null || t.terrainData.size.y <= 0f) return 0.5f;
+        return Mathf.Clamp01((p.y - t.GetPosition().y) / t.terrainData.size.y);
+    }
+
+    // Group home (herd area or leopard territory): wandering stays within homeRadius of it.
+    Vector3 home;
+    float homeRadius;   // 0 = no group
+    public void SetHome(Vector3 centre, float radius) { home = centre; homeRadius = radius; }
+    public void CopyHome(AnimalBrain other) { if (other != null) { home = other.home; homeRadius = other.homeRadius; } }
+
+    float OutsideHabitat(Vector3 p)
+    {
+        // A hungry predator follows its prey down the mountain, like real snow leopards.
+        if (IsPredator && HungerNeed >= desperateNeed) return 0f;
+        float f = HeightFraction(p);
+        float outside = f < habitatMin ? habitatMin - f : f > habitatMax ? f - habitatMax : 0f;
+        if (homeRadius > 0f)
+        {
+            Vector3 d = p - home; d.y = 0f;
+            outside += Mathf.Max(0f, d.magnitude - homeRadius) * 0.01f;   // 10 m outside ≈ 0.1 of the height range
+        }
+        return outside;
+    }
+    // [AI-GENERATED END]
+
     void Wander(float speed)
     {
         agent.speed =
             base_speed * speed;
+
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+        // A baby stays close to its mother instead of wandering off.
+        if (IsYoung && HasMotherNearby)
+        {
+            Vector3 mum = Mother.transform.position;
+            if ((mum - transform.position).sqrMagnitude > followMotherDistance * followMotherDistance)
+            {
+                agent.speed = base_speed * speed * 1.2f;   // trots to catch up
+                agent.SetDestination(mum - Mother.transform.forward * 1f);
+            }
+            return;
+        }
+        // [AI-GENERATED END]
 
         // Simulation speed affects wandering timer.
         wander_timer -=
@@ -1031,23 +1185,27 @@ public class AnimalBrain : MonoBehaviour
         if (wander_timer > 0f)
             return;
 
-        Vector3 rand_dir =
-            Random.insideUnitSphere * 10f;
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+        // Try a few random spots and keep the one most inside the home height band.
+        // Outside home, look further so the animal makes real progress back.
+        bool away = OutsideHabitat(transform.position) > 0f;
+        float reach = away ? 30f : 12f;
+        Vector3 best = Vector3.zero;
+        float bestScore = float.PositiveInfinity;
+        bool found = false;
 
-        rand_dir +=
-            transform.position;
-
-        NavMeshHit hit;
-
-        if (NavMesh.SamplePosition(
-                rand_dir,
-                out hit,
-                10f,
-                NavMesh.AllAreas))
+        for (int i = 0; i < (away ? 8 : 4); i++)
         {
-            agent.SetDestination(
-                hit.position);
+            Vector3 candidate = transform.position + Random.insideUnitSphere * reach;
+            if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 10f, NavMesh.AllAreas)) continue;
+            float score = OutsideHabitat(hit.position);
+            if (score < bestScore) { bestScore = score; best = hit.position; found = true; }
+            if (score <= 0f && !away) break;   // already home: any spot inside is fine
         }
+
+        if (found)
+            agent.SetDestination(best);
+        // [AI-GENERATED END]
 
         wander_timer =
             Random.Range(3f, 6f);

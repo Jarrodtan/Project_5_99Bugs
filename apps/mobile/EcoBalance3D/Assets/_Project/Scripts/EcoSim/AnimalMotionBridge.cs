@@ -60,6 +60,18 @@ public class AnimalMotionBridge : MonoBehaviour
         Transform watch = state == MotionState.Alert ? nearPredator
                         : state == MotionState.Stalk || state == MotionState.Run ? nearPrey : null;
         animator.SetLookTarget(watch != null ? watch.position : (Vector3?)null);
+        animator.SetGroundNormal(GroundNormal(transform.position));
+    }
+
+    // Slope of the terrain under the animal (flat ground, or no terrain, = straight up).
+    static Vector3 GroundNormal(Vector3 pos)
+    {
+        var t = Terrain.activeTerrain;   // one terrain in this game; activeTerrains would allocate every call
+        if (t == null) return Vector3.up;
+        Vector3 local = pos - t.GetPosition();
+        Vector3 size = t.terrainData.size;
+        if (local.x < 0f || local.z < 0f || local.x > size.x || local.z > size.z) return Vector3.up;
+        return t.terrainData.GetInterpolatedNormal(local.x / size.x, local.z / size.z);
     }
 
     MotionState Pick()

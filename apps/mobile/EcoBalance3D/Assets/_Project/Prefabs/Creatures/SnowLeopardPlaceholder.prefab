@@ -153,15 +153,15 @@ MonoBehaviour:
   species_data: {fileID: 0}
   curr_hunger: 100
   audio: {fileID: 0}
-  huntRadius: 12
-  fleeRadius: 7
+  huntRadius: 35
+  fleeRadius: 20
   catchDistance: 1.5
   eatDuration: 2
   chaseSpeedMultiplier: 1.4
   fleeSpeedMultiplier: 1.25
-  preyStarveAfterSeconds: 15
-  predatorStarveAfterSeconds: 20
-  forageRadius: 20
+  preyStarveAfterSeconds: 180
+  predatorStarveAfterSeconds: 300
+  forageRadius: 60
   biteSize: 20
 --- !u!82 &-400361134093648745
 AudioSource:
