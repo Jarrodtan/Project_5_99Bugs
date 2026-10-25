@@ -36,6 +36,7 @@ Shader "EcoBalance/GrassWind"
                 float _WindStrength;
                 float _WindSpeed;
             CBUFFER_END
+            float _EcoDryness;   // global, set by SeasonWeather: 0 lush green .. 1 dry brown
 
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; };
             struct Varyings
@@ -70,8 +71,10 @@ Shader "EcoBalance/GrassWind"
             {
                 Light sun = GetMainLight();
                 half lit = saturate(dot(normalize(i.normalWS), sun.direction)) * 0.55 + 0.45;
-                half3 col = lerp(_BaseColor.rgb, _TipColor.rgb, i.height) * sun.color * lit;
-                col += SampleSH(half3(0, 1, 0)) * 0.25 * lerp(_BaseColor.rgb, _TipColor.rgb, i.height);
+                half3 green = lerp(_BaseColor.rgb, _TipColor.rgb, i.height);
+                half3 dry = lerp(half3(0.36, 0.28, 0.14), half3(0.78, 0.66, 0.38), i.height);
+                half3 albedo = lerp(green, dry, saturate(_EcoDryness));
+                half3 col = albedo * sun.color * lit + SampleSH(half3(0, 1, 0)) * 0.25 * albedo;
                 return half4(MixFog(col, i.fog), 1);
             }
             ENDHLSL

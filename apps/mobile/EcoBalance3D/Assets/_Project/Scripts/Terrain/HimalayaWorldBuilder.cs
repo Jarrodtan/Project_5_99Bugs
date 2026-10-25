@@ -107,6 +107,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
             if (clockToEnable != null) clockToEnable.enabled = true;
 
             IsReady = true;
+            if (GetComponent<SeasonWeather>() == null) gameObject.AddComponent<SeasonWeather>();   // [AI-GENERATED] Claude Code (Claude Opus 5.5): seasons start with the world
             Built?.Invoke();
 
             // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong

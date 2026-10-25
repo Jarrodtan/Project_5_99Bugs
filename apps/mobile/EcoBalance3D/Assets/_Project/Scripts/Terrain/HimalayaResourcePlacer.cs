@@ -41,6 +41,8 @@ public class HimalayaResourcePlacer : MonoBehaviour
     [SerializeField] bool useRiver = true;
     [SerializeField] float riverSourceWidth = 2f;
     [SerializeField] float riverMouthWidth = 7f;
+    [Tooltip("River drinking spots refill this fast (a full spot is 100): meltwater keeps coming down the mountain.")]
+    [SerializeField] float riverRefillPerSecond = 40f;
     // [AI-GENERATED END]
 
     readonly List<GameObject> spawned = new List<GameObject>();
@@ -126,6 +128,7 @@ public class HimalayaResourcePlacer : MonoBehaviour
         spawned.Add(system);
 
         var banks = HimalayaRiver.Build(tb, system.transform, mat, riverSourceWidth, riverMouthWidth);
+        ClearTreesFromRiver(tb);
         var spotMat = MakeMaterial(waterColor);
         int placed = 0;
         foreach (var p in banks)
@@ -133,9 +136,29 @@ public class HimalayaResourcePlacer : MonoBehaviour
             if (placed >= config.maxWaterPatches) break;
             Spawn(water, p, waterSize, spotMat, $"Water Patch {placed + 1}");
             if (spawned[spawned.Count - 1].TryGetComponent(out Renderer r)) r.enabled = false;   // invisible drinking spot
+            if (spawned[spawned.Count - 1].TryGetComponent(out ResourcePatch spot))
+                spot.RegrowPerSecond = riverRefillPerSecond;   // fed by the mountain: refills fast (seasons can slow it)
             placed++;
         }
         Debug.Log($"[Himalaya] River: {HimalayaRiver.Path.Count} points, {placed} drinking spots on the banks.");
+    }
+
+    // Trees are placed before the river exists, so drop any that ended up in the water or on its banks.
+    void ClearTreesFromRiver(HimalayaTerrainBuilder tb)
+    {
+        var t = tb.Terrain;
+        if (t == null || !HimalayaRiver.Exists) return;
+        var td = t.terrainData;
+        var keep = new List<TreeInstance>(td.treeInstances.Length);
+        Vector3 origin = t.GetPosition();
+        foreach (var tree in td.treeInstances)
+        {
+            Vector3 world = origin + Vector3.Scale(tree.position, td.size);
+            if (HimalayaRiver.DistanceTo(world) > riverMouthWidth * 0.5f + 2.5f) keep.Add(tree);
+        }
+        int removed = td.treeInstances.Length - keep.Count;
+        if (removed > 0) td.SetTreeInstances(keep.ToArray(), true);
+        Debug.Log($"[Himalaya] Removed {removed} trees from the river.");
     }
     // [AI-GENERATED END]
 

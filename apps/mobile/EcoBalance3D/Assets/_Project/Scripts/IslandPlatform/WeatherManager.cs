@@ -31,6 +31,10 @@ public class WeatherManager : MonoBehaviour
 
     public TextMeshProUGUI txt;
 
+    /// <summary>Latest live condition ("Clear", "Rain", "Snow", ...) and temperature, or null before the first answer.</summary>
+    public static string LiveCondition;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+    public static float LiveTemperature;
+
     void Start()
     {
         StartCoroutine(FetchHimalayanWeather());
@@ -54,6 +58,8 @@ public class WeatherManager : MonoBehaviour
                 {
                     float curr_temp = data.main.temp;
                     string condi = data.weather[0].main;
+                    LiveCondition = condi;     // [AI-GENERATED] Claude Code (Claude Opus 5.5): SeasonWeather starts from the real weather
+                    LiveTemperature = curr_temp;
                     if (txt != null)
                     {
                         txt.text = $"Himalayas Live Temp: {curr_temp}°C\nCondition: {condi}";

@@ -62,10 +62,19 @@ public class ResourcePatch : MonoBehaviour
     void OnEnable() => All.Add(this);
     void OnDisable() => All.Remove(this);
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Season / weather effect on regrowth (set by SeasonWeather): 1 = normal, 0 = nothing grows.
+    public static float PlantGrowthMultiplier = 1f;
+    public static float WaterGrowthMultiplier = 1f;
+
+    bool IsWater => resource != null && resource.name.ToLowerInvariant().Contains("water");
+    // [AI-GENERATED END]
+
     void Update()
     {
         if (amount >= MaxAmount) return;
-        amount = Mathf.Min(MaxAmount, amount + regrowPerSecond * Time.deltaTime);
+        float mult = IsWater ? WaterGrowthMultiplier : PlantGrowthMultiplier;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+        amount = Mathf.Min(MaxAmount, amount + regrowPerSecond * mult * Time.deltaTime);
         UpdateVisual();
     }
 

@@ -22,8 +22,8 @@ public class DramaDirector : MonoBehaviour
 
     static DramaDirector instance;
 
-    GameObject banner;
-    TextMeshProUGUI caption;
+    GameObject banner, watchButton;
+    TextMeshProUGUI caption, status;
     Transform subject;
     Moment current;
     float hideAt, quietUntil;
@@ -37,15 +37,42 @@ public class DramaDirector : MonoBehaviour
         instance.Offer(moment, subjectToWatch, text);
     }
 
+    /// <summary>A news line with no Watch button (season or weather change). Shown unless a hunt is on screen.</summary>
+    public static void Announce(string text)
+    {
+        if (!Application.isPlaying) return;
+        if (instance == null) instance = new GameObject("[DramaDirector]").AddComponent<DramaDirector>();
+        var d = instance;
+        if (d.showing && d.subject != null && d.current == Moment.Hunt) return;
+        if (d.banner == null) d.BuildUI();
+        d.subject = null;
+        d.caption.text = text;
+        d.watchButton.SetActive(false);
+        d.banner.SetActive(true);
+        d.showing = true;
+        d.hideAt = Time.unscaledTime + ShowSeconds;
+    }
+
+    /// <summary>Small always-visible pill in the top-right corner, e.g. "Spring · Day 3 · Rain".</summary>
+    public static void SetStatus(string text)
+    {
+        if (!Application.isPlaying) return;
+        if (instance == null) instance = new GameObject("[DramaDirector]").AddComponent<DramaDirector>();
+        if (instance.banner == null) instance.BuildUI();
+        instance.status.text = text;
+    }
+
     void Offer(Moment moment, Transform target, string text)
     {
         float now = Time.unscaledTime;
-        if (showing ? moment <= current : now < quietUntil) return;
+        bool announcing = showing && subject == null;
+        if (!announcing && (showing ? moment <= current : now < quietUntil)) return;
 
         if (banner == null) BuildUI();
         subject = target;
         current = moment;
         caption.text = text;
+        watchButton.SetActive(true);
         banner.SetActive(true);
         showing = true;
         hideAt = now + ShowSeconds;
@@ -53,7 +80,8 @@ public class DramaDirector : MonoBehaviour
 
     void Update()
     {
-        if (showing && (Time.unscaledTime >= hideAt || subject == null)) Hide(QuietSeconds);
+        if (showing && Time.unscaledTime >= hideAt) Hide(QuietSeconds);
+        else if (showing && watchButton.activeSelf && subject == null) Hide(QuietSeconds);   // the animal is gone
     }
 
     void Hide(float quiet)
@@ -103,6 +131,7 @@ public class DramaDirector : MonoBehaviour
         caption.textWrappingMode = TextWrappingModes.Normal;
 
         var buttonGo = new GameObject("Watch", typeof(RectTransform), typeof(Image), typeof(Button));
+        watchButton = buttonGo;
         buttonGo.transform.SetParent(banner.transform, false);
         var brt = (RectTransform)buttonGo.transform;
         brt.anchorMin = brt.anchorMax = new Vector2(1f, 0.5f);
@@ -122,5 +151,21 @@ public class DramaDirector : MonoBehaviour
         label.alignment = TextAlignmentOptions.Center;
 
         banner.SetActive(false);
+
+        // Status pill, top-right: season, day and weather.
+        var pill = new GameObject("Status", typeof(RectTransform), typeof(Image));
+        pill.transform.SetParent(canvasGo.transform, false);
+        var prt = (RectTransform)pill.transform;
+        prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(1f, 1f);
+        prt.anchoredPosition = new Vector2(-40f, -40f);
+        prt.sizeDelta = new Vector2(620f, 90f);
+        pill.GetComponent<Image>().color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+        status = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+        status.transform.SetParent(pill.transform, false);
+        var srt = status.rectTransform;
+        srt.anchorMin = Vector2.zero; srt.anchorMax = Vector2.one; srt.offsetMin = srt.offsetMax = Vector2.zero;
+        status.fontSize = 40f;
+        status.color = Color.white;
+        status.alignment = TextAlignmentOptions.Center;
     }
 }
