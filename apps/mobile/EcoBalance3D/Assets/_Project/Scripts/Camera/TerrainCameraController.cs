@@ -45,6 +45,15 @@ public class TerrainCameraController : MonoBehaviour
     [Tooltip("Keyboard pan speed, per unit of distance, per second.")]
     [SerializeField] float keyPanSpeed = 0.8f;
 
+    [Header("Opening shot")]
+    [Tooltip("Start high above the mountains, then glide down into the valley where the grass is.")]
+    [SerializeField] bool introFlyIn = true;
+    [SerializeField] float introStartDistance = 230f;
+    [SerializeField] float introStartPitch = 60f;
+    [Tooltip("Smooth time during the fly-in. Larger = slower, gentler glide.")]
+    [SerializeField] float introSmoothTime = 1.1f;
+    [SerializeField] float introSeconds = 4f;
+
     [Header("Follow / POV")]
     [Tooltip("Distance used when following an animal starts.")]
     [SerializeField] float followDistance = 12f;
@@ -60,6 +69,8 @@ public class TerrainCameraController : MonoBehaviour
 
     Transform followTarget;
     bool pov;
+    bool introStarted;
+    float introTimeLeft;
 
     Camera cam;
     Vector2 tapStart;
@@ -87,6 +98,31 @@ public class TerrainCameraController : MonoBehaviour
         pitchTarget = startPitch;
         distTarget = startDistance;
         focus = focusTarget; yaw = yawTarget; pitch = pitchTarget; dist = distTarget;
+    }
+
+    // Once grass exists (the world has been built): jump high, then let the easing glide the
+    // camera down to a low view over the grass patch nearest the middle of all the grass.
+    void StartIntro()
+    {
+        introStarted = true;
+
+        Vector3 centre = Vector3.zero;
+        foreach (var p in ResourcePatch.All) centre += p.transform.position;
+        centre /= ResourcePatch.All.Count;
+
+        Vector3 best = centre;
+        float bestSqr = float.PositiveInfinity;
+        foreach (var p in ResourcePatch.All)
+        {
+            float d = (p.transform.position - centre).sqrMagnitude;
+            if (d < bestSqr) { bestSqr = d; best = p.transform.position; }
+        }
+
+        focusTarget = best;
+        yawTarget = startYaw; pitchTarget = startPitch; distTarget = startDistance;
+        dist = introStartDistance; pitch = introStartPitch;
+        distVel = pitchVel = 0f;
+        introTimeLeft = introSeconds;
     }
 
     public void Follow(Transform target)
@@ -121,6 +157,8 @@ public class TerrainCameraController : MonoBehaviour
         // Terrain may be created after Start (it's built at runtime).
         if (terrain == null && Terrain.activeTerrain != null) { terrain = Terrain.activeTerrain; ResetView(); }
         if (followTarget != null && !followTarget.gameObject.activeInHierarchy) StopFollowing();
+        if (introFlyIn && !introStarted && ResourcePatch.All.Count > 0) StartIntro();
+        if (introTimeLeft > 0f) introTimeLeft -= Time.unscaledDeltaTime;
 
         if (Touchscreen.current != null && Touch.activeTouches.Count > 0) HandleTouch();
         else HandleMouse();
@@ -285,11 +323,12 @@ public class TerrainCameraController : MonoBehaviour
 
     void Ease()
     {
-        float t = followTarget != null ? smoothTime * 0.5f : smoothTime;   // keep up with moving animals
+        float s = introTimeLeft > 0f ? introSmoothTime : smoothTime;
+        float t = followTarget != null ? s * 0.5f : s;   // keep up with moving animals
         focus = Vector3.SmoothDamp(focus, focusTarget, ref focusVel, t, Mathf.Infinity, Time.unscaledDeltaTime);
-        yaw = Mathf.SmoothDampAngle(yaw, yawTarget, ref yawVel, smoothTime, Mathf.Infinity, Time.unscaledDeltaTime);
-        pitch = Mathf.SmoothDampAngle(pitch, pitchTarget, ref pitchVel, smoothTime, Mathf.Infinity, Time.unscaledDeltaTime);
-        dist = Mathf.SmoothDamp(dist, distTarget, ref distVel, smoothTime, Mathf.Infinity, Time.unscaledDeltaTime);
+        yaw = Mathf.SmoothDampAngle(yaw, yawTarget, ref yawVel, s, Mathf.Infinity, Time.unscaledDeltaTime);
+        pitch = Mathf.SmoothDampAngle(pitch, pitchTarget, ref pitchVel, s, Mathf.Infinity, Time.unscaledDeltaTime);
+        dist = Mathf.SmoothDamp(dist, distTarget, ref distVel, s, Mathf.Infinity, Time.unscaledDeltaTime);
     }
 
     void Apply()
