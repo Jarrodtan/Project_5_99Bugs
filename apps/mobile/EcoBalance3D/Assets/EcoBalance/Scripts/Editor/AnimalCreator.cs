@@ -94,7 +94,7 @@ public class AnimalCreator : EditorWindow
             string p = AssetDatabase.GUIDToAssetPath(guid);
             if (p.Contains("/ScriptableObjects/Species/")) return Path.GetDirectoryName(p).Replace('\\', '/');
         }
-        return "Assets/_Project/ScriptableObjects/Species";
+        return "Assets/EcoBalance/ScriptableObjects/Species";
     }
 
     void save_data()

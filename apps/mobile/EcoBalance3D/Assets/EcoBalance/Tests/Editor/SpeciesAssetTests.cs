@@ -7,8 +7,8 @@ using UnityEditor;
 // being ignored after the switch to `relationships`).
 public class SpeciesAssetTests
 {
-    const string SpeciesDir = "Assets/_Project/ScriptableObjects/Species/";
-    const string ResourceDir = "Assets/_Project/ScriptableObjects/Resources/";
+    const string SpeciesDir = "Assets/EcoBalance/ScriptableObjects/Species/";
+    const string ResourceDir = "Assets/EcoBalance/ScriptableObjects/Resources/";
 
     static T Load<T>(string path) where T : UnityEngine.Object
     {

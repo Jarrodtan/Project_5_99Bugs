@@ -123,22 +123,22 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Selection & Inspection | `Selection/*`, `Inspection/*`, `InspectorPanel` | F09 | Yan De | Tap-to-select + inspector panel framework |
 | Audio | `Audio/AudioManager`, BGM + species SFX | — | Li Juan | Done: BGM/ambience, footsteps |
 | Population history (M2) | `packages/ecosim/Runtime/History`: `PopulationHistory`, `PopulationHistoryRecorder` | T05 / F05 | Wei Leong | Done: per-day species and resource values, read by the graph and the case detector; tested |
-| Investigation cases (M2, Free Exploration) | `packages/ecosim/Runtime/Cases`: `InvestigationCase`, `CaseEvaluator`, `CaseJournal`, `CaseDetector`; case assets in `Assets/_Project/Resources/Cases` | F07 / Field Journal | Wei Leong (engine), Dillon (UI), design (case content) | Engine done and tested; journal UI in progress |
+| Investigation cases (M2, Free Exploration) | `packages/ecosim/Runtime/Cases`: `InvestigationCase`, `CaseEvaluator`, `CaseJournal`, `CaseDetector`; case assets in `Assets/EcoBalance/Resources/Cases` | F07 / Field Journal | Wei Leong (engine), Dillon (UI), design (case content) | Engine done and tested; journal UI in progress |
 | Balance model (M2) | `packages/ecosim/Runtime/Balance`: `BalanceModel`, `BalanceParameters` | T03 | Wei Leong | Headless agent model of design's simulation spec; proves cases are reachable; tested |
-| Dev overlay (M2) | `Assets/_Project/Scripts/DevTools/SimDebugOverlay` | — | Wei Leong | Editor and development builds only: day, populations, case status |
-| Headless soak test (M2/M3) | `Assets/_Project/Scripts/DevTools/HeadlessSoakRunner`, `EcoBalanceCIBuild.BuildLinuxHeadless`, `tools/vm/soak.sh` | — | Wei Leong | Linux headless build from CI, run weekly on the team VM for 2,000 simulated days; report + history on Gitea ([details](infra/ci.md)) |
+| Dev overlay (M2) | `Assets/EcoBalance/Scripts/DevTools/SimDebugOverlay` | — | Wei Leong | Editor and development builds only: day, populations, case status |
+| Headless soak test (M2/M3) | `Assets/EcoBalance/Scripts/DevTools/HeadlessSoakRunner`, `EcoBalanceCIBuild.BuildLinuxHeadless`, `tools/vm/soak.sh` | — | Wei Leong | Linux headless build from CI, run weekly on the team VM for 2,000 simulated days; report + history on Gitea ([details](infra/ci.md)) |
 | Metrics export (CSV) | *(planned, reads PopulationHistory)* | T05 (optional) | Li Juan | Not started |
 | Weather & Hazard Events | *(planned)* | T06 (optional) | Unassigned | Not started |
-| CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/*/Tests/Editor/*`, `Assets/_Project/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks on every PR; unit + smoke + performance tests nightly on `main`; tag/manual Android APK to Gitea ([details](infra/ci.md)) |
+| CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/*/Tests/Editor/*`, `Assets/EcoBalance/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks on every PR; unit + smoke + performance tests nightly on `main`; tag/manual Android APK to Gitea ([details](infra/ci.md)) |
 | UI/UX design | Figma / `docs/design/ui-ux` | — | Nomitha, Shu Min (Design) | Wireframes / mockups |
 
 ## 4. Data stores
 
 | Store | What | Where |
 |---|---|---|
-| ScriptableObject assets | Species, resources, relationships, system configs | `Assets/_Project/ScriptableObjects/`, `Assets/_Project/Data/` |
+| ScriptableObject assets | Species, resources, relationships, system configs | `Assets/EcoBalance/ScriptableObjects/`, `Assets/EcoBalance/Data/` |
 | Runtime state | Populations and resource amounts (in memory, per play session) | `EcosystemSimulator.populations`, `ResourceDefinition.currentAmount` |
-| Scenes / prefabs | Level layout and agent prefabs | `Assets/Scenes/`, `Assets/_Project/Prefabs/` |
+| Scenes / prefabs | Level layout and agent prefabs | `Assets/Scenes/`, `Assets/EcoBalance/Prefabs/` |
 | Population history | Per-day species and resource values (in memory, newest 1,000 days) | `PopulationHistoryRecorder.History` |
 | Field Journal progress | Unlocked investigation case ids | Device `PlayerPrefs` (`EcoBalance.CaseJournal`) |
 | Exported metrics *(planned, T05)* | Population history as CSV | — |
@@ -192,7 +192,7 @@ Project_5_99Bugs/
 │       └── EcoBalance3D/                  # Unity app (assembly: Assembly-CSharp)
 │           ├── Assets/
 │           │   ├── Scenes/                # HomeScreen → ConfigurationScreen → HimalayaSimulation (M1 flow), IslandPlatform, T02_Test
-│           │   └── _Project/
+│           │   └── EcoBalance/
 │           │       ├── Audio/             # BGM + SFX
 │           │       ├── Data/              # app assets: AI needs/goals/actions, islands, camera, UI config
 │           │       ├── Prefabs/           # creatures, islands
