@@ -136,7 +136,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | "Watch!" moments + camera (M2) | `EcoSim/DramaDirector`, `HeartPop`, `Camera/TerrainCameraController` | — | Wei Leong (built), Yan De (camera owner: buttons, touch testing) | Done: banners for hunts / catches / mating / births with a one-tap follow; touch pan / pinch / twist / tilt, POV |
 | Metrics export (CSV) | *(planned, reads PopulationHistory)* | T05 (optional) | Li Juan | Not started |
 | CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/*/Tests/Editor/*`, `Assets/EcoBalance/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks on every PR; unit + smoke + performance tests nightly on `main`; tag/manual Android APK to Gitea ([details](infra/ci.md)) |
-| UI/UX design | Figma / `docs/design/ui-ux` | — | Nomitha, Shu Min (Design) | Wireframes / mockups |
+| UI/UX design | Figma / `docs/design/ui-ux` | — | Nomitha, Shu Min (Design) | 16 M2 wireframes in `docs/design/ui-ux/wireframes`; mockups to do |
 
 ## 4. Data stores
 
