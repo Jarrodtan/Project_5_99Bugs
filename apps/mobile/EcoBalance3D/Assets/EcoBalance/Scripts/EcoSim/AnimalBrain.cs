@@ -79,14 +79,14 @@ public class AnimalBrain : MonoBehaviour
 
     // Eat / starve
     [Header("Eat / Starve")]
-    // [AI-GENERATED] Claude Code (Claude Opus 5.5): timings follow the design spec, 1 real minute (at 1x) = 1 game day
-    [Tooltip("Hunger goes from full to empty in this many seconds for plant-eaters (180 = 3 game days).")]
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): timings in real seconds at 1x (1 game day = 120 s)
+    [Tooltip("Hunger goes from full to empty in this many seconds for plant-eaters (180 = 1.5 game days).")]
     public float preyStarveAfterSeconds = 180f;
 
-    [Tooltip("Hunger goes from full to empty in this many seconds for predators (300 = 5 game days).")]
+    [Tooltip("Hunger goes from full to empty in this many seconds for predators (300 = 2.5 game days).")]
     public float predatorStarveAfterSeconds = 300f;
 
-    [Tooltip("Thirst goes from full to empty in this many seconds (90 = 1.5 game days).")]
+    [Tooltip("Thirst goes from full to empty in this many seconds (90 = 0.75 game days).")]
     public float dehydrateAfterSeconds = 90f;
 
     [Tooltip("Need (0-1) above which the animal searches further for food or water.")]
