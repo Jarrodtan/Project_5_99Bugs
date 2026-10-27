@@ -330,16 +330,16 @@ public class AnimalBrain : MonoBehaviour
             FitAgentRadiusToModel();
 
         // Find collider to determine where the floor is.
-        Collider col = GetComponentInChildren<Collider>();
+        //Collider col = GetComponentInChildren<Collider>();
 
-        if (col != null && agent != null)
-        {
-            float dist =
-                col.bounds.min.y -
-                transform.position.y;
+        //if (col != null && agent != null)
+        //{
+        //    float dist =
+        //        col.bounds.min.y -
+        //        transform.position.y;
 
-            agent.baseOffset = -dist;
-        }
+        //    agent.baseOffset = -dist;
+        //}
 
         // Fall back to the species the spawner assigned.
         if (species_data == null &&
