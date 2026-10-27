@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 /// <summary>
 /// Orbits this transform around an <see cref="IOrbitTarget"/> pivot. All speeds, clamps,
 /// damping, and input bindings come from <see cref="CameraConfig"/> — no device hardcoding.
+/// Pan offsets the orbit pivot on the ground plane (yaw-relative front/back/left/right).
 /// </summary>
 public class OrbitCameraController : MonoBehaviour
 {
@@ -19,6 +20,7 @@ public class OrbitCameraController : MonoBehaviour
     InputAction _dragAction;
     InputAction _dragDeltaAction;
     InputAction _zoomAction;
+    InputAction _panAction;
 
     float _yaw;
     float _pitch;
@@ -32,6 +34,8 @@ public class OrbitCameraController : MonoBehaviour
 
     Vector3 _pivot;
     Vector3 _pivotVelocity;
+    Vector3 _panOffset;
+    Vector3 _panOffsetVelocity;
     bool _dragBlocked;
     bool _recentering;
     float _recenterYawVel;
@@ -51,10 +55,12 @@ public class OrbitCameraController : MonoBehaviour
         _dragAction = config.dragAction != null ? config.dragAction.action : null;
         _dragDeltaAction = config.dragDeltaAction != null ? config.dragDeltaAction.action : null;
         _zoomAction = config.zoomAction != null ? config.zoomAction.action : null;
+        _panAction = config.panAction != null ? config.panAction.action : null;
 
         _dragAction?.Enable();
         _dragDeltaAction?.Enable();
         _zoomAction?.Enable();
+        _panAction?.Enable();
 
         if (_orbitTarget != null)
             _orbitTarget.OrbitPivotChanged += OnOrbitPivotChanged;
@@ -68,6 +74,7 @@ public class OrbitCameraController : MonoBehaviour
         _dragAction?.Disable();
         _dragDeltaAction?.Disable();
         _zoomAction?.Disable();
+        _panAction?.Disable();
     }
 
     void Start()
@@ -92,6 +99,7 @@ public class OrbitCameraController : MonoBehaviour
         _yaw = _targetYaw;
         _pitch = _targetPitch;
         _distance = _targetDistance;
+        _panOffset = Vector3.zero;
         _pivot = _orbitTarget.GetPivotPoint();
         ApplyTransform();
     }
@@ -103,6 +111,7 @@ public class OrbitCameraController : MonoBehaviour
 
         UpdateDragInput();
         UpdateZoomInput();
+        UpdatePanInput();
         UpdateSmoothing();
         ApplyTransform();
     }
@@ -143,25 +152,47 @@ public class OrbitCameraController : MonoBehaviour
         _targetDistance = Mathf.Clamp(_targetDistance, config.minDistance, config.maxDistance);
     }
 
+    void UpdatePanInput()
+    {
+        if (_panAction == null || _recentering)
+            return;
+
+        var stick = _panAction.ReadValue<Vector2>();
+        if (stick.sqrMagnitude <= 0.0001f)
+            return;
+
+        var yawRotation = Quaternion.Euler(0f, _yaw, 0f);
+        var right = yawRotation * Vector3.right;
+        var forward = yawRotation * Vector3.forward;
+        _panOffset += (right * stick.x + forward * stick.y) * config.panSpeed * Time.deltaTime;
+
+        var maxRadius = Mathf.Max(0f, config.maxPanRadius);
+        if (maxRadius > 0f && _panOffset.sqrMagnitude > maxRadius * maxRadius)
+            _panOffset = _panOffset.normalized * maxRadius;
+    }
+
     void UpdateSmoothing()
     {
-        var pivotTarget = _orbitTarget.GetPivotPoint();
-        var pivotSmooth = config.pivotRecenterDamping;
+        var pivotTarget = _orbitTarget.GetPivotPoint() + _panOffset;
+        var pivotSmooth = config.panDamping > 0f ? config.panDamping : config.pivotRecenterDamping;
         _pivot = SmoothDampVector(_pivot, pivotTarget, ref _pivotVelocity, pivotSmooth);
 
         if (_recentering)
         {
             var recenterSmooth = config.pivotRecenterDamping;
+            _panOffset = SmoothDampVector(_panOffset, Vector3.zero, ref _panOffsetVelocity, recenterSmooth);
             _targetYaw = SmoothDampAngle(_targetYaw, config.defaultYaw, ref _recenterYawVel, recenterSmooth);
             _targetPitch = SmoothDampAngle(_targetPitch, config.defaultPitch, ref _recenterPitchVel, recenterSmooth);
             _targetDistance = SmoothDampFloat(_targetDistance, config.defaultDistance, ref _recenterDistVel, recenterSmooth);
             _targetPitch = Mathf.Clamp(_targetPitch, config.minPitch, config.maxPitch);
             _targetDistance = Mathf.Clamp(_targetDistance, config.minDistance, config.maxDistance);
 
-            if (ApproximatelyAngle(_targetYaw, config.defaultYaw) &&
+            if (_panOffset.sqrMagnitude < 0.0001f &&
+                ApproximatelyAngle(_targetYaw, config.defaultYaw) &&
                 ApproximatelyAngle(_targetPitch, config.defaultPitch) &&
                 Mathf.Abs(_targetDistance - config.defaultDistance) < 0.01f)
             {
+                _panOffset = Vector3.zero;
                 _targetYaw = config.defaultYaw;
                 _targetPitch = config.defaultPitch;
                 _targetDistance = config.defaultDistance;
@@ -184,6 +215,7 @@ public class OrbitCameraController : MonoBehaviour
         _recenterPitchVel = 0f;
         _recenterDistVel = 0f;
         _pivotVelocity = Vector3.zero;
+        _panOffsetVelocity = Vector3.zero;
     }
 
     void ApplyTransform()
