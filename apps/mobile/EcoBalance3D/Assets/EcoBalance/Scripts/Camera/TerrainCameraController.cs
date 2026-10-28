@@ -179,7 +179,7 @@ public class TerrainCameraController : MonoBehaviour
         {
             focusTarget = followTarget.position;
             // Drift round behind the animal as it turns, unless the player is twisting the view themselves.
-            if (!pov && Touch.activeTouches.Count < 2 && (Mouse.current == null || !Mouse.current.rightButton.isPressed))
+            if (!pov && Touch.activeTouches.Count < 2 && (Mouse.current == null || !Mouse.current.leftButton.isPressed))
                 yawTarget = Mathf.MoveTowardsAngle(yawTarget, followTarget.eulerAngles.y,
                     Mathf.Abs(Mathf.DeltaAngle(yawTarget, followTarget.eulerAngles.y)) * followTurnSpeed * Time.unscaledDeltaTime);
         }
@@ -209,7 +209,7 @@ public class TerrainCameraController : MonoBehaviour
             if (t.phase == UnityEngine.InputSystem.TouchPhase.Began) { tapStart = t.screenPosition; tapCandidate = true; }
             if ((t.screenPosition - tapStart).sqrMagnitude > 20f * 20f) tapCandidate = false;
 
-            if (t.phase == UnityEngine.InputSystem.TouchPhase.Moved && !tapCandidate) Pan(t.delta);
+            if (t.phase == UnityEngine.InputSystem.TouchPhase.Moved && !tapCandidate) Orbit(t.delta);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Google Earth style, one finger spins
             if (t.phase == UnityEngine.InputSystem.TouchPhase.Ended && tapCandidate) Tap(t.screenPosition);
             return;
         }
@@ -228,9 +228,8 @@ public class TerrainCameraController : MonoBehaviour
         float angle = Mathf.Atan2((b.screenPosition - a.screenPosition).y, (b.screenPosition - a.screenPosition).x);
         yawTarget -= Mathf.DeltaAngle(prevAngle * Mathf.Rad2Deg, angle * Mathf.Rad2Deg);
 
-        // Tilt: both fingers moving up or down together.
-        if (Mathf.Sign(a.delta.y) == Mathf.Sign(b.delta.y))
-            pitchTarget -= (a.delta.y + b.delta.y) * 0.5f * rotateSpeed;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): two fingers dragging together move across the map.
+        Pan((a.delta + b.delta) * 0.5f);
     }
 
     void HandleMouse()
@@ -251,16 +250,22 @@ public class TerrainCameraController : MonoBehaviour
 
         if (mouse.leftButton.wasPressedThisFrame) { tapStart = pos; tapCandidate = true; }
         if ((pos - tapStart).sqrMagnitude > 6f * 6f) tapCandidate = false;
-        if (mouse.leftButton.isPressed && !tapCandidate) Pan(delta);
+        if (mouse.leftButton.isPressed && !tapCandidate) Orbit(delta);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): left drag spins, right/middle drag move
         if (mouse.leftButton.wasReleasedThisFrame && tapCandidate) Tap(pos);
 
         if (mouse.middleButton.isPressed) Pan(delta);
-        if (mouse.rightButton.isPressed)
-        {
-            yawTarget += delta.x * rotateSpeed;
-            pitchTarget -= delta.y * rotateSpeed;
-        }
+        if (mouse.rightButton.isPressed) Pan(delta);
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Spin round the point being looked at (sideways) and tilt (up/down), like Google Earth.
+    // In first person it looks around instead.
+    void Orbit(Vector2 screenDelta)
+    {
+        yawTarget += screenDelta.x * rotateSpeed;
+        pitchTarget -= screenDelta.y * rotateSpeed;
+    }
+    // [AI-GENERATED END]
 
     // Read on its own so the wheel still zooms while a (simulated) touch is active.
     void HandleScroll()
@@ -313,11 +318,29 @@ public class TerrainCameraController : MonoBehaviour
     void Tap(Vector2 screenPos)
     {
         var ray = cam.ScreenPointToRay(screenPos);
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+        // Thin ray first; if it misses a small, moving animal, try a fatter one (fingers are not precise),
+        // and open the card here too, since OnMouseDown on the animal never fires for touch.
+        EcoEntity entity = null;
         if (Physics.Raycast(ray, out var hit, 1000f, tapMask, QueryTriggerInteraction.Collide))
+            entity = hit.collider.GetComponentInParent<EcoEntity>();
+        if (entity == null)
         {
-            var entity = hit.collider.GetComponentInParent<EcoEntity>();
-            if (entity != null) { Follow(entity.transform); return; }
+            float best = float.PositiveInfinity;   // the sphere also touches the ground: take the nearest animal it touches
+            foreach (var h in Physics.SphereCastAll(ray, 0.03f * dist + 0.3f, 1000f, tapMask, QueryTriggerInteraction.Collide))
+            {
+                var e = h.collider.GetComponentInParent<EcoEntity>();
+                if (e != null && h.distance < best) { best = h.distance; entity = e; }
+            }
         }
+        if (entity != null)
+        {
+            Follow(entity.transform);
+            var brain = entity.GetComponentInChildren<AnimalBrain>();
+            if (brain != null && AnimalInfoUI.Instance != null) AnimalInfoUI.Instance.ShowAnimal(brain);
+            return;
+        }
+        // [AI-GENERATED END]
         StopFollowing();
         if (AnimalInfoUI.Instance != null) AnimalInfoUI.Instance.HidePanel();   // tapping empty ground closes the animal card
     }
@@ -363,6 +386,23 @@ public class TerrainCameraController : MonoBehaviour
         var rot = Quaternion.Euler(pitch, yaw, 0f);
         var pos = focus + rot * (Vector3.back * dist);
 
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+        // A hill between the camera and what it looks at: rise gently over it and look down past it,
+        // instead of zooming in. Eased both ways, so it never jumps.
+        float lift = LiftToSee(focus, pos);
+        viewLift = Mathf.SmoothDamp(viewLift, lift, ref viewLiftVel, lift > viewLift ? 0.35f : 0.8f, Mathf.Infinity, Time.unscaledDeltaTime);
+        pos.y += viewLift;
+        // [AI-GENERATED END]
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): the camera itself stays over the terrain, not just the point
+        // it looks at, so zooming out never shows the empty edge of the world.
+        if (terrain != null)
+        {
+            Vector3 tMin = terrain.GetPosition(), tMax = tMin + terrain.terrainData.size;
+            pos.x = Mathf.Clamp(pos.x, tMin.x + 2f, tMax.x - 2f);
+            pos.z = Mathf.Clamp(pos.z, tMin.z + 2f, tMax.z - 2f);
+        }
+
         // Don't go through mountains.
         float ground = GroundHeight(pos) + minHeightAboveGround;
         if (pos.y < ground) pos.y = ground;
@@ -370,6 +410,27 @@ public class TerrainCameraController : MonoBehaviour
         transform.position = pos;
         transform.rotation = Quaternion.LookRotation(focus - pos, Vector3.up);
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    float viewLift, viewLiftVel;
+
+    // How much higher the camera must be so the line down to the focus clears every hill on the way.
+    float LiftToSee(Vector3 from, Vector3 to)
+    {
+        if (terrain == null) return 0f;
+        const int Steps = 20;
+        const float Clearance = 1.5f;
+        float need = 0f;
+        for (int i = 3; i <= Steps; i++)   // skip the bit right at the focus, which sits on the ground
+        {
+            float t = i / (float)Steps;
+            var p = Vector3.Lerp(from, to, t);
+            float gap = GroundHeight(p) + Clearance - p.y;
+            if (gap > 0f) need = Mathf.Max(need, gap / t);   // raising the camera by h raises this point by t*h
+        }
+        return Mathf.Min(need, dist);   // never more than the zoom distance
+    }
+    // [AI-GENERATED END]
 
     Quaternion YawRotation() => Quaternion.Euler(0f, yaw, 0f);
 

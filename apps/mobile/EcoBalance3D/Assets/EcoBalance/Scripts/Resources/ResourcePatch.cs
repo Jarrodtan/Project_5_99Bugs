@@ -94,14 +94,14 @@ public class ResourcePatch : MonoBehaviour
     }
 
     // Nearest edible patch of one of the wanted resources within radius (radius <= 0 = unlimited).
-    public static ResourcePatch FindNearest(Vector3 from, IList<ResourceDefinition> wanted, float radius)
+    public static ResourcePatch FindNearest(Vector3 from, IList<ResourceDefinition> wanted, float radius, System.Func<ResourcePatch, bool> skip = null)  // [AI-GENERATED] Claude Code (Claude Opus 5.5): skip = e.g. unreachable
     {
         ResourcePatch best = null;
         float bestSqr = radius > 0f ? radius * radius : float.PositiveInfinity;
 
         foreach (var patch in All)
         {
-            if (patch == null || !patch.IsEdible || !wanted.Contains(patch.resource)) continue;
+            if (patch == null || !patch.IsEdible || !wanted.Contains(patch.resource) || (skip != null && skip(patch))) continue;
 
             float sqr = (patch.transform.position - from).sqrMagnitude;
             if (sqr < bestSqr)

@@ -22,6 +22,7 @@ public class AnimalMotionBridge : MonoBehaviour
 
     AnimalBrain brain;
     ProcAnimator animator;
+    bool wasStanding = true;
     Transform nearPredator, nearPrey;
     bool predatorNear => nearPredator != null;
     bool preyNear => nearPrey != null;
@@ -78,14 +79,19 @@ public class AnimalMotionBridge : MonoBehaviour
     {
         if (brain.IsCaught) return MotionState.Die;
 
-        bool standing = animator.Speed < standingSpeed;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): two thresholds instead of one. An animal creeping at about
+        // standingSpeed used to flip Eat/Walk every frame, which looked like shaking.
+        if (wasStanding && animator.Speed > standingSpeed * 2.5f) wasStanding = false;
+        else if (!wasStanding && animator.Speed < standingSpeed) wasStanding = true;
+        bool standing = wasStanding;
         switch (brain.CurrentAction)
         {
             case AnimalBrain.AnimalAction.Fleeing:
                 return MotionState.Flee;
             case AnimalBrain.AnimalAction.Hunting:
-                // A predator stops on its catch to eat.
-                return standing ? MotionState.Eat : MotionState.Run;
+                // A predator stops on its catch to eat; creeps low while stalking; runs on the pounce.
+                if (standing) return MotionState.Eat;
+                return brain.IsStalking ? MotionState.Stalk : MotionState.Run;
             case AnimalBrain.AnimalAction.EatingGrass:
                 return standing ? MotionState.Eat : MotionState.Walk;
             case AnimalBrain.AnimalAction.DrinkingWater:

@@ -22,6 +22,9 @@ MonoBehaviour:
   - type: 0
     targetSpecies: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
     targetResource: {fileID: 0}
+  - type: 1
+    targetSpecies: {fileID: 0}
+    targetResource: {fileID: 11400000, guid: f6b50b4acdcea254cb9ed2f6fa536c22, type: 2}
   reproductionRate: 0.1
   starvationThreshold: 0.1
   needs: []

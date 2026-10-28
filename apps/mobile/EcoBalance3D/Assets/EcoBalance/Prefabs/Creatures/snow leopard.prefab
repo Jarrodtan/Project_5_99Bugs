@@ -102,8 +102,8 @@ MonoBehaviour:
   eatDuration: 2
   chaseSpeedMultiplier: 1.4
   fleeSpeedMultiplier: 1.25
-  preyStarveAfterSeconds: 180
-  predatorStarveAfterSeconds: 300
+  preyStarveAfterSeconds: 360
+  predatorStarveAfterSeconds: 600
   forageRadius: 60
   biteSize: 20
 --- !u!82 &1049992325530015973

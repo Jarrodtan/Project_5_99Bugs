@@ -16,6 +16,23 @@ public class CreatureSpawner : MonoBehaviour {
     // Habitat: blue sheep graze in herds on grassy slopes; snow leopards keep to higher, rockier ground above them.
     [Tooltip("Lowest spawn height, as a fraction of the terrain's height range (0 = valley floor).")]
     [Range(0f, 1f)] public float minElevationFraction = 0f;
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    [Tooltip("Real habitat heights in metres above sea level. When set (max > 0), these replace the fractions above, "
+           + "e.g. blue sheep 4000-5200 m (alpine meadows above the tree line), snow leopard 4200-5500 m (rocky ridges).")]
+    public float minElevationMeters = 0f;
+    public float maxElevationMeters = 0f;
+
+    // Turn the metre band into fractions of this map's height range, so the rest of the code is unchanged.
+    const float EdgeMargin = 0.08f;   // keep spawns 8% in from the map edge, where the land stops
+
+    void ApplyMetreBand(HimalayaTerrainBuilder tb)
+    {
+        if (maxElevationMeters <= 0f || tb == null) return;
+        float range = Mathf.Max(1f, tb.MaxElevation - tb.MinElevation);
+        minElevationFraction = Mathf.Clamp01((minElevationMeters - tb.MinElevation) / range);
+        maxElevationFraction = Mathf.Clamp(Mathf.Max(minElevationFraction + 0.01f, (maxElevationMeters - tb.MinElevation) / range), 0.05f, 1f);
+    }
+    // [AI-GENERATED END]
     [Tooltip("Optional: only spawn within Near Resource Distance of a patch of this (e.g. Grass), so herds start by their food.")]
     public ResourceDefinition nearResource;
     public float nearResourceDistance = 12f;
@@ -54,6 +71,8 @@ public class CreatureSpawner : MonoBehaviour {
         {
             Vector2 r = Random.insideUnitCircle * groupRadius;
             if (!NavMesh.SamplePosition(centre + new Vector3(r.x, 0f, r.y), out var hit, 6f, NavMesh.AllAreas)) continue;
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): the whole herd on the same bank as its centre, never split by the river.
+            if (HimalayaRiver.Exists && HimalayaRiver.Side(hit.position) != HimalayaRiver.Side(centre)) continue;
             float gap = NearestSpawnedDistance(hit.position);
             if (gap >= minSpacing) { point = hit.position; return true; }
             if (gap > bestGap) { bestGap = gap; fallback = hit.position; }   // most room found so far
@@ -96,11 +115,12 @@ public class CreatureSpawner : MonoBehaviour {
         if (!world.IsReady) return false;   // NavMesh doesn't exist yet
 
         var tb = world.TerrainBuilder;
+        ApplyMetreBand(tb);
         float maxElev = tb.MinElevation + (tb.MaxElevation - tb.MinElevation) * maxElevationFraction;
         float minElev = tb.MinElevation + (tb.MaxElevation - tb.MinElevation) * minElevationFraction;
         for (int i = 0; i < 400; i++)
         {
-            float u = Random.value, v = Random.value;
+            float u = Random.Range(EdgeMargin, 1f - EdgeMargin), v = Random.Range(EdgeMargin, 1f - EdgeMargin);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): not at the map edge
             float elev = tb.ElevationMeters(u, v);
             if (elev > maxElev || elev < minElev) continue;
             if (tb.SlopeDegrees(u, v) > maxSpawnSlope) continue;
@@ -117,7 +137,7 @@ public class CreatureSpawner : MonoBehaviour {
         // take the nearest walkable ground to a random spot in the band rather than spawn nothing.
         for (int i = 0; i < 100; i++)
         {
-            float u = Random.value, v = Random.value;
+            float u = Random.Range(EdgeMargin, 1f - EdgeMargin), v = Random.Range(EdgeMargin, 1f - EdgeMargin);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): not at the map edge
             float elev = tb.ElevationMeters(u, v);
             if (elev > maxElev || elev < minElev) continue;
             if (NavMesh.SamplePosition(tb.WorldPosition(u, v), out var near, 25f, NavMesh.AllAreas))

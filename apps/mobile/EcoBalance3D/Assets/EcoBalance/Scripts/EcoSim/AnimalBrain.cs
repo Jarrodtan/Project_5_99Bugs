@@ -77,17 +77,43 @@ public class AnimalBrain : MonoBehaviour
     [Tooltip("Speed multiplier while fleeing.")]
     public float fleeSpeedMultiplier = 1.25f;
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Real snow leopard hunts: only when hungry, creep up low and slow using the slope for cover,
+    // then a short fast sprint. Prey only flee from a predator they can actually see.
+    [Header("Stalk and pounce")]
+    [Tooltip("Only hunts when hunger is below this (100 = full), so a leopard that just ate leaves the herd alone.")]
+    [Range(0f, 100f)] public float huntBelowHunger = 60f;
+    [Tooltip("While stalking, moves at this fraction of walking speed.")]
+    public float stalkSpeedMultiplier = 0.45f;
+    [Tooltip("Starts the sprint when this close, or as soon as the prey runs.")]
+    public float pounceDistance = 8f;
+    [Tooltip("Sprint speed (snow leopards are much faster than blue sheep over a short dash).")]
+    public float sprintSpeedMultiplier = 2.2f;
+    [Tooltip("Gives up a sprint after this many seconds (at 1x) and rests, like real leopards.")]
+    public float maxSprintSeconds = 6f;
+    [Tooltip("Rest after a failed hunt (seconds at 1x).")]
+    public float giveUpRestSeconds = 20f;
+    [Tooltip("Prey always notice a predator this close (hearing, smell), hill or no hill.")]
+    public float senseAnywayDistance = 10f;
+    [Tooltip("A crouching, stalking predator is only spotted this close.")]
+    public float spotStalkerDistance = 9f;
+
+    public bool IsStalking { get; private set; }
+    public bool IsFleeing => CurrentAction == AnimalAction.Fleeing;
+    float sprintTimer, huntRestTimer;
+    // [AI-GENERATED END]
+
     // Eat / starve
     [Header("Eat / Starve")]
     // [AI-GENERATED] Claude Code (Claude Opus 5.5): timings in real seconds at 1x (1 game day = 120 s)
-    [Tooltip("Hunger goes from full to empty in this many seconds for plant-eaters (180 = 1.5 game days).")]
-    public float preyStarveAfterSeconds = 180f;
+    [Tooltip("Hunger goes from full to empty in this many seconds for plant-eaters (360 = 3 game days).")]
+    public float preyStarveAfterSeconds = 360f;
 
-    [Tooltip("Hunger goes from full to empty in this many seconds for predators (300 = 2.5 game days).")]
-    public float predatorStarveAfterSeconds = 300f;
+    [Tooltip("Hunger goes from full to empty in this many seconds for predators (600 = 5 game days).")]
+    public float predatorStarveAfterSeconds = 600f;
 
-    [Tooltip("Thirst goes from full to empty in this many seconds (90 = 0.75 game days).")]
-    public float dehydrateAfterSeconds = 90f;
+    [Tooltip("Thirst goes from full to empty in this many seconds (240 = 2 game days).")]
+    public float dehydrateAfterSeconds = 240f;
 
     [Tooltip("Need (0-1) above which the animal searches further for food or water.")]
     [Range(0f, 1f)] public float desperateNeed = 0.6f;
@@ -291,6 +317,11 @@ public class AnimalBrain : MonoBehaviour
         caught_timer = caughtDuration;
     }
 
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): patches this animal found it can't walk to, and until when to skip them.
+    readonly Dictionary<ResourcePatch, float> unreachable = new Dictionary<ResourcePatch, float>();
+    bool IsUnreachable(ResourcePatch p) =>
+        p != null && unreachable.TryGetValue(p, out var until) && Time.time < until;
+
     // Latest utility score of an action (for debug UI).
     public float GetScore(AnimalAction action) => scores[(int)action];
 
@@ -302,6 +333,35 @@ public class AnimalBrain : MonoBehaviour
                 Mathf.Abs(transform.lossyScale.x),
                 Mathf.Abs(transform.lossyScale.z))
             : 0f;
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Every animal is male or female (half and half); only a male and a female can mate.
+    public enum Sex { Female, Male }
+    public Sex AnimalSex { get; private set; }
+    bool sexChosen;
+    public string SexSymbol => AnimalSex == Sex.Male ? "♂" : "♀";   // ♂ / ♀
+
+    static readonly List<AnimalBrain> all = new List<AnimalBrain>();
+    void OnEnable()
+    {
+        if (!sexChosen) { AnimalSex = Random.value < 0.5f ? Sex.Female : Sex.Male; sexChosen = true; }   // Random isn't allowed in field initialisers
+        all.Add(this);
+    }
+    void OnDisable() { all.Remove(this); }
+
+    // Nearest ready animal of the same species and the other sex.
+    Transform NearestMate(Vector3 pos, float radius)
+    {
+        Transform best = null; float bestSq = radius * radius;
+        foreach (var o in all)
+        {
+            if (o == this || o.species_data != species_data || o.AnimalSex == AnimalSex || !o.CanReproduce) continue;
+            float d = (o.transform.position - pos).sqrMagnitude;
+            if (d < bestSq) { bestSq = d; best = o.transform; }
+        }
+        return best;
+    }
+    // [AI-GENERATED END]
 
     void Start()
     {
@@ -316,6 +376,9 @@ public class AnimalBrain : MonoBehaviour
             agent.updateRotation = true;
             agent.angularSpeed = 360f;
             base_angular_speed = agent.angularSpeed;
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): with everyone at the same priority, agents in a herd
+            // keep shoving each other and shake on the spot. Different priorities let one give way.
+            agent.avoidancePriority = Random.Range(30, 70);
         }
 
         audio = GetComponent<AudioSource>();
@@ -433,6 +496,9 @@ public class AnimalBrain : MonoBehaviour
         }
 
         // ...but move / catch / eat every frame.
+        if (huntRestTimer > 0f) huntRestTimer -= dt;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+        if (CurrentAction != AnimalAction.Hunting && (IsStalking || sprintTimer > 0f)) { sprintTimer = 0f; SetCrouch(false); }
+
         if (busy_timer > 0f)
         {
             busy_timer -= dt;
@@ -611,7 +677,7 @@ public class AnimalBrain : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): a leopard that is even a little hungry and sees prey goes for it
         // (before, it waited until starving, so hunts were rare). A full leopard (just ate) still rests.
         scores[(int)AnimalAction.Hunting] =
-            prey != null && HungerNeed > 0.15f
+            prey != null && curr_hunger < huntBelowHunger && huntRestTimer <= 0f
                 ? huntWeight * (0.4f + HungerNeed) * DistanceFactor(prey.position, huntRadius)
                 : 0f;
 
@@ -706,6 +772,10 @@ public class AnimalBrain : MonoBehaviour
             predator = null;
         }
 
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): only flee from what can be seen: hills block the view
+        // (raycast), and a crouching stalker is only noticed up close.
+        if (predator != null && !CanSee(predator)) predator = null;
+
         if (IsPredator)
         {
             prey = EcoRegistry.NearestPrey(
@@ -730,7 +800,7 @@ public class AnimalBrain : MonoBehaviour
             food_patch = ResourcePatch.FindNearest(
                 pos,
                 food_resources,
-                SearchRadius(HungerNeed));
+                SearchRadius(HungerNeed), IsUnreachable);
         }
 
         if (water_resources.Count > 0)
@@ -738,17 +808,13 @@ public class AnimalBrain : MonoBehaviour
             water_patch = ResourcePatch.FindNearest(
                 pos,
                 water_resources,
-                SearchRadius(ThirstNeed));
+                SearchRadius(ThirstNeed), IsUnreachable);
         }
 
         // Nearest animal of the same species, if both are ready to mate.
         if (CanReproduce)
         {
-            mate = EcoRegistry.Nearest(
-                pos,
-                species_data,
-                MateRadius,
-                transform);
+            mate = NearestMate(pos, MateRadius);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): male + female only
 
             if (mate != null &&
                 (!mate.TryGetComponent(out mate_brain) ||
@@ -860,10 +926,15 @@ public class AnimalBrain : MonoBehaviour
     // FLEE
     // ---------------------------------------------------------
 
+    int fleeSide;
+
     bool Flee(float speed)
     {
         if (predator == null)
+        {
+            fleeSide = 0;
             return false;
+        }
 
         Vector3 away =
             transform.position -
@@ -895,9 +966,7 @@ public class AnimalBrain : MonoBehaviour
                 Vector3.Cross(
                     Vector3.up,
                     away.normalized) *
-                (Random.value < 0.5f
-                    ? 12f
-                    : -12f);
+                (fleeSide == 0 ? (fleeSide = Random.value < 0.5f ? 1 : -1) : fleeSide) * 12f;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): pick a side once, not every frame
 
             if (!NavMesh.SamplePosition(
                     transform.position + side,
@@ -936,9 +1005,22 @@ public class AnimalBrain : MonoBehaviour
 
         to.y = 0f;
 
-        // Reached resource.
+        // Reached resource. [AI-GENERATED] Claude Code (Claude Opus 5.5): also counts when the agent has stopped
+        // close by because others crowd the patch, instead of jostling forever trying to reach the centre.
+        bool crowdedStop = to.magnitude <= catchDistance + 2.5f && agent.hasPath && !agent.pathPending &&
+                           agent.pathStatus == NavMeshPathStatus.PathComplete && agent.velocity.sqrMagnitude < 0.04f;
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): the patch can't be reached (across the river, up a cliff):
+        // the agent would stand at the nearest point re-trying forever and shake. Forget it for a while.
+        if (!agent.pathPending && agent.hasPath && agent.pathStatus != NavMeshPathStatus.PathComplete)
+        {
+            unreachable[patch] = Time.time + 30f;
+            if (isWater) water_patch = null; else food_patch = null;
+            agent.ResetPath();
+            return false;
+        }
         if (to.magnitude <=
-            catchDistance + 0.5f)
+            catchDistance + 0.5f || crowdedStop)
         {
             // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
             // Fill up by what the patch actually gave: a nearly empty patch barely helps.
@@ -1017,6 +1099,7 @@ public class AnimalBrain : MonoBehaviour
 
             // Predator has successfully eaten.
             curr_hunger = 100f;
+            sprintTimer = 0f; SetCrouch(false);   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
             busy_timer =
                 eatDuration;
@@ -1035,16 +1118,73 @@ public class AnimalBrain : MonoBehaviour
             return true;
         }
 
-        agent.speed =
-            base_speed *
-            chaseSpeedMultiplier *
-            speed;
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+        Vector3 gap = prey.position - transform.position; gap.y = 0f;
+        bool preyRunning = prey_brain != null && prey_brain.IsFleeing;
+        bool sprinting = sprintTimer > 0f || preyRunning || gap.magnitude <= pounceDistance;
+
+        if (sprinting)
+        {
+            SetCrouch(false);
+            sprintTimer += Time.deltaTime * speed;
+            if (sprintTimer > maxSprintSeconds)
+            {
+                // Out of breath: give up and rest before trying again.
+                sprintTimer = 0f;
+                huntRestTimer = giveUpRestSeconds;
+                agent.ResetPath();
+                return false;
+            }
+            agent.speed = base_speed * sprintSpeedMultiplier * speed;
+        }
+        else
+        {
+            SetCrouch(true);   // creep in low and slow
+            agent.speed = base_speed * stalkSpeedMultiplier * speed;
+        }
 
         agent.SetDestination(
             prey.position);
 
         return true;
     }
+
+    // Eye-level raycast: is the line between us blocked by the ground? Stalkers also need to be close.
+    bool CanSee(Transform other)
+    {
+        Vector3 d = other.position - transform.position; d.y = 0f;
+        float flat = d.magnitude;
+        // Close by, a sheep hears or smells a leopard even without seeing it.
+        if (flat <= senseAnywayDistance) { DebugSight(other, Color.yellow); return true; }
+        if (other.TryGetComponent(out AnimalBrain b) && b.IsStalking && flat > spotStalkerDistance) return false;
+
+        // Head height to head height; small bumps right at either end don't count, only a real hill between.
+        Vector3 eye = transform.position + Vector3.up * 1.5f;
+        Vector3 target = other.position + Vector3.up * 1.2f;
+        float len = Vector3.Distance(eye, target);
+        foreach (var hit in Physics.RaycastAll(eye, (target - eye) / len, len, ~0, QueryTriggerInteraction.Ignore))
+            if (hit.collider is TerrainCollider && hit.distance > 2f && hit.distance < len - 2f)
+            {
+                DebugSight(other, Color.red, eye + (target - eye) / len * hit.distance);
+                return false;
+            }
+        DebugSight(other, Color.green);
+        return true;
+    }
+
+    [Tooltip("Draw sight lines in the Scene view (Game view with Gizmos on): green = sees, red = hill blocks (stops at the hill), yellow = close enough to hear/smell.")]
+    public bool showSightLines = true;
+
+    void DebugSight(Transform other, Color c, Vector3? stopAt = null)
+    {
+        if (!showSightLines) return;
+        Vector3 eye = transform.position + Vector3.up * 1.5f;
+        Debug.DrawLine(eye, stopAt ?? other.position + Vector3.up * 1.2f, c, decisionInterval);
+    }
+
+    // Stalking flag: the procedural animator shows the low, creeping Stalk pose (AnimalMotionBridge).
+    void SetCrouch(bool on) => IsStalking = on;
+    // [AI-GENERATED END]
 
     // ---------------------------------------------------------
     // REPRODUCE
@@ -1133,7 +1273,10 @@ public class AnimalBrain : MonoBehaviour
     // [AI-GENERATED] Claude Code (Claude Opus 5.5): readable species name for captions, e.g. "snow leopard"
     public static string SpeciesLabel(SpeciesDefinition s, bool plural = false)
     {
-        string name = s != null && !string.IsNullOrEmpty(s.speciesName) ? s.speciesName.ToLowerInvariant() : "animal";
+        // "BlueSheep" -> "blue sheep": a space before each capital, then lower case.
+        string name = s != null && !string.IsNullOrEmpty(s.speciesName)
+            ? System.Text.RegularExpressions.Regex.Replace(s.speciesName, "(?<=[a-z])(?=[A-Z])", " ").ToLowerInvariant()
+            : "animal";
         return plural ? (name.EndsWith("sheep") ? name : name + "s") : name;
     }
 

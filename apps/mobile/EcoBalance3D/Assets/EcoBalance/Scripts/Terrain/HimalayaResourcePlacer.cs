@@ -63,7 +63,8 @@ public class HimalayaResourcePlacer : MonoBehaviour
         // (alpine grassland, where blue sheep graze). Blades sway in the wind (EcoBalance/GrassWind).
         var material = MakeGrassMaterial();
         if (grassTuft == null) grassTuft = GrassTuftMesh.Build(config.seed);
-        float meadowTop = Mathf.Min(config.treeLineMeters, config.snowLineMeters);
+        // Alpine meadows grow ABOVE the tree line, up to the snow line (Khumbu: about 4,200-5,200 m).
+        float meadowTop = config.snowLineMeters;
         int meadows = 0, placed = 0, tries = 0, maxTries = Mathf.Max(1, config.grassPatches) * 40;
 
         while (meadows < config.grassPatches && tries++ < maxTries)
@@ -95,7 +96,11 @@ public class HimalayaResourcePlacer : MonoBehaviour
         if (u < 0f || u > 1f || v < 0f || v > 1f) return false;
         if (landCover != null && !IsGrassClass(landCover.ClassAt(u, v))) return false;
         if (tb.ElevationMeters(u, v) > topMeters) return false;
-        if (HimalayaRiver.DistanceTo(tb.WorldPosition(u, v)) < riverMouthWidth) return false;   // not in or right beside the river
+        // No land-cover map: keep grass out of the forest belt below the tree line.
+        if (landCover == null && tb.ElevationMeters(u, v) < config.treeLineMeters) return false;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): grass grows on the meadow beside the water, never on it: keep half the
+        // widest river plus a tuft's width plus a gap clear of the river and the glacier streams.
+        if (HimalayaRiver.DistanceToAnyWater(tb.WorldPosition(u, v)) < riverMouthWidth * 0.5f + meadowClumpSpacing + 2f) return false;
         return tb.SlopeDegrees(u, v) <= maxPatchSlope;
     }
 

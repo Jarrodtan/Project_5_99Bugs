@@ -4,10 +4,11 @@ using UnityEngine;
 /// <summary>
 /// Seasons and daily weather, and what they do to food and water:
 ///   Spring  – frequent rain, grass grows fast
-///   Summer  – warm; sometimes drought: grass browns and barely grows, the river runs low
+///   Summer  – warm; sometimes a heatwave: grass browns, but the glaciers melt and the river runs full
 ///   Autumn  – grass slows down
 ///   Winter  – snow; grass hardly grows, water partly freezes
-/// The river is fed by the mountain, so it refills quickly except in drought and winter.
+/// The river is glacier meltwater, as in the real Khumbu: warm days melt more ice and fill it,
+/// freezing days melt almost none and it runs low. A dry spell only shrinks it when it is also cold.
 /// Day 1 starts from the live Himalaya weather (WeatherManager), then each new day rolls weather
 /// that fits the season. Changes are announced with a banner and shown in the status pill.
 /// Grass colour follows the global shader value _EcoDryness (0 = lush green, 1 = dry brown).
@@ -114,13 +115,14 @@ public class SeasonWeather : MonoBehaviour
         {
             Season.Spring => 1.5f, Season.Summer => 1.1f, Season.Autumn => 0.6f, _ => 0.15f,
         };
-        float water = CurrentSeason == Season.Winter ? 0.4f : 1f;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): meltwater follows temperature: -10 °C or colder -> 0.2x, 0 °C -> 0.7x, 10 °C+ -> 1.2x+.
+        float water = Mathf.Clamp(0.7f + Temperature * 0.05f, 0.2f, 1.6f);
 
         switch (CurrentWeather)
         {
-            case Weather.Rain: plants *= 1.6f; water *= 2f; break;
+            case Weather.Rain: plants *= 1.6f; water *= 1.5f; break;
             case Weather.Snow: plants *= 0.5f; water *= 0.7f; break;
-            case Weather.Drought: plants *= 0.15f; water *= 0.2f; break;
+            case Weather.Drought: plants *= 0.15f; if (Temperature < 5f) water *= 0.4f; break;   // a heatwave still melts ice
         }
         ResourcePatch.PlantGrowthMultiplier = plants;
         ResourcePatch.WaterGrowthMultiplier = water;
@@ -177,6 +179,9 @@ public class SeasonWeather : MonoBehaviour
     {
         Weather.Rain => "It's raining! Grass and rivers fill up.",
         Weather.Snow => "Snow is falling. Food is harder to find.",
-        _ => "Drought! No rain, the grass is drying up and the river is low.",
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): glacier river - hot drought melts ice, cold drought freezes it
+        _ => Temperature >= 5f
+            ? "Heatwave! The grass is drying up, but melting glaciers keep the river flowing."
+            : "Dry and freezing! Little ice melts, so the river is running low.",
     };
 }

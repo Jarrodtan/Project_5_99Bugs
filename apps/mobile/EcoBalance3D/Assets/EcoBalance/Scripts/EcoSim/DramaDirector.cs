@@ -116,7 +116,7 @@ public class DramaDirector : MonoBehaviour
         var rt = (RectTransform)banner.transform;
         rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);   // pinned to the top centre on any screen
         rt.pivot = new Vector2(0.5f, 1f);
-        rt.anchoredPosition = new Vector2(0f, -190f);          // just below Play / Pause / Reset
+        rt.anchoredPosition = new Vector2(0f, -280f);          // below Play / Pause / Reset and the season pill, so they never overlap
         rt.sizeDelta = new Vector2(1300f, 130f);
         banner.GetComponent<Image>().color = new Color(0.08f, 0.1f, 0.14f, 0.88f);
 
