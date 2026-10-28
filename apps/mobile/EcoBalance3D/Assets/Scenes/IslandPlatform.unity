@@ -6762,6 +6762,52 @@ MonoBehaviour:
   m_IgnoreFromBuild: 1
   m_ApplyToChildren: 1
   m_AffectedAgents: ffffffff
+--- !u!1001 &8761000000
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 8760000001, guid: a6000000000000000000000000000020, type: 3}
+      propertyPath: m_Name
+      value: CameraPanPad
+      objectReference: {fileID: 0}
+    - target: {fileID: 8760000002, guid: a6000000000000000000000000000020, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8760000002, guid: a6000000000000000000000000000020, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8760000002, guid: a6000000000000000000000000000020, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8760000002, guid: a6000000000000000000000000000020, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8760000002, guid: a6000000000000000000000000000020, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8760000002, guid: a6000000000000000000000000000020, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: a6000000000000000000000000000020, type: 3}
+--- !u!224 &8761000001 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 8760000002, guid: a6000000000000000000000000000020, type: 3}
+  m_PrefabInstance: {fileID: 8761000000}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -6775,3 +6821,4 @@ SceneRoots:
   - {fileID: 8710000002}
   - {fileID: 8710000101}
   - {fileID: 8750000002}
+  - {fileID: 8761000001}
