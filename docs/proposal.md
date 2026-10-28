@@ -1,6 +1,6 @@
 # EcoBalance: Project Proposal
 
-**Team:** 99 Bugs (9 members: RTIS, IMGD, UXGD) · **Module:** CSD3401 / UXG3400, Fall 2026 · **Engine:** Unity 6 · **Target platform:** Android
+**Team:** 99 Bugs (9 members: RTIS, IMGD, UXGD) · **Module:** CSD3401 / UXG3400, Fall 2026 · **Engine:** Unity 6 · **Target platform:** Android tablet
 
 ## 1. Concept
 
@@ -20,7 +20,10 @@ Food chains and population balance are usually taught as static diagrams. Learne
 
 ## 3. Target users
 
-Learners who are being introduced to ecosystems and food chains, playing as a young ecosystem researcher. *(TODO, Design/PM: confirm the age range and learning context, e.g. lower-secondary science, from user research.)*
+**Children aged 6–9**, playing as a **young ecosystem researcher** on an **Android tablet**. They are being introduced to ecosystems and food chains.
+
+- **Intended experience:** curiosity → experimentation → discovery → understanding.
+- **Design priorities:** simple touch interactions, visible cause-and-effect, and safe experimentation with easy retry.
 
 ## 4. Initial ecosystem (M1 scope)
 
@@ -31,7 +34,8 @@ Environment / rainfall → Water → Grass → Blue Sheep → Snow Leopard
 ```
 
 - Blue sheep eat grass. Snow leopards hunt blue sheep.
-- Grass regrows over time. Water and rainfall are planned after M1.
+- Grass regrows over time.
+- Water exists as a resource asset. Rainfall and water-driven effects are planned after M1.
 
 ## 5. Player experience
 

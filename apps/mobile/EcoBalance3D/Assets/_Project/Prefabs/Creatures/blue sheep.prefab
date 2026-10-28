@@ -57,8 +57,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4277276437431565825}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.50000006, y: 0.5, z: 0.5, w: 0.50000006}
-  m_LocalPosition: {x: 0.0330695, y: 0.03481501, z: 0.16357096}
+  m_LocalRotation: {x: 0, y: 0.70710677, z: 0.70710677, w: 0}
+  m_LocalPosition: {x: 0.16357096, y: 0.03481501, z: -0.0330695}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -97,7 +97,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 19f62cd10530be64287c8677f8e5ead5, type: 2}
+  - {fileID: 2100000, guid: 98f5c5fceee501e44bd3e5a4bb5ca619, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -145,8 +145,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5955871729319475821}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.50000006, y: 0.5, z: 0.5, w: 0.50000006}
-  m_LocalPosition: {x: 0.03306947, y: 0.05923445, z: -0.0000000029277674}
+  m_LocalRotation: {x: 0, y: 0.70710677, z: 0.70710677, w: 0}
+  m_LocalPosition: {x: -0.0000000029277674, y: 0.05923445, z: -0.03306947}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -166,6 +166,7 @@ GameObject:
   - component: {fileID: 7960127166656185812}
   - component: {fileID: 1049992325530015973}
   - component: {fileID: -1853422331891634858}
+  - component: {fileID: 4044817424565879165}
   m_Layer: 0
   m_Name: blue sheep
   m_TagString: Untagged
@@ -183,7 +184,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6772571439495030781}
@@ -210,8 +211,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 9.735204, y: 6.96588, z: 2.47644}
-  m_Center: {x: -1.1240745, y: 3.1802971, z: 0.18545985}
+  m_Size: {x: 2.47644, y: 6.96588, z: 9.735204}
+  m_Center: {x: 0.18545985, y: 3.1802971, z: 1.1240745}
 --- !u!195 &5372906650820145570
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -249,6 +250,16 @@ MonoBehaviour:
   species_data: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
   curr_hunger: 100
   audio: {fileID: 0}
+  huntRadius: 12
+  fleeRadius: 7
+  catchDistance: 1.5
+  eatDuration: 2
+  chaseSpeedMultiplier: 1.4
+  fleeSpeedMultiplier: 1.25
+  preyStarveAfterSeconds: 15
+  predatorStarveAfterSeconds: 20
+  forageRadius: 20
+  biteSize: 20
 --- !u!82 &1049992325530015973
 AudioSource:
   m_ObjectHideFlags: 0
@@ -362,3 +373,15 @@ MonoBehaviour:
   audio: {fileID: 0}
   tickInterval: 0.25
   showDebugLabel: 1
+--- !u!114 &4044817424565879165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9037334413921091483}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69d5ba30c04d9b44597a1597cec12b47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalSelectable

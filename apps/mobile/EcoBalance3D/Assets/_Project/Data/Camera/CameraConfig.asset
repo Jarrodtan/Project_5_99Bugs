@@ -15,12 +15,16 @@ MonoBehaviour:
   dragAction: {fileID: 11400000, guid: a6000000000000000000000000000001, type: 2}
   dragDeltaAction: {fileID: 11400000, guid: a6000000000000000000000000000002, type: 2}
   zoomAction: {fileID: 11400000, guid: a6000000000000000000000000000003, type: 2}
+  panAction: {fileID: 11400000, guid: b3f4509e9d67e794fb45ef32ba37425c, type: 2}
   rotationSpeed: 0.2
   minPitch: 10
   maxPitch: 80
   zoomSpeed: 1
   minDistance: 5
   maxDistance: 40
+  panSpeed: 12
+  maxPanRadius: 20
+  panDamping: 0.08
   rotationDamping: 0.08
   zoomDamping: 0.1
   pivotRecenterDamping: 0.2

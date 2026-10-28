@@ -18,14 +18,19 @@ public class CameraConfig : ScriptableObject
     [Tooltip("Scroll/zoom input (e.g. Player/CameraZoom).")]
     public InputActionReference zoomAction;
 
+    [Tooltip("XZ pan stick (e.g. Player/CameraPan). WASD / on-screen stick.")]
+    public InputActionReference panAction;
+
     [Header("Rotation")]
     [Tooltip("Degrees of yaw/pitch applied per unit of drag delta.")]
     public float rotationSpeed = 0.2f;
 
-    [Tooltip("Minimum pitch angle in degrees.")]
+    [Tooltip("Minimum pitch angle in degrees (looking upward / shallow).")]
+    [Range(-89f, 89f)]
     public float minPitch = 10f;
 
-    [Tooltip("Maximum pitch angle in degrees.")]
+    [Tooltip("Maximum pitch angle in degrees (looking downward / steep).")]
+    [Range(-89f, 89f)]
     public float maxPitch = 80f;
 
     [Header("Zoom")]
@@ -37,6 +42,16 @@ public class CameraConfig : ScriptableObject
 
     [Tooltip("Maximum camera distance from the orbit pivot.")]
     public float maxDistance = 40f;
+
+    [Header("Pan")]
+    [Tooltip("World units per second when pan input is fully pressed.")]
+    public float panSpeed = 12f;
+
+    [Tooltip("Max XZ distance the orbit pivot may drift from the island pivot.")]
+    public float maxPanRadius = 20f;
+
+    [Tooltip("Smooth time for pan-offset catch-up. At or below zero snaps instantly.")]
+    public float panDamping = 0.08f;
 
     [Header("Smoothing")]
     [Tooltip("Smooth time for yaw/pitch catch-up. At or below zero snaps instantly.")]

@@ -13,6 +13,10 @@ MonoBehaviour:
   m_Name: SnowLeopard
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
   speciesName: SnowLeopard
+  footstep: {fileID: 0}
+  idle: {fileID: 0}
+  eat: {fileID: 0}
+  death: {fileID: 0}
   startingPopulation: 5
   relationships:
   - type: 0
@@ -20,6 +24,8 @@ MonoBehaviour:
     targetResource: {fileID: 0}
   reproductionRate: 0.1
   starvationThreshold: 0.1
+  needs: []
+  goals: []
   predationRate: 0.01
   foodNeededPerCapita: 0.4
-  visualPrefab: {fileID: 3469608245872682355, guid: d10a8095e5c3c704fa9591b436895623, type: 3}
+  visualPrefab: {fileID: 9037334413921091483, guid: faf46ddc0cc51574f8ad4ca79b5bc2b8, type: 3}

@@ -27,8 +27,12 @@ Food chains and population balance are usually taught as static diagrams. Learne
 
 ## 4. Target users
 
-Learners being introduced to ecosystems and food chains, who take the role of a **young ecosystem researcher**.
-*TODO (Design): age range, learning context, and a summary of user research (interviews, comparable products such as other ecosystem sims), with links to the research notes.*
+**Children aged 6–9** being introduced to ecosystems and food chains, who take the role of a **young ecosystem researcher** on an **Android tablet**.
+
+- **Intended experience:** curiosity → experimentation → discovery → understanding.
+- **Design priorities:** simple touch interactions, visible cause-and-effect, and safe experimentation with easy retry.
+
+User research was focused on understanding how children aged 6–9 engage with ecosystem simulations and interactive learning experiences. Research included reviewing comparable ecosystem simulation products and exploring how they communicate cause-and-effect, ecosystem relationships, and visual feedback. These findings informed the simulation’s interaction design, contextual questions, and learning experience.
 
 ## 5. Core user journey
 
@@ -66,7 +70,7 @@ Each MUST feature has a Jira epic/story. See [deliverables.md](../deliverables.m
 
 ## 8. Technical approach
 
-- **Engine:** Unity 6 + URP. **Language:** C#. **Target:** Android ([toolchain.md](../toolchain.md)).
+- **Engine:** Unity 6 + URP. **Language:** C#. **Target:** Android tablet ([toolchain.md](../toolchain.md)).
 - **Data-driven EcoSim:** species, resources and relationships are ScriptableObject assets, so new species need no new code.
 - **Population simulation** is separate from the visual agents. The numbers drive the populations, and 3D agents represent them.
 - **Animal AI:** goal/utility-based decisions (needs → goals → actions) executed by agents on the NavMesh.

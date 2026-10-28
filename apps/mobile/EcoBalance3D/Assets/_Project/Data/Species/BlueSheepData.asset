@@ -10,9 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd10ba53277213b4f87e228a0819a3b3, type: 3}
-  m_Name: predator
-  m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
-  speciesName: 
+  m_Name: BlueSheepData
+  m_EditorClassIdentifier: EcoSim::SpeciesDefinition
+  speciesName: BlueSheep
+  footstep: {fileID: 0}
+  idle: {fileID: 0}
+  eat: {fileID: 0}
+  death: {fileID: 0}
   startingPopulation: 10
   relationships: []
   reproductionRate: 0.1
@@ -21,4 +25,4 @@ MonoBehaviour:
   goals: []
   predationRate: 0.3
   foodNeededPerCapita: 0.5
-  visualPrefab: {fileID: 0}
+  visualPrefab: {fileID: 9037334413921091483, guid: 9cba128355e7bb54ea64e2f91c31ea72, type: 3}

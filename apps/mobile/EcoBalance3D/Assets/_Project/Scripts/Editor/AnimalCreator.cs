@@ -53,6 +53,7 @@ public class AnimalCreator : EditorWindow
 
         EditorGUILayout.Space();
         GUILayout.Label("Visuals", EditorStyles.boldLabel);
+        prefab = (GameObject)EditorGUILayout.ObjectField("Visual Prefab", prefab, typeof(GameObject), false);
 
         EditorGUILayout.Space();
 
@@ -73,6 +74,8 @@ public class AnimalCreator : EditorWindow
         new_data.visualPrefab = prefab;
 
         new_data.relationships = new List<Relationship>();
+        new_data.needs = new List<NeedDefinition>();
+        new_data.goals = new List<GoalDefinition>();
 
         string path = "Assets/_Project/Data/Species/";
 

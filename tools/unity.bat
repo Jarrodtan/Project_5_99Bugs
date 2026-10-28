@@ -1,7 +1,7 @@
 @echo off
 rem [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 rem EcoBalance3D helper for Windows 11 (same commands as tools/unity.sh):
-rem   tools\unity.bat open | test | build [android^|windows] | clean
+rem   tools\unity.bat open | test | build [android^|windows] | clean | zip [name]
 rem Double-click it for a menu instead.
 rem Unity is found in the default Unity Hub folder; override with: set UNITY=C:\path\to\Unity.exe
 rem Close the Editor before test/build/clean.
@@ -27,34 +27,37 @@ echo   1. Open project in Unity
 echo   2. Run EditMode tests
 echo   3. Build Android APK
 echo   4. Build Windows EXE
-echo   5. Clean (delete Library, Temp, Logs, obj, Build)
-echo   6. Exit
+echo   5. Clean (Unity cache + all Git-ignored files: UserSettings, .vs, *.csproj...)
+echo   6. Make submission zip (committed files only)
+echo   7. Exit
 echo.
 set "CHOICE="
-set /p "CHOICE=Choose 1-6: "
+set /p "CHOICE=Choose 1-7: "
 if "%CHOICE%"=="1" set "CMD=open"
 if "%CHOICE%"=="2" set "CMD=test"
 if "%CHOICE%"=="3" (set "CMD=build" & set "PLATFORM=android")
 if "%CHOICE%"=="4" (set "CMD=build" & set "PLATFORM=windows")
 if "%CHOICE%"=="5" set "CMD=clean"
-if "%CHOICE%"=="6" exit /b 0
+if "%CHOICE%"=="6" set "CMD=zip"
+if "%CHOICE%"=="7" exit /b 0
 if "%CMD%"=="" (
   echo Invalid choice.
   goto menu
 )
 if /i not "%CMD%"=="clean" goto dispatch
 set "OK="
-set /p "OK=Delete the Unity cache - next open re-imports everything. Continue? [y/N] "
+set /p "OK=Delete the Unity cache and all Git-ignored files (your Unity layout resets; committed work is kept). Continue? [y/N] "
 if /i "%OK%"=="y" goto dispatch
 echo Cancelled.
 goto end
 
 :dispatch
 if /i "%CMD%"=="clean" goto clean
+if /i "%CMD%"=="zip" goto zip
 if /i "%CMD%"=="open" goto check
 if /i "%CMD%"=="test" goto check
 if /i "%CMD%"=="build" goto check
-echo Usage: tools\unity.bat open ^| test ^| build [android^|windows] ^| clean
+echo Usage: tools\unity.bat open ^| test ^| build [android^|windows] ^| clean ^| zip [name]
 echo (or double-click it for a menu)
 set "RC=0"
 goto end
@@ -112,8 +115,24 @@ for %%d in (Library Temp Logs obj Build) do if exist "%PROJECT%\%%d" (
   echo removed %%d
 )
 if exist "%ROOT%\test-results.xml" del "%ROOT%\test-results.xml"
+rem Also remove every other Git-ignored file (UserSettings, .vs, .vscode, *.csproj, *.slnx, temp files),
+rem the same set the submission zip leaves out. Committed files, new uncommitted work and .git are kept.
+git -C "%ROOT%" clean -fdX
 echo Clean. The next open re-imports everything (a few minutes).
 set "RC=0"
+goto end
+
+:zip
+rem Packs exactly what is committed (HEAD): no Library cache, .git, UserSettings or build output.
+set "ZIPNAME=%PLATFORM%"
+if "%ZIPNAME%"=="" set "ZIPNAME=EcoBalance_TechFiles"
+for %%p in ("%ROOT%\..") do set "OUTDIR=%%~fp"
+set "DIRTY="
+for /f %%s in ('git -C "%ROOT%" status --porcelain') do set "DIRTY=1"
+if defined DIRTY echo WARNING: you have uncommitted changes - they are NOT in the zip.
+git -C "%ROOT%" archive --format=zip -o "%OUTDIR%\%ZIPNAME%.zip" HEAD
+set "RC=%ERRORLEVEL%"
+if "%RC%"=="0" (echo ZIP OK: %OUTDIR%\%ZIPNAME%.zip) else (echo ZIP FAILED - is Git installed?)
 goto end
 
 :end

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd10ba53277213b4f87e228a0819a3b3, type: 3}
   m_Name: BlueSheep
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
-  speciesName: Blue Sheep
+  speciesName: BlueSheep
   footstep: {fileID: 8300000, guid: 0d060756bae59d445ae864e4e045b17e, type: 3}
   idle: {fileID: 8300000, guid: 7d59bd7e7c4ae914f97bdd4bba45d438, type: 3}
   eat: {fileID: 0}
