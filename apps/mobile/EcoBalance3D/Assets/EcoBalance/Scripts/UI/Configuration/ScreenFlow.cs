@@ -26,9 +26,18 @@ public static class ScreenFlow
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Init()
     {
+        // The project skips domain and scene reload on Play (Enter Play Mode Options), so statics survive
+        // from the last run: start fresh.
+        GuidedMode = false;
+        journalReturn = Home;
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
+
+    // With scene reload skipped, Unity sends no sceneLoaded for the scene already open when Play starts,
+    // so wire that one here (otherwise Start kept its old "go to Configuration" action).
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void WireOpenScene() => OnSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
 
     static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
@@ -46,8 +55,13 @@ public static class ScreenFlow
             foreach (var b in list)
             {
                 // Replace whatever the button did before (e.g. Start used to open the configuration screen).
+                // A brand-new click list, because switching the old Inspector actions off didn't always stick.
+                // Keep the click sound: replay any AudioSource.Play the old list had.
+                var sounds = new List<AudioSource>();
                 for (int i = 0; i < b.onClick.GetPersistentEventCount(); i++)
-                    b.onClick.SetPersistentListenerState(i, UnityEventCallState.Off);
+                    if (b.onClick.GetPersistentMethodName(i) == "Play" && b.onClick.GetPersistentTarget(i) is AudioSource src) sounds.Add(src);
+                b.onClick = new Button.ButtonClickedEvent();
+                foreach (var src in sounds) b.onClick.AddListener(src.Play);
                 b.onClick.AddListener(action);
             }
         }
@@ -92,9 +106,28 @@ public static class ScreenFlow
     static void StartSimulation(bool guided)
     {
         GuidedMode = guided;
+        if (guided) UseGuidedStart();
         if (AudioManager.Instance != null) AudioManager.Instance.SwitchToSimu();
         Load(guided ? Simulation : Configuration);
     }
+
+    // Guided Exploration always starts from the same ecosystem (Shumin's research): 10 Blue Sheep, 2 Snow Leopards.
+    static void UseGuidedStart()
+    {
+        EcosystemSimulator.StartingPopulationOverrides.Clear();
+        foreach (var n in new[] { "BlueSheep", "Blue Sheep" }) EcosystemSimulator.StartingPopulationOverrides[n] = 10;
+        foreach (var n in new[] { "SnowLeopard", "Snow Leopard" }) EcosystemSimulator.StartingPopulationOverrides[n] = 2;
+    }
+
+    /// <summary>Ending screen: start a fresh Guided challenge (unlocked endings stay in the gallery).</summary>
+    public static void RestartGuided()
+    {
+        GuidedMode = true;
+        UseGuidedStart();
+        Load(Simulation);
+    }
+
+    public static void GoHome() => Load(Home);
 
     static void Quit()
     {

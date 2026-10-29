@@ -91,6 +91,10 @@ public class AnimalBrain : MonoBehaviour
     public float sprintSpeedMultiplier = 2.2f;
     [Tooltip("Gives up a sprint after this many seconds (at 1x) and rests, like real leopards.")]
     public float maxSprintSeconds = 6f;
+    [Tooltip("Chance that reaching the prey ends in a catch (Shumin's research: 70%).")]
+    [Range(0f, 1f)] public float huntSuccessRate = 0.7f;
+    [Tooltip("Rest after a missed catch (research: 1 simulated day = 120 s at 1x).")]
+    public float huntCooldownSeconds = 120f;
     [Tooltip("Rest after a failed hunt (seconds at 1x).")]
     public float giveUpRestSeconds = 20f;
     [Tooltip("Prey always notice a predator this close (hearing, smell), hill or no hill.")]
@@ -348,6 +352,17 @@ public class AnimalBrain : MonoBehaviour
         all.Add(this);
     }
     void OnDisable() { all.Remove(this); }
+
+    /// <summary>Living animals right now (for Guided Exploration counts, events and endings).</summary>
+    public static IReadOnlyList<AnimalBrain> All => all;
+    public bool IsPredatorSpecies => IsPredator;
+
+    /// <summary>Guided "support the animals": adds fullness and hydration points (0-100 scale), capped at 100.</summary>
+    public void Refresh(float fullness, float hydration)
+    {
+        curr_hunger = Mathf.Min(100f, curr_hunger + fullness);
+        curr_thirst = Mathf.Min(100f, curr_thirst + hydration);
+    }
 
     // Nearest ready animal of the same species and the other sex.
     Transform NearestMate(Vector3 pos, float radius)
@@ -625,13 +640,13 @@ public class AnimalBrain : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): weather matters: heat dries animals out, hard cold burns energy
         curr_hunger = Mathf.Max(
             0f,
-            curr_hunger - dt / StarveAfter * 100f * SeasonWeather.HungerDrainMultiplier);
+            curr_hunger - dt / StarveAfter * 100f * SeasonWeather.HungerDrainMultiplier * GuidedEffects.Hunger(IsPredator));
 
         if (HasThirst)
         {
             curr_thirst = Mathf.Max(
                 0f,
-                curr_thirst - dt / dehydrateAfterSeconds * 100f * SeasonWeather.ThirstDrainMultiplier);
+                curr_thirst - dt / dehydrateAfterSeconds * 100f * SeasonWeather.ThirstDrainMultiplier * GuidedEffects.Thirst(IsPredator));
         }
 
         // Only Events mode lets animals die; in Formula mode
@@ -1024,8 +1039,10 @@ public class AnimalBrain : MonoBehaviour
         {
             // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
             // Fill up by what the patch actually gave: a nearly empty patch barely helps.
-            float taken = patch.Consume(biteSize);
-            float share = biteSize > 0f ? taken / biteSize : 1f;
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): Guided "give the grass a break" takes less grass per bite, same meal
+            float requested = isWater ? biteSize : biteSize * GuidedEffects.Graze;
+            float taken = patch.Consume(requested);
+            float share = requested > 0f ? taken / requested : 1f;
 
             if (EventsMode)
             {
@@ -1082,6 +1099,15 @@ public class AnimalBrain : MonoBehaviour
 
         if (InReach(prey, prey_brain, catchDistance))
         {
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): research: 70% of catches succeed (Guided can add or take
+            // 15 points). A miss lets the sheep escape, and the leopard rests a simulated day before trying again.
+            if (Random.value > Mathf.Clamp01(huntSuccessRate + GuidedEffects.HuntSuccessBonus))
+            {
+                sprintTimer = 0f; SetCrouch(false);
+                huntRestTimer = huntCooldownSeconds;
+                agent.ResetPath();
+                return false;
+            }
             // Mark prey as caught.
             if (prey_brain != null)
             {

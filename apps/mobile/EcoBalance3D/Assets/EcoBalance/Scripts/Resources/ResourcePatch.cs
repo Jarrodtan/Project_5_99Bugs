@@ -73,7 +73,7 @@ public class ResourcePatch : MonoBehaviour
     void Update()
     {
         if (amount >= MaxAmount) return;
-        float mult = IsWater ? WaterGrowthMultiplier : PlantGrowthMultiplier;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+        float mult = IsWater ? WaterGrowthMultiplier : PlantGrowthMultiplier * GuidedEffects.PlantRegen;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
         amount = Mathf.Min(MaxAmount, amount + regrowPerSecond * mult * Time.deltaTime);
         UpdateVisual();
     }
@@ -85,6 +85,25 @@ public class ResourcePatch : MonoBehaviour
         amount -= taken;
         UpdateVisual();
         return taken;
+    }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): Guided "help the grass recover" (+points of the patch's max), capped at full.
+    public void Restore(float pointsOfHundred)
+    {
+        amount = Mathf.Min(MaxAmount, amount + MaxAmount * pointsOfHundred / 100f);
+        UpdateVisual();
+    }
+
+    /// <summary>Average fullness of every grass (non-water) patch, 0-100. The "Vegetation %" the research uses.</summary>
+    public static float VegetationPercent()
+    {
+        float sum = 0f; int n = 0;
+        foreach (var p in All)
+        {
+            if (p == null || p.IsWater || p.resource == null) continue;
+            sum += p.MaxAmount > 0f ? p.amount / p.MaxAmount : 0f; n++;
+        }
+        return n > 0 ? sum / n * 100f : 0f;
     }
 
     void UpdateVisual()

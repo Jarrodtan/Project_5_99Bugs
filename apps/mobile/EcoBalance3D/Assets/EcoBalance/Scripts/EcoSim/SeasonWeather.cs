@@ -22,6 +22,8 @@ public class SeasonWeather : MonoBehaviour
     public int daysPerSeason = 5;
 
     public static Season CurrentSeason { get; private set; }
+    /// <summary>Set by Guided Exploration so every challenge starts the same way (Summer → Autumn → Winter → Spring). Null = follow the live weather.</summary>
+    public static Season? ForcedStartSeason;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
     public static Weather CurrentWeather { get; private set; }
 
     /// <summary>Valley temperature today (°C).</summary>
@@ -93,6 +95,7 @@ public class SeasonWeather : MonoBehaviour
             float t = WeatherManager.ValleyTemperature;
             seasonOffset = t >= 8f ? (int)Season.Summer : t >= 0f ? (int)Season.Spring : t >= -10f ? (int)Season.Autumn : (int)Season.Winter;
         }
+        if (first && ForcedStartSeason.HasValue) seasonOffset = (int)ForcedStartSeason.Value;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Guided always starts in summer
         CurrentSeason = (Season)((seasonOffset + (Mathf.Max(1, day) - 1) / Mathf.Max(1, daysPerSeason)) % 4);
         CurrentWeather = first ? FromLive(WeatherManager.LiveCondition) : Roll(CurrentSeason);
         Temperature = first && WeatherManager.HasLiveData ? WeatherManager.ValleyTemperature : RollTemperature(CurrentSeason, CurrentWeather);
