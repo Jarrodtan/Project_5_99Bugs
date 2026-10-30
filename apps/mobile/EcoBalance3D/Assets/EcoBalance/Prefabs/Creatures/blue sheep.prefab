@@ -167,6 +167,7 @@ GameObject:
   - component: {fileID: 1049992325530015973}
   - component: {fileID: -1853422331891634858}
   - component: {fileID: 4044817424565879165}
+  - component: {fileID: 2534870309195524472}
   m_Layer: 0
   m_Name: blue sheep
   m_TagString: Untagged
@@ -249,6 +250,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimalBrain
   species_data: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
   curr_hunger: 100
+  curr_thirst: 100
   audio: {fileID: 0}
   huntRadius: 35
   fleeRadius: 20
@@ -256,10 +258,47 @@ MonoBehaviour:
   eatDuration: 2
   chaseSpeedMultiplier: 1.4
   fleeSpeedMultiplier: 1.25
+  huntBelowHunger: 60
+  stalkSpeedMultiplier: 0.45
+  pounceDistance: 8
+  sprintSpeedMultiplier: 2.2
+  maxSprintSeconds: 6
+  huntSuccessRate: 0.7
+  huntCooldownSeconds: 120
+  giveUpRestSeconds: 20
+  senseAnywayDistance: 10
+  spotStalkerDistance: 9
   preyStarveAfterSeconds: 360
   predatorStarveAfterSeconds: 600
+  dehydrateAfterSeconds: 240
+  desperateNeed: 0.6
+  predatorRoamHunger: 0.35
+  desperateSearchMultiplier: 2
+  fullBiteFill: 50
+  fullDrinkFill: 60
   forageRadius: 60
   biteSize: 20
+  caughtDuration: 5
+  mateRadius: 10
+  predatorMateRadius: 90
+  mateDistance: 2
+  reproduceMinWellFed: 60
+  reproduceCooldownSeconds: 30
+  reproduceHungerCost: 25
+  mateDuration: 2
+  fleeWeight: 1.5
+  huntWeight: 1
+  eatWeight: 1
+  drinkWeight: 1
+  reproduceWeight: 0.8
+  roamScore: 0.2
+  commitmentBonus: 0.1
+  decisionInterval: 0.25
+  fitAgentRadiusToModel: 1
+  growUpSeconds: 60
+  babyScale: 0.45
+  followMotherDistance: 2.5
+  showSightLines: 1
 --- !u!82 &1049992325530015973
 AudioSource:
   m_ObjectHideFlags: 0
@@ -385,3 +424,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69d5ba30c04d9b44597a1597cec12b47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSelectable
+--- !u!114 &2534870309195524472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9037334413921091483}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85f865a1c25e9204d8c597a0acfe2a3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalPerception
+  visionRange: 20
+  visionAngle: 120
+  scanInterval: 0.2
+  eyeHeight: 1.5
+  targetHeight: 1.2
+  showVisionGizmo: 1
+  showDetectionLines: 1

@@ -232,6 +232,10 @@ public class AnimalBrain : MonoBehaviour
 
     private EcosystemSimulator simulator;
 
+    // Optional field-of-view perception component. When present, its raycast/FOV
+    // results are used for predator and prey detection instead of registry-only scans.
+    private AnimalPerception perception;
+
     bool EventsMode =>
         simulator != null &&
         simulator.mode == EcosystemSimulator.SimulationMode.Events;
@@ -381,6 +385,7 @@ public class AnimalBrain : MonoBehaviour
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+        perception = GetComponent<AnimalPerception>();
 
         if (agent != null)
         {
@@ -774,38 +779,70 @@ public class AnimalBrain : MonoBehaviour
 
         Vector3 pos = transform.position;
 
-        predator = EcoRegistry.NearestPredator(
-            species_data,
-            pos,
-            fleeRadius);
-
-        // A caught or starved predator is no threat.
-        if (predator != null &&
-            predator.TryGetComponent(out AnimalBrain predatorBrain) &&
-            predatorBrain.IsCaught)
+        // If AnimalPerception is attached, only react to animals inside the
+        // configured field of view with a clear raycast line of sight.
+        // Keep the registry-based search as a fallback for older prefabs.
+        if (perception != null)
         {
-            predator = null;
+            AnimalBrain seenPredator = perception.NearestPredator;
+            if (seenPredator != null && !seenPredator.IsCaught)
+            {
+                float distance = Vector3.Distance(pos, seenPredator.transform.position);
+                if (distance <= fleeRadius)
+                    predator = seenPredator.transform;
+            }
+
+            if (IsPredator)
+            {
+                AnimalBrain seenPrey = perception.NearestPrey;
+                if (seenPrey != null && !seenPrey.IsCaught)
+                {
+                    float hungryHuntRadius =
+                        huntRadius * Mathf.Lerp(1f, 4f, HungerNeed);
+
+                    float distance = Vector3.Distance(pos, seenPrey.transform.position);
+                    if (distance <= hungryHuntRadius)
+                    {
+                        prey = seenPrey.transform;
+                        prey_brain = seenPrey;
+                    }
+                }
+            }
         }
-
-        // [AI-GENERATED] Claude Code (Claude Opus 5.5): only flee from what can be seen: hills block the view
-        // (raycast), and a crouching stalker is only noticed up close.
-        if (predator != null && !CanSee(predator)) predator = null;
-
-        if (IsPredator)
+        else
         {
-            prey = EcoRegistry.NearestPrey(
+            predator = EcoRegistry.NearestPredator(
                 species_data,
                 pos,
-                huntRadius * Mathf.Lerp(1f, 4f, HungerNeed));   // [AI-GENERATED] Claude Code (Claude Opus 5.5): the hungrier, the further a leopard scans the slopes below
+                fleeRadius);
 
-            if (prey != null)
+            // A caught or starved predator is no threat.
+            if (predator != null &&
+                predator.TryGetComponent(out AnimalBrain predatorBrain) &&
+                predatorBrain.IsCaught)
             {
-                prey.TryGetComponent(out prey_brain);
+                predator = null;
+            }
 
-                if (prey_brain != null && prey_brain.IsCaught)
+            // Existing terrain/stalking visibility check for older prefabs.
+            if (predator != null && !CanSee(predator)) predator = null;
+
+            if (IsPredator)
+            {
+                prey = EcoRegistry.NearestPrey(
+                    species_data,
+                    pos,
+                    huntRadius * Mathf.Lerp(1f, 4f, HungerNeed));
+
+                if (prey != null)
                 {
-                    prey = null;
-                    prey_brain = null;
+                    prey.TryGetComponent(out prey_brain);
+
+                    if (prey_brain != null && prey_brain.IsCaught)
+                    {
+                        prey = null;
+                        prey_brain = null;
+                    }
                 }
             }
         }
