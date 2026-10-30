@@ -272,13 +272,14 @@ public class GuidedChallenge : MonoBehaviour
 
     // ---------- UI (built in code, 1920x1200 reference like the wireframes) ----------
 
-    GameObject popup, endPanel, gallery;
+    GameObject popup, endPanel, gallery, pillBox;
     TextMeshProUGUI pill, popupTitle, popupText, endTitle, endText, galleryText;
     Button[] choiceButtons; TextMeshProUGUI[] choiceLabels;
 
     void UpdatePill()
     {
         if (pill != null) pill.text = $"Guided challenge · Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}";
+        if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it
     }
 
     void BuildUI()
@@ -295,7 +296,7 @@ public class GuidedChallenge : MonoBehaviour
         var root = canvasGo.transform;
 
         // Day counter, bottom-right (top is taken by Play/Pause/Reset, the banner and the season pill).
-        var pillBox = Box(root, "Day pill", new Vector2(1f, 0f), new Vector2(-30f, 30f), new Vector2(520f, 70f), new Color(0.08f, 0.1f, 0.14f, 0.8f), new Vector2(1f, 0f));
+        pillBox = Box(root, "Day pill", new Vector2(1f, 0f), new Vector2(-30f, 30f), new Vector2(520f, 70f), new Color(0.08f, 0.1f, 0.14f, 0.8f), new Vector2(1f, 0f));
         pill = Label(pillBox.transform, "", 30f, Color.white);
 
         // Decision popup.

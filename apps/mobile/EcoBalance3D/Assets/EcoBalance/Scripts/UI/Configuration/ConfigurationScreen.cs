@@ -98,7 +98,7 @@ public class ConfigurationScreen : MonoBehaviour
         {
             configurationUI.SetActive(false);
         }
-        ScreenFlow.AddLeaveButton();   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Back to the menu from Free mode
+        SimHud.Enter();   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Shumin's simulation HUD (with Back) on top
 
         if (AudioManager.Instance != null)
         {

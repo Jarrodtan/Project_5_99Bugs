@@ -85,10 +85,12 @@ public static class ScreenFlow
                 On("FieldJournalBtn", OpenJournal);
                 break;
             case Journal:
-                On("BackBtn", () => Load(journalReturn));
+                if (mode == LoadSceneMode.Additive) { SetUpJournalOverlay(scene); On("BackBtn", CloseJournalOverlay); }
+                else On("BackBtn", () => Load(journalReturn));
                 break;
             case Simulation:
-                if (mode == LoadSceneMode.Single) AddLeaveButton();   // not when Configuration loads it behind itself
+                if (mode == LoadSceneMode.Single) SimHud.Enter();   // Shumin's HUD on top; not when Configuration loads it behind itself
+                else SimHud.HideOldHud(false);                    // Free: hide the old buttons while choosing animals
                 break;
         }
     }
@@ -96,7 +98,7 @@ public static class ScreenFlow
     // Back button on the simulation (both modes), bottom-left above the weather text. Asks first, so a
     // child doesn't lose a Guided challenge by accident, and pauses while asking.
     /// <summary>Adds the simulation's Back button (once per scene). Free mode calls it when Configuration starts the run.</summary>
-    public static void AddLeaveButton()
+    public static void AddLeaveButton(bool ownButton = true)
     {
         if (Object.FindFirstObjectByType<LeaveMarker>() != null) return;
         var canvasGo = new GameObject("[Leave Canvas]", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(LeaveMarker));
@@ -116,6 +118,14 @@ public static class ScreenFlow
         Btn(card.transform, "Stay", new Vector2(-200f, -110f), new Color(0.3f, 0.62f, 0.38f), () => { confirm.SetActive(false); if (wasRunning && speed != null) speed.Play(); });
         Btn(card.transform, "Leave", new Vector2(200f, -110f), new Color(0.55f, 0.55f, 0.55f), () => Load(Modes));
         confirm.SetActive(false);
+        openConfirm = () =>
+        {
+            wasRunning = speed != null && speed.IsRunning;
+            if (speed != null) speed.Pause();
+            confirm.SetActive(true);
+            confirm.transform.SetAsLastSibling();
+        };
+        if (!ownButton) return;   // Shumin's HUD has its own BackBtn, which calls ShowLeaveConfirm
 
         var back = Btn(canvasGo.transform, "Back", Vector2.zero, new Color(0.08f, 0.1f, 0.14f, 0.8f), () =>
         {
@@ -131,6 +141,10 @@ public static class ScreenFlow
     }
 
     class LeaveMarker : MonoBehaviour { }
+    static System.Action openConfirm;
+
+    /// <summary>Opens the "Leave?" box (Back, Field Journal and View More in the simulation HUD).</summary>
+    public static void ShowLeaveConfirm() { if (openConfirm != null) openConfirm(); else Load(Modes); }
 
     static GameObject Rect(Transform parent, string name, Vector2 aMin, Vector2 aMax, Vector2 pos, Vector2 size, Color color)
     {
@@ -161,6 +175,38 @@ public static class ScreenFlow
         t.text = text; t.fontSize = size; t.color = color; t.raycastTarget = false;
         t.alignment = TMPro.TextAlignmentOptions.Center;
         t.textWrappingMode = TMPro.TextWrappingModes.Normal;
+    }
+
+    // ---------- Field Journal on top of a running simulation ----------
+    static bool journalWasRunning;
+
+    /// <summary>Opens the Field Journal over the simulation, paused; its Back button returns to the same run.</summary>
+    public static void OpenJournalOverlay()
+    {
+        if (SceneManager.GetSceneByName(Journal).isLoaded) return;
+        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
+        journalWasRunning = speed != null && speed.IsRunning;
+        if (speed != null) speed.Pause();
+        SceneManager.LoadSceneAsync(Journal, LoadSceneMode.Additive);
+    }
+
+    // The journal scene is a full screen of its own: drop its camera, light and extra EventSystem, draw it on top.
+    static void SetUpJournalOverlay(Scene scene)
+    {
+        foreach (var root in scene.GetRootGameObjects())
+        {
+            if (root.GetComponent<Camera>() != null || root.GetComponent<Light>() != null) { root.SetActive(false); continue; }
+            if (root.GetComponent<UnityEngine.EventSystems.EventSystem>() != null) { root.SetActive(false); continue; }
+            foreach (var c in root.GetComponentsInChildren<Canvas>(true))
+                if (c.isRootCanvas) { c.renderMode = RenderMode.ScreenSpaceOverlay; c.sortingOrder = 90; }
+        }
+    }
+
+    static void CloseJournalOverlay()
+    {
+        SceneManager.UnloadSceneAsync(Journal);
+        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
+        if (journalWasRunning && speed != null) speed.Play();
     }
 
     static void Load(string scene)

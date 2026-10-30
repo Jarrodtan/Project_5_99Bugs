@@ -16,6 +16,7 @@ public class AnimalInfoUI : MonoBehaviour
     public TMP_Text targetText;
 
     private AnimalBrain selectedAnimal;
+    public AnimalBrain SelectedAnimal => selectedAnimal;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): read by SimHud
     private TMP_Text factText;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): set per species
 
     private void Awake()
