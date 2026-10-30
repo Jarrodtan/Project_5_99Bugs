@@ -1584,6 +1584,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TerrainCameraController
   terrain: {fileID: 86107047}
   minHeightAboveGround: 2
+  edgeMargin: 35
   minDistance: 3
   maxDistance: 80
   startDistance: 45
@@ -1595,7 +1596,14 @@ MonoBehaviour:
   rotateSpeed: 0.25
   smoothTime: 0.12
   keyPanSpeed: 0.8
+  introFlyIn: 1
+  introStartDistance: 140
+  introStartPitch: 60
+  introSmoothTime: 1.1
+  introSeconds: 4
   followDistance: 7
+  followPitch: 18
+  followTurnSpeed: 1.5
   povEyeHeight: 1.2
   tapMask:
     serializedVersion: 2
