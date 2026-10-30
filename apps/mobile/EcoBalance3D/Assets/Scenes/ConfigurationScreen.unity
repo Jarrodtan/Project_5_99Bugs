@@ -1109,7 +1109,7 @@ MonoBehaviour:
   counters:
   - {fileID: 1629121588}
   - {fileID: 1230681128}
-  simulationSceneName: SampleScene
+  simulationSceneName: HimalayaSimulation
   configurationUI: {fileID: 1040150958}
 --- !u!1 &371288485
 GameObject:

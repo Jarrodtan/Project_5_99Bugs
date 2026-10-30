@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 995966ac76ded464aa6e2e5f3f377d4b, type: 3}
+  m_Name: HimalayaConfig
+  m_EditorClassIdentifier: Assembly-CSharp::HimalayaConfig
+  west: 86.8
+  south: 27.85
+  east: 87.05
+  north: 28.1
+  tileZoom: 11
+  heightmapResolution: 513
+  worldWidth: 200
+  verticalExaggeration: 1
+  areaSizeKm: 25
+  landCover: {fileID: 0}
+  treeLineMeters: 4800
+  treeFadeMeters: 800
+  maxTreeSlope: 35
+  treeSpacing: 4
+  maxTrees: 5000
+  treesPerCount: 40
+  treeDensity: 0.8
+  snowLineMeters: 5200
+  rockSlope: 38
+  grassClasses: 1e00000014000000i
+  grassPatches: 40
+  maxWaterPatches: 60
+  waterPatchSpacing: 12
+  overpassUrl: https://overpass-api.de/api/interpreter
+  useCache: 1
+  seed: 1

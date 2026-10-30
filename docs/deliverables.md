@@ -15,6 +15,22 @@
 | Simulation Time Control            | Reginald (T03) | Play/pause functional                                | Speed control added                             | Full reset/reconfigure                    |
 | Visualization/Feedback System      | Wei Leong | Placeholder agents spawn/despawn by population count | Real 3D models (from UXGD design) + animations wired to AI state | Polished, environmental feedback complete |
 | UI/UX (Inspector, Graphs, Prompts) | Dillon, Nomitha, Shu Min | Wireframes complete                                  | Functional UI wired to real simulation data     | Polished                                  |
-| 3D Environment/Assets              | Yan De | Placeholder biome                                    | Real Himalayan environment assets               | Polished                                  |
+| 3D Environment/Assets              | Terrain: Yusuf, Li Juan (data); river/meadows/water: Wei Leong (M2 split, 22 Oct) | Placeholder biome                                    | Real Himalayan environment assets               | Polished                                  |
 | Animal Models/Animations           | Models: Nomitha, Li Juan; animation: Wei Leong (SCRUM-267) | Placeholder models                                   | Real sheep/leopard models + core animation set (done: our procedural animation module `packages/procanim`: walk/run/flee/stalk, eat/drink, alert, legs/head/tail, child-friendly death) | Full animation set complete               |
 | CI/CD pipeline                     | Wei Leong (#4, #5) | Tests + Android build on every PR | Repo checks on every PR; smoke + performance tests nightly on `main`; APK on tags/manual to Gitea (`docs/infra/ci.md`) | Headless soak test on the VM, performance history |
+
+## M2 open tasks by person (from the 22 Oct task split, updated 26 Oct)
+
+Team: 2 UXGD (Shu Min, PM; Nomitha, Design Lead), 6 IMGD programmers, 1 RTIS (Wei Leong, Tech Lead). Integration build: branch `m2-integration`.
+
+| Person | Role | M2 focus | Still open |
+| --- | --- | --- | --- |
+| Shu Min | UXGD, PM | Game flow, wireframes, player goals (Tomas: "the player has little to do") | Confirm M2 target screens; HUD layout to mock-up (with Dillon) |
+| Nomitha | UXGD, Design Lead | Visual design, investigation case content | 2 missing case hints; final colours for HUD and animal card |
+| Dillon | IMGD | Field Journal UI | Journal screen + "new case" popup on the case engine; HUD re-anchoring for tablet |
+| Yan De | IMGD | Camera | Follow / POV / Back / Zoom buttons on `TerrainCameraController`; test on a real tablet |
+| Zhi Jie | IMGD | Utility AI + reproduction | Gender, leopard litters of 2–3, sheep herding |
+| Reginald | IMGD | AI + breeding with Zhi Jie, time control | Population balance across seasons (sheep / leopard cycles) |
+| Yusuf | IMGD | Terrain generation | Real tree model (tree slot holds a grass prefab), remove the 3 stray `New Terrain` assets |
+| Li Juan | IMGD | Terrain / weather / live animal data, audio | Move the weather API key out of the code; CSV export (T05) |
+| Wei Leong | RTIS, Tech Lead | Animation, engine systems, integration, CI | PR `m2-integration` to `main`; courtship nuzzle animation; tablet build + test session (1–2 Nov) |

@@ -49,7 +49,7 @@ The VM (3.7 GB RAM) can't run the Unity **editor**, but it can run a **headless 
 started with no graphics. CI builds it on `v*` tags and on demand (Run workflow, tick `headless`) and publishes it to Gitea; the VM downloads it, runs the simulation for
 2,000 simulated days, and records crashes, errors, memory and final populations.
 
-- **Game side:** `Assets/_Project/Scripts/DevTools/HeadlessSoakRunner.cs` only activates when started with `-soakDays N`.
+- **Game side:** `Assets/EcoBalance/Scripts/DevTools/HeadlessSoakRunner.cs` only activates when started with `-soakDays N`.
   Exit code 0 = passed, 1 = errors logged, 2 = no simulator, 3 = timed out. Report: JSON.
 - **Run locally on Linux:** `./EcoBalanceHeadless.x86_64 -batchmode -nographics -soakDays 200 -soakReport report.json`
 

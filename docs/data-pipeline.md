@@ -5,9 +5,9 @@ EcoBalance is data-driven. Species and resources are **ScriptableObject assets**
 ## Where code lives
 
 - **Simulation core** (data types, relationships, simulator, registry): `packages/ecosim/Runtime/`, tests in `packages/ecosim/Tests/Editor/`. It must not reference app code.
-- **Everything app-specific** (UI, island, camera, spawners, animal brains, audio): `apps/mobile/EcoBalance3D/Assets/_Project/Scripts/`.
+- **Everything app-specific** (UI, island, camera, spawners, animal brains, audio): `apps/mobile/EcoBalance3D/Assets/EcoBalance/Scripts/`.
 
-## Folder structure (`apps/mobile/EcoBalance3D/Assets/_Project/`)
+## Folder structure (`apps/mobile/EcoBalance3D/Assets/EcoBalance/`)
 
 | Folder | Contents |
 |---|---|
@@ -20,7 +20,7 @@ EcoBalance is data-driven. Species and resources are **ScriptableObject assets**
 | `Audio/` (and `Art/` when models/textures are added) | Imported sounds, models, textures, materials |
 | `Tests/Editor/` | App EditMode tests (core tests are in the package) |
 
-Scenes live in `Assets/Scenes/` (referenced by Build Settings); personal test scenes are named `<Initials>_Test_<Topic>`. Nothing else project-specific goes outside `_Project/`. Third-party and imported packages stay in their own folders.
+Scenes live in `Assets/Scenes/` (referenced by Build Settings); personal test scenes are named `<Initials>_Test_<Topic>`. Nothing else project-specific goes outside `EcoBalance/`. Third-party and imported packages stay in their own folders.
 
 ## Naming conventions
 
@@ -46,7 +46,7 @@ Scenes live in `Assets/Scenes/` (referenced by Build Settings); personal test sc
 
 ## Investigation cases (Field Journal, M2)
 
-- **Create:** right-click in `Assets/_Project/Resources/Cases/` → **Create → EcoSim → Investigation Case**. Name files `Case_NN_ShortName`.
+- **Create:** right-click in `Assets/EcoBalance/Resources/Cases/` → **Create → EcoSim → Investigation Case**. Name files `Case_NN_ShortName`.
 - **Fields:** `caseId` (stable, never change it after release), `title`, `hint` (shown while locked), `explanation` (shown once unlocked), `earliestDay`, and `conditions` (all must be true on the same day).
 - **Condition types:** `AtMost`, `AtLeast`, `ReachedZero`, `DroppedByFraction` / `RoseByFraction` (0.5 = 50%, compared with `windowDays` ago), `RatioAtLeast` (subject ÷ other). `subject` and `other` are species or resource assets.
 - **Check:** `CaseAssetTests` fails if a case has no title, hint or conditions, a duplicate id, or a subject that isn't a species or resource. In Play mode the dev overlay (backquote key) shows each case's status.
