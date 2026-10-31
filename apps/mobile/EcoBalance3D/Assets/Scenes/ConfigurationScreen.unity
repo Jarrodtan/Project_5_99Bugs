@@ -3758,9 +3758,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesCounter
   species: {fileID: 11400000, guid: 2829b3f512f18b14d931a7a5801afa6d, type: 2}
   countInput: {fileID: 1305611112}
-  startCount: 0
+  startCount: 2
   minCount: 0
-  maxCount: 100
+  maxCount: 5
 --- !u!1 &1231667971
 GameObject:
   m_ObjectHideFlags: 0
@@ -4725,9 +4725,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesCounter
   species: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
   countInput: {fileID: 1141289237}
-  startCount: 0
+  startCount: 10
   minCount: 0
-  maxCount: 500
+  maxCount: 20
 --- !u!1 &1675345348
 GameObject:
   m_ObjectHideFlags: 0

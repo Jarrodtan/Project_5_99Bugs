@@ -161,7 +161,7 @@ MonoBehaviour:
   eatDuration: 2
   chaseSpeedMultiplier: 1.9
   fleeSpeedMultiplier: 1.25
-  huntBelowHunger: 60
+  huntBelowHunger: 50
   stalkSpeedMultiplier: 0.45
   pounceDistance: 8
   sprintSpeedMultiplier: 2.2
@@ -171,13 +171,13 @@ MonoBehaviour:
   giveUpRestSeconds: 20
   senseAnywayDistance: 10
   spotStalkerDistance: 9
-  preyStarveAfterSeconds: 360
-  predatorStarveAfterSeconds: 600
-  dehydrateAfterSeconds: 240
+  preyStarveAfterSeconds: 600
+  predatorStarveAfterSeconds: 1000
+  dehydrateAfterSeconds: 600
   desperateNeed: 0.6
   predatorRoamHunger: 0.35
   desperateSearchMultiplier: 2
-  fullBiteFill: 50
+  fullBiteFill: 40
   fullDrinkFill: 60
   forageRadius: 60
   biteSize: 20
@@ -185,8 +185,8 @@ MonoBehaviour:
   mateRadius: 10
   predatorMateRadius: 90
   mateDistance: 2
-  reproduceMinWellFed: 60
-  reproduceCooldownSeconds: 30
+  reproduceMinWellFed: 70
+  reproduceCooldownSeconds: 600
   reproduceHungerCost: 25
   mateDuration: 2
   fleeWeight: 1.5

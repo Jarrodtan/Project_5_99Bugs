@@ -19,7 +19,7 @@ public class GuidedChallenge : MonoBehaviour
     const float QuietSecondsBetweenEvents = 12f;   // real seconds of watching between two popups
     const string GalleryKey = "EcoBalance.GuidedEndings";
 
-    // ---------- Events (GE01-GE06 core, GE08 additional; GE07 needs animal health, not built yet) ----------
+    // ---------- Events (GE01-GE06 core, GE07-GE08 additional) ----------
 
     class Choice { public string label, feedback; public Action apply; }
     class GuidedEvent
@@ -88,6 +88,15 @@ public class GuidedChallenge : MonoBehaviour
                 choices = new[] {
                     new Choice { label = "Help the grass recover", feedback = "The grass grew back a little!", apply = () => { foreach (var p in ResourcePatch.All) if (p != null) p.Restore(15f); } },
                     new Choice { label = "Support the animals", feedback = "Every animal had a good meal and a drink!", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) a.Refresh(15f, 15f); } },
+                    Nature() } },
+            new GuidedEvent {
+                id = "GE07", title = "Animal Illness",
+                text = "Some animals are becoming sick! They may lose their strength if they don't recover. What should we do?",
+                eligible = () => Day >= 12 && (Sheep > 0 || Leopards > 0),
+                environment = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) a.ChangeHealth(-20f); },
+                choices = new[] {
+                    new Choice { label = "Help the Blue Sheep recover", feedback = "The Blue Sheep got some of their strength back.", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught && !a.IsPredatorSpecies) a.ChangeHealth(15f); } },
+                    new Choice { label = "Help the Snow Leopards recover", feedback = "The Snow Leopards got some of their strength back.", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught && a.IsPredatorSpecies) a.ChangeHealth(15f); } },
                     Nature() } },
             new GuidedEvent {
                 id = "GE08", title = "Heavy Rainfall",

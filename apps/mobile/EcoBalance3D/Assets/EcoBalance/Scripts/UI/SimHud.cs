@@ -319,11 +319,13 @@ public class SimHud : MonoBehaviour
 
         var cond = Find("ConditionPanel", p);
         float hydration = a.HasThirst ? a.curr_thirst : 100f;
-        float health = Mathf.Clamp(Mathf.Min(a.curr_hunger, hydration) * 2f, 0f, 100f);   // no HP system yet: drops once a need is below 50%
+        float health = a.maxHealth > 0f ? a.curr_health / a.maxHealth * 100f : 100f;   // research HP: falls only while food or water is empty
         Meter(Find("FullnessTxt", cond), "FullnessBar", a.curr_hunger);
         Meter(Find("HydrationTxt", cond), "HydrationBar", hydration);
         Meter(Find("HealthTxt", cond), "HealthBar", health);
-        SetText("CurrentConditionTxt", health >= 100f ? "Healthy" : health > 40f ? "Hungry or thirsty" : "Weak", cond);
+        string need = a.curr_hunger <= 0f ? "Starving" : a.HasThirst && a.curr_thirst <= 0f ? "Very thirsty"
+                    : a.curr_hunger <= 50f || (a.HasThirst && a.curr_thirst <= 50f) ? "Hungry or thirsty" : "Healthy";
+        SetText("CurrentConditionTxt", health < 40f ? "Weak" : need, cond);
 
         SetText("ActionTxt", ActionWords(a), p);
         SetText("DescriptionTxt", Describe(a), p);

@@ -113,18 +113,23 @@ public class AnimalData : MonoBehaviour
 
     void CalculateGamePopulation(string simu_name, SpeciesStatusData data)
     {
-        int start_num = 100;
-
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): the live status now picks a share of the counter's maximum
+        // (Shumin's research: up to 20 Blue Sheep and 5 Snow Leopards), so the defaults come out at the research's
+        // 10 sheep (Least Concern) and 2 leopards (Vulnerable) instead of 100 and 10.
+        float share = 0.5f;
         switch (data.category)
         {
             case "EX":
-            case "EW": start_num = 0; break;
-            case "CR": start_num = 2; break;
-            case "EN": start_num = 5; break;
-            case "VU": start_num = 10; break;
-            case "NT": start_num = 40; break;
-            case "LC": start_num = 100; break;
+            case "EW": share = 0f; break;
+            case "CR": share = 0.1f; break;
+            case "EN": share = 0.25f; break;
+            case "VU": share = 0.4f; break;
+            case "NT": share = 0.45f; break;
+            case "LC": share = 0.5f; break;
         }
+        var counter = simu_name == "SnowLeopard" ? snowLeopardCounter : blueSheepCounter;
+        int max = counter != null ? counter.maxCount : (simu_name == "SnowLeopard" ? 5 : 20);
+        int start_num = Mathf.Max(share > 0f ? 1 : 0, Mathf.RoundToInt(max * share));
 
         calc_pop[simu_name] = start_num;
         Debug.Log($"[CONSERVATION DATA] {simu_name} ({data.category}, {data.population_trend}) -> Game Spawn: {start_num}");

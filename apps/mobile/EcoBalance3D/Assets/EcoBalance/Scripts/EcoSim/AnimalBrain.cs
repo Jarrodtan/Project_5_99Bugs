@@ -204,15 +204,45 @@ public class AnimalBrain : MonoBehaviour
 
     // Eat / starve
     [Header("Eat / Starve")]
-    // [AI-GENERATED] Claude Code (Claude Opus 5.5): timings in real seconds at 1x (1 game day = 120 s)
-    [Tooltip("Hunger goes from full to empty in this many seconds for plant-eaters (360 = 3 game days).")]
-    public float preyStarveAfterSeconds = 360f;
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // Shumin's research (Simulation Logic): Fullness and Hydration drop by a fixed amount per simulated day,
+    // animals look for food / water at 50% or less, and health (HP) only falls once one of them is empty.
+    // Timings are in real seconds at 1x (1 game day = 120 s).
+    [Tooltip("Fullness 100 -> 0 in this many seconds for plant-eaters (research: -20 per day = 600 s).")]
+    public float preyStarveAfterSeconds = 600f;
 
-    [Tooltip("Hunger goes from full to empty in this many seconds for predators (600 = 5 game days).")]
-    public float predatorStarveAfterSeconds = 600f;
+    [Tooltip("Fullness 100 -> 0 in this many seconds for predators (research: -12 per day = 1000 s).")]
+    public float predatorStarveAfterSeconds = 1000f;
 
-    [Tooltip("Thirst goes from full to empty in this many seconds (240 = 2 game days).")]
-    public float dehydrateAfterSeconds = 240f;
+    [Tooltip("Hydration 100 -> 0 in this many seconds for plant-eaters (research: -20 per day = 600 s).")]
+    public float dehydrateAfterSeconds = 600f;
+
+    [Tooltip("Hydration 100 -> 0 in this many seconds for predators (research: -12 per day = 1000 s).")]
+    public float predatorDehydrateAfterSeconds = 1000f;
+
+    [Tooltip("Starts looking for food when Fullness is at or below this (research: 50%).")]
+    [Range(0f, 100f)] public float seekFoodBelow = 50f;
+
+    [Tooltip("Starts looking for water when Hydration is at or below this (research: 50%).")]
+    [Range(0f, 100f)] public float seekWaterBelow = 50f;
+
+    [Header("Health")]
+    [Tooltip("Health points (research: 100 HP; dies at 0).")]
+    public float maxHealth = 100f;
+    [Tooltip("HP lost per simulated day while Fullness is 0, and again while Hydration is 0 (research: 20 each, 40 for both).")]
+    public float emptyNeedDamagePerDay = 20f;
+    [Tooltip("HP regained per simulated day while both Fullness and Hydration are above 50% (0 = never heals).")]
+    public float healPerDay = 10f;
+    [Tooltip("Food a successful hunt gives a predator (research: +80).")]
+    public float huntFill = 80f;
+
+    const float DaySeconds = 120f;   // 1 simulated day at 1x (ClockConfig)
+    public float curr_health = 100f;
+    float DehydrateAfter => IsPredator ? predatorDehydrateAfterSeconds : dehydrateAfterSeconds;
+
+    /// <summary>Guided events: change health directly (illness -20, help +15), capped at max.</summary>
+    public void ChangeHealth(float amount) => curr_health = Mathf.Clamp(curr_health + amount, 0f, maxHealth);
+    // [AI-GENERATED END]
 
     [Tooltip("Need (0-1) above which the animal searches further for food or water.")]
     [Range(0f, 1f)] public float desperateNeed = 0.6f;
@@ -224,7 +254,7 @@ public class AnimalBrain : MonoBehaviour
     public float desperateSearchMultiplier = 2f;
 
     [Tooltip("Hunger restored by one full bite of grass (a part-empty patch gives less).")]
-    public float fullBiteFill = 50f;
+    public float fullBiteFill = 40f;   // research: +40 per graze
 
     [Tooltip("Thirst restored by one full drink (a part-empty patch gives less).")]
     public float fullDrinkFill = 60f;
@@ -255,10 +285,15 @@ public class AnimalBrain : MonoBehaviour
 
     [Tooltip("Both hunger and thirst must be at least this high (0-100) before it wants to mate.")]
     [Range(0f, 100f)]
-    public float reproduceMinWellFed = 60f;
+    public float reproduceMinWellFed = 70f;   // research: Fullness of at least 70%
 
-    [Tooltip("Seconds before an animal can reproduce again. Also the wait after it first appears.")]
-    public float reproduceCooldownSeconds = 30f;
+    [Tooltip("Seconds before a plant-eater pair can breed again. Also the wait after it first appears (research: every 5 days = 600 s).")]
+    public float reproduceCooldownSeconds = 600f;
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): research - snow leopards breed far less often than blue sheep.
+    [Tooltip("Same for predators (research: every 12 days = 1440 s).")]
+    public float predatorReproduceCooldownSeconds = 1440f;
+    float ReproduceCooldown => IsPredator ? predatorReproduceCooldownSeconds : reproduceCooldownSeconds;
 
     [Tooltip("Hunger used up by each parent when reproducing.")]
     public float reproduceHungerCost = 25f;
@@ -549,7 +584,7 @@ public class AnimalBrain : MonoBehaviour
         decision_timer = Random.Range(0f, decisionInterval);
 
         // New animals wait before mating, and not all at the same moment.
-        reproduce_cooldown = reproduceCooldownSeconds * Random.Range(0.5f, 1f);
+        reproduce_cooldown = ReproduceCooldown * Random.Range(0.5f, 1f);
 
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): procedural animation (ProcAnim module) for every animal.
         if (!TryGetComponent(out AnimalMotionBridge _))
@@ -794,13 +829,19 @@ public class AnimalBrain : MonoBehaviour
         {
             curr_thirst = Mathf.Max(
                 0f,
-                curr_thirst - dt / dehydrateAfterSeconds * 100f * SeasonWeather.ThirstDrainMultiplier * GuidedEffects.Thirst(IsPredator));
+                curr_thirst - dt / DehydrateAfter * 100f * SeasonWeather.ThirstDrainMultiplier * GuidedEffects.Thirst(IsPredator));
         }
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): research health rule. Empty food and empty water each
+        // cost emptyNeedDamagePerDay; a well-fed, watered animal slowly recovers.
+        float empty = (curr_hunger <= 0f ? 1f : 0f) + (HasThirst && curr_thirst <= 0f ? 1f : 0f);
+        if (empty > 0f) curr_health -= empty * emptyNeedDamagePerDay * dt / DaySeconds;
+        else if (curr_hunger > 50f && (!HasThirst || curr_thirst > 50f)) curr_health += healPerDay * dt / DaySeconds;
+        curr_health = Mathf.Clamp(curr_health, 0f, maxHealth);
 
         // Only Events mode lets animals die; in Formula mode
         // the needs still drive decisions.
-        if (!EventsMode ||
-            (curr_hunger > 0f && curr_thirst > 0f))
+        if (!EventsMode || curr_health > 0f)
         {
             return false;
         }
@@ -812,6 +853,7 @@ public class AnimalBrain : MonoBehaviour
         // If this model isn't removed it starts again with full needs.
         curr_hunger = 100f;
         curr_thirst = 100f;
+        curr_health = maxHealth;
 
         agent.isStopped = true;
 
@@ -849,13 +891,13 @@ public class AnimalBrain : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): AppetiteNear makes a patch where a predator was seen
         // less tempting, so only a really hungry / thirsty animal goes back there before it forgets.
         scores[(int)AnimalAction.EatingGrass] =
-            food_patch != null
+            food_patch != null && curr_hunger <= seekFoodBelow   // research: look for food at 50% or less
                 ? eatWeight * HungerNeed * DistanceFactor(food_patch.transform.position, forageRadius)
                   * AppetiteNear(food_patch.transform.position)
                 : 0f;
 
         scores[(int)AnimalAction.DrinkingWater] =
-            water_patch != null
+            water_patch != null && curr_thirst <= seekWaterBelow   // research: look for water at 50% or less
                 ? drinkWeight * ThirstNeed * DistanceFactor(water_patch.transform.position, forageRadius)
                   * AppetiteNear(water_patch.transform.position)
                 : 0f;
@@ -1339,8 +1381,8 @@ public class AnimalBrain : MonoBehaviour
                 }
             }
 
-            // Predator has successfully eaten.
-            curr_hunger = 100f;
+            // Predator has successfully eaten (research: +80 Fullness, capped).
+            curr_hunger = Mathf.Min(100f, curr_hunger + huntFill);
             sprinting = false; sprint_time = 0f;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
             busy_timer =
@@ -1493,7 +1535,7 @@ public class AnimalBrain : MonoBehaviour
         // [AI-GENERATED END]
 
         reproduce_cooldown =
-            reproduceCooldownSeconds;
+            ReproduceCooldown;   // both partners wait, so it counts per pair (research)
 
         curr_hunger = Mathf.Max(
             0f,
