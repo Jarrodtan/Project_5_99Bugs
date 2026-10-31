@@ -50,7 +50,12 @@ public class HimalayaResourcePlacer : MonoBehaviour
 
     public void PlaceWater(HimalayaTerrainBuilder tb, List<WaterFeature> features, int maxRivers = -1)
     {
-        if (water == null || features == null) return;
+        if (water == null) return;
+        if (features == null || features.Count == 0)
+        {
+            PlaceValleyWater(tb);
+            return;
+        }
         if (maxRivers > 0) features = LimitRivers(features, maxRivers);
         var material = MakeMaterial(waterColor);
         int placed = 0;
@@ -87,6 +92,26 @@ public class HimalayaResourcePlacer : MonoBehaviour
             }
         }
         Debug.Log($"[Himalaya] Water patches: {placed}");
+    }
+
+    // Used when the map service cannot be reached. Drops patches on the lowest gentle ground.
+    void PlaceValleyWater(HimalayaTerrainBuilder tb)
+    {
+        var rng = new System.Random(config.seed + 2);
+        var material = MakeMaterial(waterColor);
+        int placed = 0, tries = 0, maxTries = Mathf.Max(1, config.maxWaterPatches) * 40;
+        float span = Mathf.Max(1f, tb.MaxElevation - tb.MinElevation);
+
+        while (placed < config.maxWaterPatches && tries++ < maxTries)
+        {
+            float u = (float)rng.NextDouble(), v = (float)rng.NextDouble();
+            if (tb.SlopeDegrees(u, v) > maxPatchSlope) continue;
+            float height = (tb.ElevationMeters(u, v) - tb.MinElevation) / span;
+            if (height > 0.35f) continue;
+            TryPlace(tb, new Vector2(u, v), material, ref placed);
+        }
+
+        Debug.Log($"[Himalaya] Water patches: {placed} (valley fallback)");
     }
 
     // Keeps the longest `max` rivers/streams, plus every lake and spring.

@@ -647,6 +647,7 @@ MonoBehaviour:
   spawner: {fileID: 0}
   secondsPerTick: 2
   pauseGateBehaviour: {fileID: 8500000010}
+  clockBehaviour: {fileID: 8710000003}
 --- !u!33 &8100000008
 MeshFilter:
   m_ObjectHideFlags: 0

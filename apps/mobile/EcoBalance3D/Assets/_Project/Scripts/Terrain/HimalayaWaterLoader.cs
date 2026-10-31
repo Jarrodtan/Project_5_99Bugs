@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -34,23 +35,63 @@ public class HimalayaWaterLoader : MonoBehaviour
                            $"way[\"natural\"=\"water\"]({box});" +
                            $"node[\"natural\"=\"spring\"]({box});" +
                            ");out geom;";
-            string url = config.overpassUrl + "?data=" + UnityWebRequest.EscapeURL(query);
+            string encoded = UnityWebRequest.EscapeURL(query);
+            var body = Encoding.UTF8.GetBytes("data=" + encoded);
+            string lastError = null;
 
-            using (var req = UnityWebRequest.Get(url))
+            foreach (var endpoint in Endpoints(config.overpassUrl))
             {
-                yield return req.SendWebRequest();
-                if (req.result != UnityWebRequest.Result.Success)
+                using (var req = new UnityWebRequest(endpoint, UnityWebRequest.kHttpVerbPOST))
                 {
-                    Debug.LogError($"[Himalaya] Overpass request failed: {req.error}", this);
-                    done(new List<WaterFeature>());
-                    yield break;
+                    req.uploadHandler = new UploadHandlerRaw(body);
+                    req.downloadHandler = new DownloadHandlerBuffer();
+                    req.timeout = 15;
+                    req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                    req.SetRequestHeader("User-Agent", "EcoBalance3D/1.0 (educational Unity client)");
+                    yield return req.SendWebRequest();
+                    if (req.result == UnityWebRequest.Result.Success && !string.IsNullOrEmpty(req.downloadHandler.text))
+                    {
+                        json = req.downloadHandler.text;
+                        lastError = null;
+                        break;
+                    }
+
+                    lastError = $"{endpoint}: {req.error}";
+                    Debug.LogWarning($"[Himalaya] Overpass request failed: {lastError}", this);
                 }
-                json = req.downloadHandler.text;
+            }
+
+            if (json == null)
+            {
+                Debug.LogWarning($"[Himalaya] Overpass unavailable ({lastError}). Placing water in low valleys instead.", this);
+                done(new List<WaterFeature>());
+                yield break;
             }
             if (config.useCache) GeoCache.WriteText(file, json);
         }
 
         done(Parse(json, b));
+    }
+
+    static IEnumerable<string> Endpoints(string configured)
+    {
+        var seen = new HashSet<string>();
+        foreach (var url in new[]
+        {
+            configured,
+            "https://overpass-api.de/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter",
+            "https://overpass.osm.ch/api/interpreter",
+            "http://overpass-api.de/api/interpreter"
+        })
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                continue;
+
+            var trimmed = url.Trim().TrimEnd('/');
+            if (seen.Add(trimmed))
+                yield return trimmed;
+        }
     }
 
     static List<WaterFeature> Parse(string json, GeoBounds b)
