@@ -58,6 +58,17 @@ public class ProcAnimator : MonoBehaviour
     /// <summary>Something for the head to turn towards (world position), or null to look ahead.</summary>
     public void SetLookTarget(Vector3? worldPosition) => lookTarget = worldPosition;
 
+    /// <summary>
+    /// World-space normal of the ground under the animal. The body leans to match it (eased,
+    /// up to <see cref="MaxGroundTilt"/> degrees), so animals on a slope stand along it instead of level.
+    /// </summary>
+    public void SetGroundNormal(Vector3 worldNormal) => groundNormal = worldNormal.sqrMagnitude > 1e-6f ? worldNormal.normalized : Vector3.up;
+
+    public const float MaxGroundTilt = 30f;
+    const float GroundTiltSmoothTime = 0.15f;
+    Vector3 groundNormal = Vector3.up;
+    Quaternion groundTilt = Quaternion.identity;
+
     void Awake()
     {
         if (profile == null) profile = ScriptableObject.CreateInstance<MotionProfile>();
@@ -201,13 +212,24 @@ public class ProcAnimator : MonoBehaviour
         Instantiate(profile.deathEffect, pivot.position, Quaternion.identity);
     }
 
+    // Tilt from world up to the ground normal (clamped), eased over time, in the root's local space.
+    Quaternion GroundTiltLocal()
+    {
+        Vector3 n = Vector3.RotateTowards(Vector3.up, groundNormal, MaxGroundTilt * Mathf.Deg2Rad, 0f);
+        Quaternion world = Quaternion.FromToRotation(Vector3.up, n);
+        Quaternion local = Quaternion.Inverse(transform.rotation) * world * transform.rotation;
+        float k = Time.deltaTime > 0f ? 1f - Mathf.Exp(-Time.deltaTime / GroundTiltSmoothTime) : 1f;
+        groundTilt = Quaternion.Slerp(groundTilt, local, k);
+        return groundTilt;
+    }
+
     void Apply(MotionPose pose)
     {
         LastPose = pose;
         // Height is in metres; the pivot lives in the root's (possibly scaled) local space.
         float scaleY = Mathf.Max(Mathf.Abs(transform.lossyScale.y), 1e-4f);
         pivot.localPosition = basePosition + Vector3.up * (pose.Height / scaleY);
-        pivot.localRotation = baseRotation * Quaternion.Euler(pose.Pitch, 0f, -pose.Roll);
+        pivot.localRotation = GroundTiltLocal() * baseRotation * Quaternion.Euler(pose.Pitch, 0f, -pose.Roll);
         pivot.localScale = baseScale * pose.Scale;
     }
 }

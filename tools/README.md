@@ -8,7 +8,7 @@ Development and production tools that live outside the Unity project.
 | `unity.bat` | Windows 11 (cmd, or **double-click for a menu**) | `open`, `test`, `build android\|windows`, `clean`, `zip [name]` |
 
 Both find Unity 6000.6.0f1 in the default Unity Hub folder (override with the `UNITY` environment variable).
-`build` calls `BuildScript` (`Assets/_Project/Scripts/Editor/BuildScript.cs`), which builds every scene enabled in Build Settings.
+`build` calls `BuildScript` (`Assets/EcoBalance/Scripts/Editor/BuildScript.cs`), which builds every scene enabled in Build Settings.
 Close the Editor before `test` or `build`.
 
 `zip` packs exactly what is committed (no `Library` cache, `.git`, `UserSettings` or build output) into `../EcoBalance_TechFiles.zip`, or `../<name>.zip`, for submitting the project files. It warns if you have uncommitted changes, because those are not included.
@@ -17,7 +17,7 @@ Close the Editor before `test` or `build`.
 
 `vm/soak.sh` runs on the team VM (weekly cron): downloads the Linux headless build CI published to Gitea, soak-tests it for 2,000 simulated days and uploads the report and history. Setup: `docs/infra/ci.md`.
 
-Unity Editor tools (custom inspectors, windows) go in `apps/mobile/EcoBalance3D/Assets/_Project/Scripts/Editor/`, because Unity only compiles code inside `Assets/`.
+Unity Editor tools (custom inspectors, windows) go in `apps/mobile/EcoBalance3D/Assets/EcoBalance/Scripts/Editor/`, because Unity only compiles code inside `Assets/`.
 
 ---
 *Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed and edited by Tan Wei Leong.*
