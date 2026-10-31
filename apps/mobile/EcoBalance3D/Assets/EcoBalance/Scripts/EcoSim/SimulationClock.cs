@@ -12,7 +12,12 @@ public class SimulationClock : MonoBehaviour
     [SerializeField]
     MonoBehaviour pauseGateBehaviour;
 
+    [Tooltip("Optional. When set, one ecosystem day passes each time this clock's day changes, instead of every secondsPerTick.")]
+    [SerializeField]
+    MonoBehaviour clockBehaviour;
+
     ISimulationPauseGate _pauseGate;
+    IClockProvider _clock;
     float timer;
     private float simulationSpeed = 1f;
     private bool isRunning = true;
@@ -22,8 +27,29 @@ public class SimulationClock : MonoBehaviour
         _pauseGate = pauseGateBehaviour as ISimulationPauseGate;
     }
 
+    void OnEnable()
+    {
+        _clock = clockBehaviour as IClockProvider;
+        if (clockBehaviour != null && _clock == null)
+            Debug.LogError($"{nameof(SimulationClock)} clock must implement {nameof(IClockProvider)}.", this);
+
+        if (_clock != null)
+            _clock.OnDayChanged += OnClockDay;
+    }
+
+    void OnDisable()
+    {
+        if (_clock != null)
+            _clock.OnDayChanged -= OnClockDay;
+    }
+
+    void OnClockDay(int _) => Step();
+
     void Update()
     {
+        if (_clock != null)
+            return;
+
         if (!isRunning)
             return;
 
@@ -38,13 +64,26 @@ public class SimulationClock : MonoBehaviour
         if (timer >= secondsPerTick)
         {
             timer -= secondsPerTick;
-
-            simulator.Tick();
-            if (display != null)
-                display.Refresh();
-            if (spawner != null)
-                spawner.RefreshVisuals();
+            Step();
         }
+    }
+
+    void Step()
+    {
+        if (!isRunning)
+            return;
+
+        if (_pauseGate != null && _pauseGate.ShouldPause)
+            return;
+
+        if (simulator == null)
+            return;
+
+        simulator.Tick();
+        if (display != null)
+            display.Refresh();
+        if (spawner != null)
+            spawner.RefreshVisuals();
     }
 
     public void SetSpeed(float speed)
