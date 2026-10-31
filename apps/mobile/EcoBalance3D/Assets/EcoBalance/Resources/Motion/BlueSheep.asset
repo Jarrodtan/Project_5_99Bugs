@@ -171,14 +171,14 @@ MonoBehaviour:
   maxAccelPitch: 8
   springHz: 3
   springDamping: 0.35
-  animateLegs: 1
+  animateLegs: 0
   legHeightFraction: 0.4
   legBlendFraction: 0.12
   legSwingResponse: 8
   modelFacesBackward: 0
-  animateHead: 1
+  animateHead: 0
   headLengthFraction: 0.25
-  animateTail: 1
+  animateTail: 0
   tailLengthFraction: 0.1
   headTailBlendFraction: 0.08
   maxHeadYaw: 45

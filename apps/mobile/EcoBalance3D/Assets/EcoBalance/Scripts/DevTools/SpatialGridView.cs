@@ -1,5 +1,4 @@
 // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -20,6 +19,7 @@ public class SpatialGridView : MonoBehaviour
 
     void Update()
     {
+        if (!Debug.isDebugBuild) return;
         if (Keyboard.current != null && Keyboard.current.gKey.wasPressedThisFrame) visible = !visible;
         if (visible) EcoRegistry.CountPerCell(cells);
     }
@@ -27,7 +27,7 @@ public class SpatialGridView : MonoBehaviour
     // Runs after the camera renders (also under URP), so the lines draw over the island.
     void OnRenderObject()
     {
-        if (!visible || cells.Count == 0) return;
+        if (!Debug.isDebugBuild || !visible || cells.Count == 0) return;
         if (lineMat == null)
         {
             lineMat = new Material(Shader.Find("Hidden/Internal-Colored")) { hideFlags = HideFlags.HideAndDontSave };
@@ -56,6 +56,7 @@ public class SpatialGridView : MonoBehaviour
 
     void OnGUI()
     {
+        if (!Debug.isDebugBuild) return;
         label ??= new GUIStyle(GUI.skin.label) { fontSize = 22, normal = { textColor = Color.white } };
         // No on-screen hint, so recordings stay clean; press G to show the grid.
         if (!visible)
@@ -73,5 +74,4 @@ public class SpatialGridView : MonoBehaviour
         if (lineMat != null) Destroy(lineMat);
     }
 }
-#endif
 // [AI-GENERATED END]

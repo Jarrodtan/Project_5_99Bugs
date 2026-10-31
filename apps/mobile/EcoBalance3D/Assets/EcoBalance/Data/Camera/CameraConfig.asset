@@ -19,16 +19,17 @@ MonoBehaviour:
   rotationSpeed: 0.2
   minPitch: 10
   maxPitch: 80
-  zoomSpeed: 1
-  minDistance: 5
-  maxDistance: 40
-  panSpeed: 12
-  maxPanRadius: 20
+  zoomNotchFactor: 0.85
+  minDistance: 20
+  maxDistance: 400
+  panSpeed: 40
+  panSpeedReferenceDistance: 180
+  maxPanRadius: 100
   panDamping: 0.08
   rotationDamping: 0.08
   zoomDamping: 0.1
   pivotRecenterDamping: 0.2
   defaultYaw: 0
-  defaultPitch: 35
-  defaultDistance: 15
+  defaultPitch: 40
+  defaultDistance: 180
   ignorePointerOverUI: 1

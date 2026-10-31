@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using Unity.AI.Navigation;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Networking;
 
 /// <summary>
@@ -11,22 +13,85 @@ using UnityEngine.Networking;
 public class HimalayaTerrainBuilder : MonoBehaviour
 {
     [SerializeField] HimalayaConfig config;
-    [Tooltip("Terrain to fill. Give it TerrainLayers (grass, rock, snow) and tree prototypes beforehand.")]
+
+    [Tooltip("Optional build profile. When flattenHeights is set, the DEM cut is written flat.")]
+    [SerializeField] HimalayaBuildProfile profile;
+
+    [Tooltip("Terrain to fill. Leave empty to create one at runtime.")]
     [SerializeField] Terrain terrain;
 
+    [Tooltip("Layers applied when creating a Terrain at runtime (grass, rock, snow).")]
+    [SerializeField] TerrainLayer[] bootstrapLayers;
+
+    [Tooltip("URP TerrainLit (or project default terrain material). Required so runtime Terrain is not magenta/pink.")]
+    [SerializeField] Material terrainMaterialTemplate;
+
     public Terrain Terrain => terrain;
+
+    /// <summary>Build variant on this island, used to tell a flat cut from the mountain cut.</summary>
+    public HimalayaBuildProfile BuildProfile => profile;
+
+    /// <summary>Grass, rock, and snow layers applied when the terrain is created.</summary>
+    public TerrainLayer[] BootstrapLayers => bootstrapLayers;
     public GeoBounds Bounds { get; private set; }
     public bool IsBuilt { get; private set; }
     public float MinElevation { get; private set; }
     public float MaxElevation { get; private set; }
     public float MetersToUnits { get; private set; }
 
+    /// <summary>NavMeshSurface on the runtime or assigned terrain, if any.</summary>
+    public NavMeshSurface NavSurface { get; private set; }
+
+    TerrainData _runtimeTerrainData;
+
+    void OnDisable()
+    {
+        // Only when leaving Play (isPlaying already false) — mid-Play disable must keep TerrainData.
+        if (!Application.isPlaying)
+            ReleaseRuntimeTerrainData();
+    }
+
+    void OnDestroy()
+    {
+        StopAllCoroutines();
+        if (NavSurface != null)
+            NavSurface.RemoveData();
+        ReleaseRuntimeTerrainData();
+    }
+
+    /// <summary>Unbinds and destroys the runtime TerrainData copy so Editor domain reload does not leak GC handles.</summary>
+    public void ReleaseRuntimeTerrainData()
+    {
+        if (_runtimeTerrainData == null)
+            return;
+
+        var data = _runtimeTerrainData;
+        _runtimeTerrainData = null;
+
+        if (terrain != null && terrain.terrainData == data)
+            terrain.terrainData = null;
+
+        var col = terrain != null ? terrain.GetComponent<TerrainCollider>() : null;
+        if (col != null && col.terrainData == data)
+            col.terrainData = null;
+
+        // Always Immediate: deferred Destroy survives into domain reload and spams GC-handle warnings.
+        DestroyImmediate(data, allowDestroyingAssets: false);
+    }
+
     public IEnumerator Build()
     {
         IsBuilt = false;
-        if (config == null || terrain == null)
+        if (config == null)
         {
-            Debug.LogError($"{nameof(HimalayaTerrainBuilder)} needs a config and a Terrain.", this);
+            Debug.LogError($"{nameof(HimalayaTerrainBuilder)} needs a config.", this);
+            yield break;
+        }
+
+        EnsureTerrain();
+        if (terrain == null)
+        {
+            Debug.LogError($"{nameof(HimalayaTerrainBuilder)} could not create a Terrain.", this);
             yield break;
         }
 
@@ -91,30 +156,102 @@ public class HimalayaTerrainBuilder : MonoBehaviour
             }
         }
 
+        bool flatten = profile != null && profile.flattenHeights;
         var heights = new float[res, res];
         float range = Mathf.Max(1f, max - min);
-        for (int j = 0; j < res; j++)
-            for (int i = 0; i < res; i++)
-                heights[j, i] = (metres[j, i] - min) / range;
+        if (flatten)
+        {
+            float mid = (min + max) * 0.5f;
+            MinElevation = mid;
+            MaxElevation = mid;
+            for (int j = 0; j < res; j++)
+                for (int i = 0; i < res; i++)
+                    heights[j, i] = 0.5f;
+            range = 1f;
+        }
+        else
+        {
+            MinElevation = min;
+            MaxElevation = max;
+            for (int j = 0; j < res; j++)
+                for (int i = 0; i < res; i++)
+                    heights[j, i] = (metres[j, i] - min) / range;
+        }
 
-        MinElevation = min;
-        MaxElevation = max;
         MetersToUnits = (float)(config.worldWidth / b.WidthMeters);
 
         // Work on a copy so the TerrainData asset in the project isn't overwritten.
-        var td = Instantiate(terrain.terrainData);
+        var source = terrain.terrainData;
+        var previous = _runtimeTerrainData;
+        var td = Instantiate(source);
+        _runtimeTerrainData = td;
         terrain.terrainData = td;
         td.heightmapResolution = res;
         float depth = (float)(config.worldWidth * b.HeightMeters / b.WidthMeters);
-        float height = Mathf.Max(1f, range * MetersToUnits * config.verticalExaggeration);
+        float height = flatten
+            ? 1f
+            : Mathf.Max(1f, range * MetersToUnits * config.verticalExaggeration);
         td.size = new Vector3(config.worldWidth, height, depth);
         td.SetHeights(0, 0, heights);
 
         var col = terrain.GetComponent<TerrainCollider>();
         if (col != null) col.terrainData = td;
 
+        // Drop the previous runtime copy only after Terrain no longer references it.
+        if (previous != null && previous != td)
+            DestroyImmediate(previous, allowDestroyingAssets: false);
+
         IsBuilt = true;
-        Debug.Log($"[Himalaya] Terrain built: {min:0}-{max:0} m, {config.worldWidth:0} x {depth:0} units.");
+        Debug.Log($"[Himalaya] Terrain built: {MinElevation:0}-{MaxElevation:0} m, {config.worldWidth:0} x {depth:0} units" +
+                  (flatten ? " (flat cut)." : "."));
+    }
+
+    void EnsureTerrain()
+    {
+        if (terrain != null)
+        {
+            NavSurface = terrain.GetComponent<NavMeshSurface>();
+            if (NavSurface == null)
+                NavSurface = terrain.gameObject.AddComponent<NavMeshSurface>();
+            ConfigureNavSurface(NavSurface);
+            return;
+        }
+
+        var go = new GameObject("Terrain");
+        go.transform.SetParent(transform, false);
+        go.transform.localPosition = Vector3.zero;
+        go.transform.localRotation = Quaternion.identity;
+        go.transform.localScale = Vector3.one;
+
+        var td = new TerrainData();
+        _runtimeTerrainData = td;
+        td.heightmapResolution = Mathf.Max(33, config.heightmapResolution);
+        td.alphamapResolution = Mathf.Clamp(config.heightmapResolution - 1, 16, 512);
+        td.size = new Vector3(config.worldWidth, 1f, config.worldWidth);
+        if (bootstrapLayers != null && bootstrapLayers.Length > 0)
+            td.terrainLayers = bootstrapLayers;
+
+        terrain = go.AddComponent<Terrain>();
+        terrain.terrainData = td;
+        if (terrainMaterialTemplate != null)
+            terrain.materialTemplate = terrainMaterialTemplate;
+        else
+            Debug.LogWarning($"{nameof(HimalayaTerrainBuilder)}: assign terrainMaterialTemplate (URP TerrainLit) or the terrain will render pink.", this);
+
+        var col = go.AddComponent<TerrainCollider>();
+        col.terrainData = td;
+        NavSurface = go.AddComponent<NavMeshSurface>();
+        ConfigureNavSurface(NavSurface);
+    }
+
+    static void ConfigureNavSurface(NavMeshSurface surface)
+    {
+        surface.collectObjects = CollectObjects.All;
+        surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+        surface.layerMask = ~0;
+        surface.defaultArea = 0;
+        // Narrow valley strips on a steep DEM are smaller than the default 2 m² cutoff.
+        surface.minRegionArea = 0.1f;
     }
 
     IEnumerator FetchTile(int z, int x, int y, Action<byte[]> done)

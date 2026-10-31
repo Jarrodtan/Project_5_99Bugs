@@ -217,6 +217,15 @@ MonoBehaviour:
   modalSize: {x: 420, y: 320}
   modalCloseLabel: Close
   fabLabel: +
-  entityScatterRadius: 4
+  fabTooltip: Actions
+  entitySpawnCoverage: 1
   spawnSurfaceOffset: 0.75
+  spawnRayLength: 0
+  spawnRayWidth: 1.5
+  spawnRayColor: {r: 1, g: 0.15, b: 0.15, a: 1}
+  spawnLightSeconds: 0.5
+  spawnLightIntensity: 80000
+  spawnLightRange: 40
+  spawnLightAngle: 12
+  spawnLightColor: {r: 1, g: 0.95, b: 0.75, a: 1}
   pauseSimulationWhileOpen: 0
