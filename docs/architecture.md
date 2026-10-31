@@ -1,7 +1,7 @@
-# EcoBalance — System Architecture (v0.1)
+# EcoBalance — System Architecture (v0.2)
 
 **Owner of this document:** Tan Wei Leong (Tech Lead)
-**Status:** v0.1 for Milestone 1. It describes what is built and what is planned. Anything planned is marked *(planned)*.
+**Status:** v0.2 for Milestone 2 (v0.1 was Milestone 1). It describes what is built and what is planned. Anything planned is marked *(planned)*.
 
 See also: [toolchain.md](toolchain.md) (technology choices), [data-pipeline.md](data-pipeline.md) (asset/data rules) and [deliverables.md](deliverables.md) (M1/M2/M3 targets).
 
@@ -12,7 +12,7 @@ See also: [toolchain.md](toolchain.md) (technology choices), [data-pipeline.md](
 | Engine | Unity **6000.6.0f1** (Unity 6), URP |
 | Language | C# |
 | Target platform | Android tablet |
-| Source control / CI | GitHub + GitHub Actions (GameCI): repo checks + EditMode tests (unit, scene smoke, performance) on every PR and on `main`; weekly / `v*` tag / manual Android build, APK stored on team Gitea ([CI details](infra/ci.md)) |
+| Source control / CI | GitHub + GitHub Actions (GameCI): repo checks + EditMode tests (unit, scene smoke, performance) on PRs into `main` and nightly on the integration branch (`M2-Integration` during M2); `v*` tag / manual Android build, APK stored on team Gitea ([CI details](infra/ci.md)) |
 | Project management | Jira (SCRUM project) |
 
 ## 2. Architecture diagram
@@ -66,7 +66,7 @@ The simulator has two modes (`EcosystemSimulator.mode`):
 | Mode | How populations change | Used by |
 |---|---|---|
 | **Formula** (default) | Each `Tick()`: predation = rate × predators × prey; grazers share grass; well-fed species grow, underfed ones starve. Deterministic. | EditMode tests, balancing |
-| **Events** | Only from what the 3D animals do: leopard catches sheep → sheep −1; no food for 15 s (sheep) / 20 s (leopard) → −1. Eating only feeds the animal: there is **no reproduction yet** (the `eatingAddsOffspring` switch, off by default, would add +1 per meal as a stand-in until the reproduction system exists). `Tick()` only regrows grass and water (+3). | HimalayaSimulation demo |
+| **Events** | Only from what the 3D animals do: a leopard catch → sheep −1; an animal whose HP reaches 0 → −1; a male and female pair breeding → +1. Rules follow the design research (Simulation Logic): Fullness / Hydration −20 (sheep) / −12 (leopard) per day, look for food / water at 50% or less, 100 HP lost at 20 per day per empty need, +40 graze / +60 drink / +80 catch, hunt at ≤50% with 70% success and a 1-day rest after a miss, breed at ≥70% Fullness every 5 (sheep) / 12 (leopard) days per pair. `Tick()` only regrows grass and water. | HimalayaSimulation (Free and Guided) |
 
 In both modes the numbers live in the simulator and `CreatureSpawner` keeps one model per animal; the animal that was caught or starved is the one removed.
 
@@ -95,9 +95,9 @@ flowchart TB
 Solid box `packages/ecosim` = reusable core; everything in `apps/mobile` depends on it, never the reverse (see §7).
 
 **How the parts communicate**
-- **App flow (F01):** `HomeScreen` → `MainMenu` loads `ConfigurationScreen`, which loads `HimalayaSimulation` additively behind the menu with time paused. The player sets starting numbers with `SpeciesCounter`; **Start** stores them in `EcosystemSimulator.StartingPopulationOverrides`, resets the ecosystem and resumes time.
+- **App flow (M2):** `ScreenFlow` wires the menu screens by button name: `HomeScreen` → `EcosystemSelectionScreen` → `ModeSelectionScreen` → **Guided** (straight into `HimalayaSimulation`, 10 Blue Sheep / 2 Snow Leopards) or **Free** (`ConfigurationScreen`, which loads `HimalayaSimulation` additively behind the menu with time paused). In Free the player sets starting numbers with `SpeciesCounter` (default 10 / 2, max 20 / 5, from the live conservation status); **Start** stores them in `EcosystemSimulator.StartingPopulationOverrides`, resets the ecosystem and resumes time. When a run starts, `SimHud` loads Shu Min's `UI` scene on top as the HUD. The Field Journal opens over the paused run; Back asks before leaving. (The project skips scene reload on Play, so `ScreenFlow` also wires the scene that is already open.)
 - **Tick loop:** `SimulationClock.Update()` calls `EcosystemSimulator.Tick()`, then `PopulationDisplay.Refresh()` and `CreatureSpawner.RefreshVisuals()`. Play / Pause / Reset / speed (x1-x8) are on the clock, driven by `SimulationSpeedController` buttons. Reset calls `ResetEcosystem()` (starting populations).
-- **Agents:** `CreatureSpawner` keeps the number of 3D animals in line with the population (one model per animal, rounded like the label) and registers each one in `EcoRegistry`. In HimalayaSimulation each animal runs `AnimalBrain`: flee > hunt > go to grass/water > wander, with a hunger timer; in Events mode it reports `RecordPredation` / `RecordEat` / `RecordStarvation` to the simulator. Each animal's `GoalOrientedAnimalBrain` scores its goals by need urgency and runs behaviour-tree actions: Seek finds the nearest `ResourcePatch`, Flee and Hunt ask `EcoRegistry` for the nearest predator / prey (from the Eats relationships).
+- **Agents:** `CreatureSpawner` keeps the number of 3D animals in line with the population (one model per animal, rounded like the label) and registers each one in `EcoRegistry`. Herds and leopard territories spawn in their real habitat heights, away from the map edge, each herd on one river bank. In HimalayaSimulation each animal runs `AnimalBrain` (utility AI): flee > hunt > eat / drink > mate > wander, driven by Fullness, Hydration and HP. `AnimalPerception` decides what an animal can see (vision cone + line-of-sight raycast; sheep see 300°, always sense a leopard within 10 m, a stalking leopard only within 9 m). Leopards stalk, then sprint, and give up after a short chase; sheep that see one warn their herd and remember the spot (`DangerMemory`). Pathfinding is Unity's NavMesh (A*); in Events mode it reports `RecordPredation` / `RecordEat` / `RecordStarvation` to the simulator. Each animal's `GoalOrientedAnimalBrain` scores its goals by need urgency and runs behaviour-tree actions: Seek finds the nearest `ResourcePatch`, Flee and Hunt ask `EcoRegistry` for the nearest predator / prey (from the Eats relationships).
 - **Animation:** `AnimalBrain` adds an `AnimalMotionBridge`, which adds a `ProcAnimator` (our procedural animation, `packages/procanim`) and turns the brain's action into a motion state each frame (walk, run, flee, stalk, eat, drink, alert, die). `ProcAnimator` measures speed and turning from how the NavMeshAgent moved the animal, finds the legs, head and tail in the static mesh, and animates a pivot child plus the mesh's vertices. Settings per species: `Resources/Motion/<species asset name>`.
 - **Spatial grid:** `EcoRegistry` answers nearest-prey/predator/food queries from an 8 m spatial hash grid once a species has 32+ animals (rebuilt once per frame, searched ring by ring); smaller groups use a plain scan. Measured: 500 animals 0.87 ms per frame (`PerformanceTests`). Press **G** in Play mode (Editor/dev builds) for the debug view.
 - **Data in:** the simulator and AI read `SpeciesDefinition` / `ResourceDefinition` assets. Prey comes from `SpeciesDefinition.GetSpeciesTargets(RelationshipType.Eats)`.
@@ -130,13 +130,20 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Himalaya terrain (M2) | `Scripts/Terrain`: `HimalayaWorldBuilder`, `HimalayaTerrainBuilder`, `HimalayaSplatPainter`, `HimalayaTreePlacer`, `HimalayaSightings` | — | Yusuf (generator), Li Juan (terrain data, `TerrainConfig`) | Done: real Everest-area heightmap, textures, trees, GBIF sightings |
 | Live data (M2) | `IslandPlatform/WeatherManager`, `TerrainConfig` (Wikidata), bundled OpenStreetMap water in `Resources/HimalayaData` | — | Li Juan | Done: live Everest temperature + condition (valley temperature derived), terrain counts |
 | Utility AI + reproduction (M2) | `EcoSim/AnimalBrain` (utility scoring: flee, hunt, eat, drink, mate, roam) | T07 | Zhi Jie, Reginald | Done: per-animal hunger/thirst, pair mating; tuning by Wei Leong (spec timings, senses for the big map, fear beats hunger) |
-| Integration build (M2) | branch `M2-Integration` | — | Wei Leong | Merges Zhi Jie, Li Juan, Yusuf and Wei Leong work into one playable build |
-| River, meadows, habitats (M2) | `Terrain/HimalayaRiver`, `WaterMeshBuilder`, `HimalayaResourcePlacer` (meadows), `GrassTuftMesh`, shaders `GrassWind`, `WaterFlow`; `CreatureSpawner` groups | — | Wei Leong | Done: one river traced from a peak down the valleys (NavMesh-blocked, splits the map), wind-blown meadows, 2 herds + 2 leopard territories, babies beside mum |
-| Weather & seasons (M2) | `EcoSim/SeasonWeather` | T06 | Wei Leong (system), Li Juan (live weather) | Done: 4 seasons; rain / snow / drought change grass and river refill; heat raises thirst, cold raises hunger |
-| "Watch!" moments + camera (M2) | `EcoSim/DramaDirector`, `HeartPop`, `Camera/TerrainCameraController` | — | Wei Leong (built), Yan De (camera owner: buttons, touch testing) | Done: banners for hunts / catches / mating / births with a one-tap follow; touch pan / pinch / twist / tilt, POV |
+| Integration build (M2) | branch `M2-Integration` | — | Wei Leong | Merges everyone's work into one playable build; merged into `main` at the milestone |
+| Realistic world (M2) | `Terrain/HimalayaConfig` (Khumbu valleys box), `HimalayaRiver`, `WaterMeshBuilder`, `HimalayaResourcePlacer` (meadows), `GrassTuftMesh`, shaders `GrassWind`, `WaterFlow`; `CreatureSpawner` habitats | SCRUM-286 | Wei Leong | Done: real Khumbu heights (tree line 4,200 m, snow line 5,200 m), main river from the glacier snout (NavMesh-blocked, walk round over the ice), up to 5 glacier streams with fords, meadows kept off the water, 5 sheep herds + solitary leopard territories by habitat height |
+| Research numbers + health (M2) | `EcoSim/AnimalBrain` (Fullness, Hydration, HP, breeding), `EcoSim/AnimalData` (live status → starting numbers) | SCRUM-296 | Wei Leong | Done: values from the design research (see §2.2, Events mode) |
+| Perception (M2) | `EcoSim/AnimalPerception` | T07 | Reginald (Wei Leong: 300° prey vision, stalker and close-sense rules) | Done: vision cone + raycast line of sight, gizmo lines in the Scene view |
+| Hunting, herd alarm, danger memory (M2) | `EcoSim/AnimalBrain` (stalk / sprint), `EcoSim/DangerMemory` | T07 | Yusuf (Wei Leong: research hunt rules, merge) | Done: stalk then sprint, give up and rest, herd alarm calls, sheep avoid places they saw a leopard |
+| Guided Exploration (M2) | `Guided/GuidedChallenge`, `Guided/GuidedEffects` | SCRUM-297 | Wei Leong (design: Shu Min) | Done: 20-day challenge, events GE01–GE08 with pausing 3-choice popups and timed buffs/debuffs, early collapse, 5 endings, Ending Gallery |
+| Menu flow + simulation HUD (M2) | `UI/Configuration/ScreenFlow`, `UI/SimHud`; scenes HomeScreen, EcosystemSelection, ModeSelection, FieldJournal, `UI` | SCRUM-298 | Wei Leong (screens + HUD design: Shu Min) | Done: buttons wired by name; the HUD shows live day, populations, vegetation / water with trends, animal inspection (Fullness, Hydration, Health, action, Did You Know); Field Journal over the paused run |
+| Terrain editor (dev tool, M2) | `Terrain/TerrainEditTool` | — | Yusuf | Editor / development builds only: sculpt and repaint the terrain while playing |
+| Tooltips, action menu, camera (M2) | `UI/Tooltip/*`, `UI/ActionMenu/*`, `Camera/*`, `Terrain/HimalayaBuildProfile` | — | Yan De | Done: tooltip system, FAB action menu preview, flat-grass build profile (PR #51) |
+| Weather & seasons (M2) | `EcoSim/SeasonWeather` | T06 | Wei Leong (system), Li Juan (live weather) | Done: 4 seasons of 5 days (2 real minutes per day at 1x); river refill follows glacier melt (warm = full, freezing = low); heat raises thirst, cold raises hunger; Guided always starts in summer |
+| "Watch!" moments + camera (M2) | `EcoSim/DramaDirector`, `HeartPop`, `Camera/TerrainCameraController` | — | Wei Leong (built), Yan De (camera owner: buttons, touch testing) | Done: banners for hunts / catches / mating / births with a one-tap follow; orbit camera (drag to spin / tilt, two fingers to move, pinch to zoom) kept over the terrain and lifted over hills, third-person follow, POV |
 | Metrics export (CSV) | *(planned, reads PopulationHistory)* | T05 (optional) | Li Juan | Not started |
-| CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/*/Tests/Editor/*`, `Assets/EcoBalance/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks on every PR; unit + smoke + performance tests nightly on `main`; tag/manual Android APK to Gitea ([details](infra/ci.md)) |
-| UI/UX design | Figma / `docs/design/ui-ux` | — | Nomitha, Shu Min (Design) | 16 M2 wireframes in `docs/design/ui-ux/wireframes`; mockups to do |
+| CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/*/Tests/Editor/*`, `Assets/EcoBalance/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks + unit / smoke / performance tests on PRs into `main`; tests nightly on `M2-Integration`; tag/manual Android APK to Gitea ([details](infra/ci.md)) |
+| UI/UX design | Figma / `docs/design/ui-ux`, `Assets/Scenes/UI.unity` | — | Nomitha, Shu Min (Design) | 16 M2 wireframes in `docs/design/ui-ux/wireframes`; menu screens and the simulation HUD built in Unity by Shu Min and wired up |
 
 ## 4. Data stores
 
@@ -147,6 +154,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Scenes / prefabs | Level layout and agent prefabs | `Assets/Scenes/`, `Assets/EcoBalance/Prefabs/` |
 | Population history | Per-day species and resource values (in memory, newest 1,000 days) | `PopulationHistoryRecorder.History` |
 | Field Journal progress | Unlocked investigation case ids | Device `PlayerPrefs` (`EcoBalance.CaseJournal`) |
+| Guided Ending Gallery | Endings found (bit mask) | Device `PlayerPrefs` (`EcoBalance.GuidedEndings`) |
 | Exported metrics *(planned, T05)* | Population history as CSV | — |
 
 There is no server or database. EcoBalance is a single offline mobile app.
@@ -197,7 +205,7 @@ Project_5_99Bugs/
 │   └── mobile/
 │       └── EcoBalance3D/                  # Unity app (assembly: Assembly-CSharp)
 │           ├── Assets/
-│           │   ├── Scenes/                # HomeScreen → ConfigurationScreen → HimalayaSimulation (M1 flow), IslandPlatform, T02_Test
+│           │   ├── Scenes/                # HomeScreen → EcosystemSelection → ModeSelection → Guided / Free (ConfigurationScreen) → HimalayaSimulation + UI (HUD); FieldJournalScene; IslandPlatform, T02_Test (test scenes, not built)
 │           │   └── EcoBalance/
 │           │       ├── Audio/             # BGM + SFX
 │           │       ├── Data/              # app assets: AI needs/goals/actions, islands, camera, UI config
@@ -210,7 +218,9 @@ Project_5_99Bugs/
 │           │       │   ├── Behaviourtreecore/ # behaviour tree + action executors (Wander, Seek, Flee, Hunt)
 │           │       │   ├── Camera/            # orbit camera
 │           │       │   ├── Creatures/         # CreatureSpawner
-│           │       │   ├── EcoSim/            # SimulationClock, speed controller, animal brains, AnimalMotionBridge
+│           │       │   ├── EcoSim/            # SimulationClock, speed controller, AnimalBrain, AnimalPerception, DangerMemory, SeasonWeather, AnimalMotionBridge
+│           │       │   ├── Guided/            # GuidedChallenge (events, endings, gallery), GuidedEffects (buffs / debuffs)
+│           │       │   ├── Terrain/           # Himalaya world: terrain, river + glacier streams, meadows, TerrainEditTool (dev)
 │           │       │   ├── DevTools/          # SimDebugOverlay + SpatialGridView (Editor/dev builds), HeadlessSoakRunner (-soakDays)
 │           │       │   ├── Editor/            # BuildScript, EcoBalanceCIBuild, AnimalCreator window
 │           │       │   ├── Inspection/        # IInspectable, inspector data
@@ -218,7 +228,7 @@ Project_5_99Bugs/
 │           │       │   ├── Resources/         # ResourcePatch
 │           │       │   ├── Selection/         # tap-to-select
 │           │       │   ├── SimulationData/    # ISimulationDataProvider (UI read interface)
-│           │       │   └── UI/                # Configuration, PopulationCounter, ResourceLevels, EventFeed, InspectorPanel
+│           │       │   └── UI/                # ScreenFlow (menu flow), SimHud (HUD), Configuration, Tooltip, ActionMenu, PopulationCounter, ResourceLevels, EventFeed, InspectorPanel
 │           │       └── Tests/             # app EditMode tests
 │           ├── Packages/manifest.json     # loads com.99bugs.ecosim and com.99bugs.procanim from packages/
 │           └── ProjectSettings/
