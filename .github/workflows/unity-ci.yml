@@ -1,11 +1,12 @@
 # [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 name: Unity CI
 
-# Minutes budget (GitHub Pro: 3,000 min/month, Unity runs are ~12 min each):
-# - PRs: Repo checks only (seconds). "EditMode tests" is skipped, which still counts as
-#   passing for the required check, so PRs can merge.
-# - Nightly (02:00 SGT): EditMode tests on main, only if main got new commits in the
-#   last 24 h. A failure there means something merged yesterday broke main.
+# Minutes budget (GitHub Pro: about $18 of compute a month, Unity runs are ~12 min each):
+# - PRs into main: Repo checks + EditMode tests (only a few PRs, at milestone merges).
+# - Nightly (02:00 SGT): EditMode tests on the integration branch (NIGHTLY_BRANCH), only if
+#   it got new commits in the last 24 h. A failure there means something merged yesterday
+#   broke it. During M2 the team merges into M2-Integration, so that is what is tested;
+#   set it back to main after the milestone.
 # - APK + headless builds: only on version tags (v*) and on demand
 #   (Actions > Unity CI > Run workflow). Run workflow also runs the tests first.
 # APKs are stored on the team Gitea (package "ecobalance-apk"); nothing is uploaded to
@@ -43,6 +44,7 @@ env:
   UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
   PROJECT_PATH: apps/mobile/EcoBalance3D
+  NIGHTLY_BRANCH: M2-Integration
 
 # No Library cache on purpose: runs that restored a cached Library were killed
 # (exit 137) while Unity reloaded assemblies; clean imports passed.
@@ -72,16 +74,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SINCE=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
-          NEW=$(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&since=$SINCE&per_page=1" --jq length || echo 1)
+          NEW=$(gh api "repos/$GITHUB_REPOSITORY/commits?sha=$NIGHTLY_BRANCH&since=$SINCE&per_page=1" --jq length || echo 1)
           if [ "$NEW" -gt 0 ]; then echo "changed=true" >> "$GITHUB_OUTPUT"
-          else echo "No commits on main since $SINCE, skipping"; echo "changed=false" >> "$GITHUB_OUTPUT"; fi
+          else echo "No commits on $NIGHTLY_BRANCH since $SINCE, skipping"; echo "changed=false" >> "$GITHUB_OUTPUT"; fi
 
   test:
     name: EditMode tests
     needs: check
-    # Not on PRs (see the minutes note at the top). check only runs on the schedule.
+    # PRs into main, tags, manual runs, and the nightly run when the integration branch changed.
     if: >-
-      always() && github.event_name != 'pull_request' &&
+      always() &&
       (needs.check.result == 'skipped' || needs.check.outputs.changed == 'true')
     runs-on: ubuntu-latest
     steps:
@@ -93,6 +95,9 @@ jobs:
           swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
 
       - uses: actions/checkout@v4
+        with:
+          # Nightly tests the integration branch; everything else tests what triggered the run.
+          ref: ${{ github.event_name == 'schedule' && env.NIGHTLY_BRANCH || '' }}
 
       # LFS files live on the team Gitea, not GitHub, so pull them with a Gitea token
       - name: Pull LFS files from Gitea
@@ -164,6 +169,9 @@ jobs:
           swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
 
       - uses: actions/checkout@v4
+        with:
+          # Nightly tests the integration branch; everything else tests what triggered the run.
+          ref: ${{ github.event_name == 'schedule' && env.NIGHTLY_BRANCH || '' }}
 
       # LFS files live on the team Gitea, not GitHub, so pull them with a Gitea token
       - name: Pull LFS files from Gitea
