@@ -38,7 +38,8 @@ public class IslandSwapHandler : MonoBehaviour, IActionMenuCategoryHandler
             results.Add(new ActionMenuOption
             {
                 id = definition.id,
-                label = string.IsNullOrEmpty(definition.displayName) ? definition.id : definition.displayName
+                label = string.IsNullOrEmpty(definition.displayName) ? definition.id : definition.displayName,
+                preview = definition.islandPrefab
             });
         }
 

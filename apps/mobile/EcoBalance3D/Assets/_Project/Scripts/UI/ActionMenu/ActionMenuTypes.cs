@@ -34,6 +34,9 @@ public class ActionMenuOption
 
     [Tooltip("Optional icon. Leave empty to hide the icon image.")]
     public Sprite icon;
+
+    [Tooltip("Prefab photographed onto the bubble when no icon sprite is set.")]
+    public GameObject preview;
 }
 
 /// <summary>

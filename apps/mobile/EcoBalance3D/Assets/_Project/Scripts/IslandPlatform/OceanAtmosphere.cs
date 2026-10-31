@@ -22,12 +22,12 @@ public class OceanAtmosphere : MonoBehaviour
     [Tooltip("Daytime fog density (exponential squared).")]
     [SerializeField]
     [Min(0f)]
-    float dayFogDensity = 0.012f;
+    float dayFogDensity = 0.002f;
 
     [Tooltip("Nighttime fog density (exponential squared).")]
     [SerializeField]
     [Min(0f)]
-    float nightFogDensity = 0.02f;
+    float nightFogDensity = 0.0035f;
 
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     static readonly int DeepColorId = Shader.PropertyToID("_DeepColor");
