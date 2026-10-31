@@ -523,6 +523,14 @@ public class AnimalBrain : MonoBehaviour
             base_speed = agent.speed;
             base_acceleration = agent.acceleration;
 
+            // (Yande, PR #51) One brain drives the agent. A second brain on the same object
+            // (the IslandPlatform sheep, the snow leopard prefab) fights every path.
+            var otherBrain = GetComponent<GoalOrientedAnimalBrain>();
+            if (otherBrain != null)
+                otherBrain.enabled = false;
+            agent.autoBraking = false;
+            agent.stoppingDistance = 0.6f;
+
             // Let the NavMeshAgent rotate the animal.
             agent.updateRotation = true;
             agent.angularSpeed = 360f;

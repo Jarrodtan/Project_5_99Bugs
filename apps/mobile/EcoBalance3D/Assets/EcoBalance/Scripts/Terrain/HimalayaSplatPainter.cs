@@ -8,6 +8,9 @@ public class HimalayaSplatPainter : MonoBehaviour
 {
     [SerializeField] HimalayaConfig config;
 
+    [Tooltip("Optional (Yande, PR #51). When forceGrassSplat is set, paints grass-only cover.")]
+    [SerializeField] HimalayaBuildProfile profile;
+
     // [AI-GENERATED] Claude Code (Claude Opus 5.5): kept from the last full paint so TerrainEditTool can repaint parts with the same rules.
     HimalayaLandCover lastLandCover;
 
@@ -47,7 +50,9 @@ public class HimalayaSplatPainter : MonoBehaviour
             for (int i = 0; i < w; i++)
             {
                 float u = (x0 + i) / (res - 1f), v = (y0 + j) / (res - 1f);
-                Weights(builder, td, u, v, useLandCover, out float grass, out float rock, out float snow);
+                float grass, rock, snow;
+                if (profile != null && profile.forceGrassSplat) { grass = 1f; rock = 0f; snow = 0f; }
+                else Weights(builder, td, u, v, useLandCover, out grass, out rock, out snow);
                 for (int l = 3; l < layers; l++) alphas[j, i, l] = 0f;
                 alphas[j, i, 2] = snow;
                 alphas[j, i, 1] = rock;

@@ -236,6 +236,16 @@ public class CreatureSpawner : MonoBehaviour {
             // Random heading so idle animals don't all face the same way.
             var facing = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
             GameObject go = Instantiate(species.visualPrefab, spawnPos, facing, transform);
+            // (Yande, PR #51) Prefabs keep the agent off so Instantiate does not register it before a mesh exists.
+            var navAgent = go.GetComponent<NavMeshAgent>();
+            if (navAgent != null)
+            {
+                navAgent.enabled = false;
+                go.transform.position = spawnPos;
+                navAgent.enabled = true;
+                if (!navAgent.isOnNavMesh)
+                    navAgent.enabled = false;
+            }
             // [AI-GENERATED END]
 
             var entity = go.GetComponent<EcoEntity>();
