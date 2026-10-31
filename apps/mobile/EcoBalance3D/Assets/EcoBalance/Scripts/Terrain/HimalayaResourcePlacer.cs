@@ -32,7 +32,10 @@ public class HimalayaResourcePlacer : MonoBehaviour
     [Tooltip("Distance between neighbouring clumps in a meadow. About a clump's width, so they join into one lawn.")]
     [SerializeField] float meadowClumpSpacing = 4.2f;
     [Tooltip("Grass regrown per second on each patch (a full patch is 100).")]
-    [SerializeField] float grassRegrowPerSecond = 5f;
+    [SerializeField] float grassRegrowPerSecond = 1.5f;
+    [Tooltip("A grass patch must regrow to at least this much before animals eat it again (a full patch is 100). " +
+             "High values make grazers leave a cropped meadow and move on instead of waiting beside it.")]
+    [SerializeField] float grassMinEdibleAmount = 60f;
 
     [Header("3D water")]
     [SerializeField] float streamWidth = 2.5f;
@@ -47,6 +50,29 @@ public class HimalayaResourcePlacer : MonoBehaviour
 
     readonly List<GameObject> spawned = new List<GameObject>();
     Mesh grassTuft;
+    Material grassMaterial;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): shared with grass painted by TerrainEditTool
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    /// <summary>The grass resource, so the in-game terrain editor can tell grass patches from water.</summary>
+    public ResourceDefinition GrassResource => grass;
+    /// <summary>The traced river's root object (meshes + no-walk volumes), or null.</summary>
+    public Transform RiverRoot { get; private set; }
+    /// <summary>Grass is kept at least this far from the river centre line.</summary>
+    public float RiverClearance => riverMouthWidth;
+
+    /// <summary>
+    /// Adds one grass patch at a world point, same look and regrowth as the generated meadows.
+    /// Used by TerrainEditTool's Add Grass brush.
+    /// </summary>
+    public ResourcePatch SpawnGrassAt(Vector3 position)
+    {
+        if (grass == null) return null;
+        if (grassMaterial == null) grassMaterial = MakeGrassMaterial();
+        if (grassTuft == null) grassTuft = GrassTuftMesh.Build(config.seed);
+        SpawnTuft(grass, position, Random.value * 360f, grassMaterial, $"Grass Patch (painted) {spawned.Count + 1}");
+        return spawned[spawned.Count - 1].GetComponent<ResourcePatch>();
+    }
+    // [AI-GENERATED END]
 
     public void Clear()
     {
@@ -61,7 +87,8 @@ public class HimalayaResourcePlacer : MonoBehaviour
         // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
         // Meadows: each seed spot grows into a lawn of several touching clumps, below the tree line
         // (alpine grassland, where blue sheep graze). Blades sway in the wind (EcoBalance/GrassWind).
-        var material = MakeGrassMaterial();
+        if (grassMaterial == null) grassMaterial = MakeGrassMaterial();
+        var material = grassMaterial;
         if (grassTuft == null) grassTuft = GrassTuftMesh.Build(config.seed);
         // Alpine meadows grow ABOVE the tree line, up to the snow line (Khumbu: about 4,200-5,200 m).
         float meadowTop = config.snowLineMeters;
@@ -131,6 +158,7 @@ public class HimalayaResourcePlacer : MonoBehaviour
         var system = new GameObject("River System");
         system.transform.SetParent(transform, true);
         spawned.Add(system);
+        RiverRoot = system.transform;
 
         var banks = HimalayaRiver.Build(tb, system.transform, mat, riverSourceWidth, riverMouthWidth);
         ClearTreesFromRiver(tb);
@@ -348,6 +376,7 @@ public class HimalayaResourcePlacer : MonoBehaviour
         var patch = go.AddComponent<ResourcePatch>();
         patch.Configure(def);
         patch.RegrowPerSecond = grassRegrowPerSecond;
+        patch.MinEdibleAmount = grassMinEdibleAmount;
         spawned.Add(go);
     }
     // [AI-GENERATED END]

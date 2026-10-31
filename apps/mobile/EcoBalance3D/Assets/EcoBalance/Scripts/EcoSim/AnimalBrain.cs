@@ -77,34 +77,115 @@ public class AnimalBrain : MonoBehaviour
     [Tooltip("Speed multiplier while fleeing.")]
     public float fleeSpeedMultiplier = 1.25f;
 
-    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-    // Real snow leopard hunts: only when hungry, creep up low and slow using the slope for cover,
-    // then a short fast sprint. Prey only flee from a predator they can actually see.
-    [Header("Stalk and pounce")]
-    [Tooltip("Only hunts when hunger is below this (100 = full), so a leopard that just ate leaves the herd alone.")]
-    [Range(0f, 100f)] public float huntBelowHunger = 60f;
-    [Tooltip("While stalking, moves at this fraction of walking speed.")]
-    public float stalkSpeedMultiplier = 0.45f;
-    [Tooltip("Starts the sprint when this close, or as soon as the prey runs.")]
-    public float pounceDistance = 8f;
-    [Tooltip("Sprint speed (snow leopards are much faster than blue sheep over a short dash).")]
-    public float sprintSpeedMultiplier = 2.2f;
-    [Tooltip("Gives up a sprint after this many seconds (at 1x) and rests, like real leopards.")]
-    public float maxSprintSeconds = 6f;
-    [Tooltip("Chance that reaching the prey ends in a catch (Shumin's research: 70%).")]
-    [Range(0f, 1f)] public float huntSuccessRate = 0.7f;
-    [Tooltip("Rest after a missed catch (research: 1 simulated day = 120 s at 1x).")]
-    public float huntCooldownSeconds = 120f;
-    [Tooltip("Rest after a failed hunt (seconds at 1x).")]
-    public float giveUpRestSeconds = 20f;
-    [Tooltip("Prey always notice a predator this close (hearing, smell), hill or no hill.")]
-    public float senseAnywayDistance = 10f;
-    [Tooltip("A crouching, stalking predator is only spotted this close.")]
-    public float spotStalkerDistance = 9f;
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // Snow leopards hunt by stalking close, then one short sprint. Before, a chase never ended and the
+    // leopard was always faster, so any sheep it saw was as good as caught.
+    [Header("Hunting style (predators)")]
+    [Tooltip("Speed multiplier while creeping up on prey, before the sprint.")]
+    public float stalkSpeedMultiplier = 0.6f;
+    [Tooltip("Starts the sprint (at chaseSpeedMultiplier) when this close, or as soon as the prey runs.")]
+    public float pounceDistance = 12f;
+    [Tooltip("Seconds (at 1x) a sprint lasts. If the prey isn't caught by then the predator gives up.")]
+    public float sprintStaminaSeconds = 5f;
+    [Tooltip("Seconds (at 1x) a predator rests after a failed sprint before it hunts again.")]
+    public float huntRestSeconds = 20f;
+    [Tooltip("Prey only spot a stalking (not sprinting) predator within this fraction of their flee radius.")]
+    [Range(0.1f, 1f)] public float stalkSpotFraction = 0.75f;
 
-    public bool IsStalking { get; private set; }
+    [Header("Herd alarm (prey)")]
+    [Tooltip("While eating or drinking (head down), prey spot a stalker at only this fraction of the usual distance.")]
+    [Range(0.1f, 1f)] public float grazingAlertness = 0.6f;
+    [Tooltip("Seconds (at 1x) a herd mate runs after hearing an alarm call, even without seeing the predator.")]
+    public float alarmFleeSeconds = 2.5f;
+
+    /// <summary>True while creeping up on prey (harder for prey to notice).</summary>
+    public bool IsStalking => CurrentAction == AnimalAction.Hunting && !sprinting;
     public bool IsFleeing => CurrentAction == AnimalAction.Fleeing;
-    float sprintTimer, huntRestTimer;
+
+    bool sprinting;
+    float sprint_time;
+    float hunt_rest;
+    Vector3 alarm_position;
+    float alarm_flee_timer;
+
+    bool HasThreat => predator != null || alarm_flee_timer > 0f;
+    Vector3 ThreatPosition => predator != null ? predator.position : alarm_position;
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // Prey remember where they saw a predator and keep away from there for a while, instead of
+    // forgetting it the moment it is out of sight and grazing their way straight back to it.
+    [Header("Danger memory (prey)")]
+    [Tooltip("Seconds (at 1x) a predator sighting is remembered. 60 = one game day. 0 = no memory.")]
+    [Min(0f)] public float dangerMemorySeconds = 60f;
+
+    [Tooltip("Area around a sighting that feels dangerous. Grass, water and wander spots inside it are avoided.")]
+    [Min(0f)] public float dangerRadius = 25f;
+
+    [Tooltip("When choosing grass / water, a patch right on a fresh sighting counts as this many metres further away.")]
+    [Min(0f)] public float dangerDetour = 60f;
+
+    [Tooltip("How much a remembered danger lowers the urge to eat or drink there (0 = not at all, 1 = only when desperate).")]
+    [Range(0f, 1f)] public float dangerAppetiteCut = 0.6f;
+
+    [Tooltip("Herd mates within this distance hear the alarm and remember the sighting too.")]
+    [Min(0f)] public float alarmRadius = 15f;
+
+    [Tooltip("Most sightings remembered at once; the oldest is forgotten first.")]
+    [Min(1)] public int maxDangerSpots = 4;
+
+    readonly DangerMemory danger_memory = new();
+    System.Func<Vector3, float> danger_detour_cost;
+    float alarm_timer;
+
+    static readonly List<AnimalBrain> all_brains = new();
+
+    void OnEnable() => all_brains.Add(this);
+    void OnDisable() => all_brains.Remove(this);
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => all_brains.Clear();
+
+    /// <summary>Remembered predator sightings, for debug views.</summary>
+    public IReadOnlyList<DangerMemory.Spot> DangerSpots => danger_memory.Spots;
+
+    /// <summary>0..1, how dangerous this animal thinks a spot is from the predators it remembers.</summary>
+    public float DangerAt(Vector3 p) => danger_memory.DangerAt(p, dangerRadius, dangerMemorySeconds);
+
+    /// <summary>Hears a herd mate's alarm: runs from the predator's position and remembers it.</summary>
+    public void HearAlarm(Vector3 predatorPosition)
+    {
+        alarm_position = predatorPosition;
+        alarm_flee_timer = alarmFleeSeconds;
+        if (dangerMemorySeconds > 0f)
+            danger_memory.Remember(predatorPosition, dangerMemorySeconds, dangerRadius * 0.5f, maxDangerSpots);
+    }
+
+    // Called at each decision while a predator is in sight.
+    void RememberPredator(Vector3 predatorPosition, float dt)
+    {
+        bool isNew = dangerMemorySeconds > 0f &&
+                     danger_memory.Remember(predatorPosition, dangerMemorySeconds, dangerRadius * 0.5f, maxDangerSpots);
+
+        // Alarm call: at once for a new spot, then about once a second while it stays in view.
+        alarm_timer -= dt;
+        if (!isNew && alarm_timer > 0f) return;
+        alarm_timer = 1f;
+
+        float alarmSqr = alarmRadius * alarmRadius;
+        foreach (var other in all_brains)
+        {
+            if (other == this || other.species_data != species_data || other.IsCaught) continue;
+            if ((other.transform.position - transform.position).sqrMagnitude <= alarmSqr)
+                other.HearAlarm(predatorPosition);
+        }
+    }
+
+    // Extra "metres" added to a patch's distance when choosing where to eat or drink.
+    float DangerDetourCost(Vector3 p) => DangerAt(p) * dangerDetour;
+
+    // Multiplier on an eat / drink score for a patch in remembered danger.
+    float AppetiteNear(Vector3 p) => 1f - dangerAppetiteCut * DangerAt(p);
     // [AI-GENERATED END]
 
     // Eat / starve
@@ -447,6 +528,8 @@ public class AnimalBrain : MonoBehaviour
         CurrentAction = AnimalAction.Roaming;
         CurrentTargetName = "";
 
+        danger_detour_cost = DangerDetourCost;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): cached so patch searches don't allocate
+
         // Spread decisions out so every animal doesn't think on the same frame.
         decision_timer = Random.Range(0f, decisionInterval);
 
@@ -505,6 +588,9 @@ public class AnimalBrain : MonoBehaviour
             return;
 
         GrowUp(dt);
+        danger_memory.Tick(dt);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): sightings fade in simulation time
+        alarm_flee_timer -= dt;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+        hunt_rest -= dt;          // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
         // Think a few times a second...
         decision_timer -= dt;
@@ -630,6 +716,50 @@ public class AnimalBrain : MonoBehaviour
                Mathf.Max(reach, touching);
     }
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // At x8 both animals move several metres per frame, so a leopard can pass right by a sheep between two
+    // frames without ever ending a frame in reach. This also checks the closest they came during the frame.
+    Vector3 sweep_my_prev, sweep_other_prev;
+    Transform sweep_other;
+    int sweep_frame = -10;
+
+    bool InReachSwept(Transform other, AnimalBrain otherBrain, float reach)
+    {
+        // Only sweep from last frame's positions, never from a chase that stopped a while ago.
+        bool hadPrev = sweep_other == other && sweep_frame == Time.frameCount - 1;
+        Vector3 relPrev = sweep_other_prev - sweep_my_prev;
+        Vector3 relNow = other.position - transform.position;
+        sweep_frame = Time.frameCount;
+        sweep_other = other;
+        sweep_my_prev = transform.position;
+        sweep_other_prev = other.position;
+
+        if (InReach(other, otherBrain, reach)) return true;
+        if (!hadPrev) return false;
+
+        float touching = BodyRadius + (otherBrain != null ? otherBrain.BodyRadius : 0f) + 0.2f;
+        float r = Mathf.Max(reach, touching);
+        relPrev.y = relNow.y = 0f;
+        // Closest point to the origin on the segment relPrev -> relNow (relative motion this frame).
+        Vector3 seg = relNow - relPrev;
+        float t = seg.sqrMagnitude > 1e-6f ? Mathf.Clamp01(-Vector3.Dot(relPrev, seg) / seg.sqrMagnitude) : 0f;
+        return (relPrev + seg * t).sqrMagnitude <= r * r;
+    }
+
+    // Only asks for a new path when the target really moved: paths are computed a few per frame, so many
+    // animals re-pathing every frame queue up and lag, which at x8 is 8x as much simulated time.
+    void SetDestinationIfMoved(Vector3 target, float tolerance)
+    {
+        if (agent.hasPath || agent.pathPending)
+        {
+            Vector3 d = agent.destination - target;
+            d.y = 0f;
+            if (d.sqrMagnitude <= tolerance * tolerance) return;
+        }
+        agent.SetDestination(target);
+    }
+    // [AI-GENERATED END]
+
     // ---------------------------------------------------------
     // NEEDS
     // ---------------------------------------------------------
@@ -689,26 +819,32 @@ public class AnimalBrain : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): fear beats hunger. Even at the edge of the flee
         // radius this outscores the best possible eat/drink/mate score (about 1.1), and it doubles up close,
         // so a hungry sheep no longer keeps grazing beside a leopard.
+        // A herd mate's alarm call (no predator seen yet) scores like a predator at the edge of the flee radius.
         scores[(int)AnimalAction.Fleeing] =
-            predator != null
-                ? fleeWeight * (1f + Closeness(predator.position, fleeRadius))
+            HasThreat
+                ? fleeWeight * (1f + (predator != null ? Closeness(predator.position, fleeRadius) : 0f))
                 : 0f;
 
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): a leopard that is even a little hungry and sees prey goes for it
-        // (before, it waited until starving, so hunts were rare). A full leopard (just ate) still rests.
+        // (before, it waited until starving, so hunts were rare). A full leopard (just ate) still rests,
+        // and so does one catching its breath after a failed sprint.
         scores[(int)AnimalAction.Hunting] =
-            prey != null && curr_hunger < huntBelowHunger && huntRestTimer <= 0f
+            prey != null && HungerNeed > 0.15f && hunt_rest <= 0f
                 ? huntWeight * (0.4f + HungerNeed) * DistanceFactor(prey.position, huntRadius)
                 : 0f;
 
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): AppetiteNear makes a patch where a predator was seen
+        // less tempting, so only a really hungry / thirsty animal goes back there before it forgets.
         scores[(int)AnimalAction.EatingGrass] =
             food_patch != null
                 ? eatWeight * HungerNeed * DistanceFactor(food_patch.transform.position, forageRadius)
+                  * AppetiteNear(food_patch.transform.position)
                 : 0f;
 
         scores[(int)AnimalAction.DrinkingWater] =
             water_patch != null
                 ? drinkWeight * ThirstNeed * DistanceFactor(water_patch.transform.position, forageRadius)
+                  * AppetiteNear(water_patch.transform.position)
                 : 0f;
 
         scores[(int)AnimalAction.Reproducing] =
@@ -753,9 +889,16 @@ public class AnimalBrain : MonoBehaviour
         {
             // Pick a fresh wander point instead of finishing the old path.
             wander_timer = 0f;
+            has_patrol = false;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): a hunt replaced the patrol path
         }
 
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): a hunt starting is the big moment to show the player
+        if (best == AnimalAction.Hunting && CurrentAction != AnimalAction.Hunting)
+        {
+            sprinting = false;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): every hunt starts with a stalk and a fresh sprint
+            sprint_time = 0f;
+        }
+
         if (best == AnimalAction.Hunting && CurrentAction != AnimalAction.Hunting && prey != null)
             DramaDirector.Report(DramaDirector.Moment.Hunt, transform,
                 $"A {SpeciesLabel(species_data)} is stalking a {SpeciesLabel(prey_brain != null ? prey_brain.species_data : null)}!");
@@ -792,24 +935,24 @@ public class AnimalBrain : MonoBehaviour
                     predator = seenPredator.transform;
             }
 
-            if (IsPredator)
-            {
-                AnimalBrain seenPrey = perception.NearestPrey;
-                if (seenPrey != null && !seenPrey.IsCaught)
-                {
-                    float hungryHuntRadius =
-                        huntRadius * Mathf.Lerp(1f, 4f, HungerNeed);
-
-                    float distance = Vector3.Distance(pos, seenPrey.transform.position);
-                    if (distance <= hungryHuntRadius)
-                    {
-                        prey = seenPrey.transform;
-                        prey_brain = seenPrey;
-                    }
-                }
-            }
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a stalking leopard keeps low and is only noticed up close,
+        // even closer by a sheep with its head down eating or drinking. Once it sprints it is seen across the
+        // whole flee radius. Alert sheep spot it in time to get away; busy ones are the ones that get caught.
+        float headDown = busy_timer > 0f &&
+                         (CurrentAction == AnimalAction.EatingGrass || CurrentAction == AnimalAction.DrinkingWater)
+            ? grazingAlertness : 1f;
+        if (predator != null &&
+            predator.TryGetComponent(out AnimalBrain stalker) &&
+            stalker.IsStalking &&
+            (predator.position - pos).sqrMagnitude > Sqr(fleeRadius * stalker.stalkSpotFraction * headDown))
+        {
+            predator = null;
         }
-        else
+
+        if (predator != null)
+            RememberPredator(predator.position, decisionInterval);   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+
+        if (IsPredator)
         {
             predator = EcoRegistry.NearestPredator(
                 species_data,
@@ -849,18 +992,21 @@ public class AnimalBrain : MonoBehaviour
 
         if (food_resources.Count > 0)
         {
-            food_patch = ResourcePatch.FindNearest(
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): with a remembered predator, a patch away from it beats a closer one beside it
+            food_patch = ResourcePatch.FindBest(
                 pos,
                 food_resources,
-                SearchRadius(HungerNeed), IsUnreachable);
+                SearchRadius(HungerNeed),
+                danger_memory.Count > 0 ? danger_detour_cost : null);
         }
 
         if (water_resources.Count > 0)
         {
-            water_patch = ResourcePatch.FindNearest(
+            water_patch = ResourcePatch.FindBest(
                 pos,
                 water_resources,
-                SearchRadius(ThirstNeed), IsUnreachable);
+                SearchRadius(ThirstNeed),
+                danger_memory.Count > 0 ? danger_detour_cost : null);
         }
 
         // Nearest animal of the same species, if both are ready to mate.
@@ -882,6 +1028,8 @@ public class AnimalBrain : MonoBehaviour
     // so it travels to the next valley instead of wandering until it starves.
     float SearchRadius(float need) =>
         need >= desperateNeed ? forageRadius * desperateSearchMultiplier : forageRadius;
+
+    static float Sqr(float v) => v * v;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
     // 0 at the edge of the radius, 1 right next to the target.
     float Closeness(Vector3 target, float radius) =>
@@ -982,15 +1130,14 @@ public class AnimalBrain : MonoBehaviour
 
     bool Flee(float speed)
     {
-        if (predator == null)
-        {
-            fleeSide = 0;
+        if (!HasThreat)
             return false;
         }
 
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): runs from the predator it sees, or from where a herd mate's alarm came from
         Vector3 away =
             transform.position -
-            predator.position;
+            ThreatPosition;
 
         away.y = 0f;
 
@@ -1036,8 +1183,7 @@ public class AnimalBrain : MonoBehaviour
             fleeSpeedMultiplier *
             speed;
 
-        agent.SetDestination(
-            hit.position);
+        SetDestinationIfMoved(hit.position, 2f);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): don't re-path every frame
 
         return true;
     }
@@ -1134,7 +1280,7 @@ public class AnimalBrain : MonoBehaviour
             return false;
         }
 
-        if (InReach(prey, prey_brain, catchDistance))
+        if (InReachSwept(prey, prey_brain, catchDistance))   // [AI-GENERATED] Claude Code (Claude Opus 5.5): swept, so x8 can't skip past
         {
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): research: 70% of catches succeed (Guided can add or take
             // 15 points). A miss lets the sheep escape, and the leopard rests a simulated day before trying again.
@@ -1181,33 +1327,48 @@ public class AnimalBrain : MonoBehaviour
             return true;
         }
 
-        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-        Vector3 gap = prey.position - transform.position; gap.y = 0f;
-        bool preyRunning = prey_brain != null && prey_brain.IsFleeing;
-        bool sprinting = sprintTimer > 0f || preyRunning || gap.magnitude <= pounceDistance;
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+        // Stalk until close (or the prey bolts), then sprint. The sprint only lasts sprintStaminaSeconds:
+        // a sheep that got away in time is safe, and the leopard rests before trying again.
+        if (!sprinting)
+        {
+            bool preyBolted = prey_brain != null && prey_brain.IsFleeing;
+            if (preyBolted || (prey.position - transform.position).sqrMagnitude <= Sqr(pounceDistance))
+                sprinting = true;
+        }
 
         if (sprinting)
         {
-            SetCrouch(false);
-            sprintTimer += Time.deltaTime * speed;
-            if (sprintTimer > maxSprintSeconds)
+            sprint_time += Time.deltaTime * speed;
+            if (sprint_time >= sprintStaminaSeconds)
             {
-                // Out of breath: give up and rest before trying again.
-                sprintTimer = 0f;
-                huntRestTimer = giveUpRestSeconds;
+                sprinting = false;
+                hunt_rest = huntRestSeconds;
                 agent.ResetPath();
+                DramaDirector.Report(DramaDirector.Moment.Catch, transform,
+                    $"The {SpeciesLabel(prey_brain != null ? prey_brain.species_data : null)} got away! The {SpeciesLabel(species_data)} is out of breath.");
                 return false;
             }
-            agent.speed = base_speed * sprintSpeedMultiplier * speed;
-        }
-        else
-        {
-            SetCrouch(true);   // creep in low and slow
-            agent.speed = base_speed * stalkSpeedMultiplier * speed;
         }
 
-        agent.SetDestination(
-            prey.position);
+        agent.speed =
+            base_speed *
+            (sprinting ? chaseSpeedMultiplier : stalkSpeedMultiplier) *
+            speed;
+
+        SetDestinationIfMoved(prey.position, 1f);
+
+        // In the open, a sprinting leopard runs straight at the prey at full speed every frame instead of
+        // following a path that is a frame or more old (at x8 that lag lost almost every chase).
+        if (sprinting &&
+            !NavMesh.Raycast(transform.position, prey.position, out _, NavMesh.AllAreas))
+        {
+            Vector3 dir = prey.position - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.01f)
+                agent.velocity = dir.normalized * agent.speed;
+        }
+        // [AI-GENERATED END]
 
         return true;
     }
@@ -1370,6 +1531,9 @@ public class AnimalBrain : MonoBehaviour
     // Group home (herd area or leopard territory): wandering stays within homeRadius of it.
     Vector3 home;
     float homeRadius;   // 0 = no group
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): the spawner's group radius keeps leopards spawning close
+    // together; they patrol a wider territory than that.
+    float RoamRadius => IsPredator ? homeRadius * predatorTerritoryScale : homeRadius;
     public void SetHome(Vector3 centre, float radius) { home = centre; homeRadius = radius; }
     public void CopyHome(AnimalBrain other) { if (other != null) { home = other.home; homeRadius = other.homeRadius; } }
 
@@ -1382,9 +1546,94 @@ public class AnimalBrain : MonoBehaviour
         if (homeRadius > 0f)
         {
             Vector3 d = p - home; d.y = 0f;
-            outside += Mathf.Max(0f, d.magnitude - homeRadius) * 0.01f;   // 10 m outside ≈ 0.1 of the height range
+            outside += Mathf.Max(0f, d.magnitude - RoamRadius) * 0.01f;   // 10 m outside ≈ 0.1 of the height range
         }
         return outside;
+    }
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // Predator patrol: instead of short random steps (which kept a leopard circling one spot), walk to a
+    // distant point in the territory, pause to look around, then pick another one away from the places
+    // visited recently, so over time it covers the whole range.
+    [Header("Predator patrol")]
+    [Tooltip("Predators roam this many times the spawner's group radius (they spawn close, but patrol wide).")]
+    [Min(1f)] public float predatorTerritoryScale = 3f;
+    [Tooltip("Shortest and longest leg of a patrol, in metres.")]
+    public float patrolMinDistance = 25f;
+    public float patrolMaxDistance = 60f;
+    [Tooltip("Seconds (at 1x) a predator pauses at each patrol point.")]
+    public Vector2 patrolPauseSeconds = new Vector2(1.5f, 4f);
+    [Tooltip("Recent patrol points it avoids going back to.")]
+    [Min(0)] public int patrolMemory = 6;
+
+    readonly Queue<Vector3> patrol_visited = new();
+    bool has_patrol;
+    float patrol_timeout;
+
+    void RememberPatrolPoint(Vector3 p)
+    {
+        patrol_visited.Enqueue(p);
+        while (patrol_visited.Count > patrolMemory) patrol_visited.Dequeue();
+    }
+
+    // 0 for somewhere new, higher near recently visited points.
+    float PatrolStaleness(Vector3 p)
+    {
+        float stale = 0f;
+        float r = Mathf.Max(1f, patrolMinDistance);
+        foreach (var v in patrol_visited)
+        {
+            Vector3 d = v - p; d.y = 0f;
+            stale += Mathf.Max(0f, 1f - d.magnitude / r);
+        }
+        return stale;
+    }
+
+    void Patrol(float speed)
+    {
+        float dt = Time.deltaTime * speed;
+
+        if (has_patrol)
+        {
+            patrol_timeout -= dt;
+            bool arrived = !agent.pathPending && (!agent.hasPath || agent.remainingDistance <= 2f);
+            if (!arrived && patrol_timeout > 0f) return;
+
+            // Arrived (or stuck): stop and look around before the next leg.
+            has_patrol = false;
+            RememberPatrolPoint(transform.position);
+            wander_timer = Random.Range(patrolPauseSeconds.x, patrolPauseSeconds.y);
+        }
+
+        wander_timer -= dt;
+        if (wander_timer > 0f) return;
+
+        Vector3 best = Vector3.zero;
+        float bestScore = float.PositiveInfinity;
+        bool found = false;
+        for (int i = 0; i < 10; i++)
+        {
+            Vector2 dir = Random.insideUnitCircle.normalized;
+            float dist = Random.Range(patrolMinDistance, patrolMaxDistance);
+            Vector3 candidate = transform.position + new Vector3(dir.x, 0f, dir.y) * dist;
+            if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 10f, NavMesh.AllAreas)) continue;
+            // Staying in the territory matters most (10 m outside ≈ 0.5), then going somewhere new.
+            float score = OutsideHabitat(hit.position) * 5f + PatrolStaleness(hit.position);
+            if (score < bestScore) { bestScore = score; best = hit.position; found = true; }
+        }
+
+        if (!found)
+        {
+            wander_timer = 1f;   // nowhere reachable this time: try again shortly
+            return;
+        }
+
+        RememberPatrolPoint(transform.position);
+        agent.SetDestination(best);
+        has_patrol = true;
+        float legLength = Vector3.Distance(transform.position, best);
+        patrol_timeout = legLength / Mathf.Max(0.5f, base_speed) * 2f + 5f;   // give up on a leg that takes far too long
     }
     // [AI-GENERATED END]
 
@@ -1407,6 +1656,12 @@ public class AnimalBrain : MonoBehaviour
         }
         // [AI-GENERATED END]
 
+        if (IsPredator)
+        {
+            Patrol(speed);   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+            return;
+        }
+
         // Simulation speed affects wandering timer.
         wander_timer -=
             Time.deltaTime * speed;
@@ -1417,7 +1672,10 @@ public class AnimalBrain : MonoBehaviour
         // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
         // Try a few random spots and keep the one most inside the home height band.
         // Outside home, look further so the animal makes real progress back.
-        bool away = OutsideHabitat(transform.position) > 0f;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): standing where a predator was seen counts as "away" too,
+        // so the animal walks well clear of it, and every spot's score includes the remembered danger.
+        bool inDanger = DangerAt(transform.position) > 0.2f;
+        bool away = inDanger || OutsideHabitat(transform.position) > 0f;
         float reach = away ? 30f : 12f;
         Vector3 best = Vector3.zero;
         float bestScore = float.PositiveInfinity;
@@ -1427,7 +1685,7 @@ public class AnimalBrain : MonoBehaviour
         {
             Vector3 candidate = transform.position + Random.insideUnitSphere * reach;
             if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 10f, NavMesh.AllAreas)) continue;
-            float score = OutsideHabitat(hit.position);
+            float score = OutsideHabitat(hit.position) + DangerAt(hit.position);   // danger 1 ≈ 100 m outside home
             if (score < bestScore) { bestScore = score; best = hit.position; found = true; }
             if (score <= 0f && !away) break;   // already home: any spot inside is fine
         }
@@ -1462,6 +1720,15 @@ public class AnimalBrain : MonoBehaviour
             text += $"{(AnimalAction)i}: {scores[i]:0.00}\n";
 
         UnityEditor.Handles.Label(transform.position + Vector3.up * 2f, text);
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): remembered predator sightings, fading as they are forgotten
+        foreach (var spot in danger_memory.Spots)
+        {
+            float fresh = dangerMemorySeconds > 0f ? Mathf.Clamp01(spot.remaining / dangerMemorySeconds) : 1f;
+            Gizmos.color = new Color(1f, 0.2f, 0.1f, 0.25f + 0.6f * fresh);
+            Gizmos.DrawWireSphere(spot.position, dangerRadius);
+            Gizmos.DrawLine(transform.position, spot.position);
+        }
     }
 #endif
 }

@@ -28,6 +28,9 @@ public class HimalayaWorldBuilder : MonoBehaviour
     [Tooltip("Leave OFF when TerrainConfig / AutoBakeFloor starts the build, or it would run twice.")]
     [SerializeField] bool buildOnStart = false;
 
+    [Tooltip("Show the in-game Edit Terrain panel (sculpt hills, paint grass) once the world is built.")]
+    [SerializeField] bool enableTerrainEditor = true;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+
     public HimalayaTerrainBuilder TerrainBuilder => terrainBuilder;
     public HimalayaSightings Sightings => sightings;
     public bool IsReady { get; private set; }
@@ -109,6 +112,12 @@ public class HimalayaWorldBuilder : MonoBehaviour
 
             IsReady = true;
             if (GetComponent<SeasonWeather>() == null) gameObject.AddComponent<SeasonWeather>();   // [AI-GENERATED] Claude Code (Claude Opus 5.5): seasons start with the world
+            if (enableTerrainEditor)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): in-game terrain/grass editor
+            {
+                var editor = GetComponent<TerrainEditTool>();
+                if (editor == null) editor = gameObject.AddComponent<TerrainEditTool>();
+                editor.Init(terrainBuilder, resourcePlacer, navSurface, splatPainter);
+            }
             Built?.Invoke();
 
             // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
