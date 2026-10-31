@@ -98,6 +98,7 @@ public class ConfigurationScreen : MonoBehaviour
         {
             configurationUI.SetActive(false);
         }
+        SimHud.Enter();   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Shumin's simulation HUD (with Back) on top
 
         if (AudioManager.Instance != null)
         {

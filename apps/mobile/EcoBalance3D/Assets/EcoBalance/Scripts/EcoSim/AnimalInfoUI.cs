@@ -16,6 +16,8 @@ public class AnimalInfoUI : MonoBehaviour
     public TMP_Text targetText;
 
     private AnimalBrain selectedAnimal;
+    public AnimalBrain SelectedAnimal => selectedAnimal;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): read by SimHud
+    private TMP_Text factText;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): set per species
 
     private void Awake()
     {
@@ -69,6 +71,7 @@ public class AnimalInfoUI : MonoBehaviour
         TMP_Text fact = null;
         foreach (var t in panel.GetComponentsInChildren<TMP_Text>(true))
             if (t.name == "DidYouKnow") { fact = t; break; }
+        factText = fact;
         var rows = new (TMP_Text text, float height, float size)[]
         {
             (nameText, 90f, 52f), (hungerText, 70f, 38f), (thirstText, 70f, 38f),
@@ -90,6 +93,8 @@ public class AnimalInfoUI : MonoBehaviour
             t.offsetMin = new Vector2(40f, y - height);
             t.offsetMax = new Vector2(text == nameText ? -110f : -40f, y);
             // Shrink to fit its row instead of spilling out of the card (long names, long fun facts).
+            // The scene saved old negative margins (e.g. -104 left on Hunger) that pushed text out of the card.
+            text.margin = Vector4.zero;
             text.enableAutoSizing = true;
             text.fontSizeMax = size;
             text.fontSizeMin = size * 0.5f;
@@ -158,8 +163,13 @@ public class AnimalInfoUI : MonoBehaviour
         {
             if (selectedAnimal.species_data != null)
             {
-                nameText.text =
-                    selectedAnimal.species_data.speciesName;
+                // [AI-GENERATED] Claude Code (Claude Opus 5.5): "SnowLeopard" -> "Snow Leopard"
+                // [AI-GENERATED] Claude Code (Claude Opus 5.5): sex symbol (blue ♂ / pink ♀) and "Baby" so each animal is easy to tell apart
+                string sex = selectedAnimal.AnimalSex == AnimalBrain.Sex.Male
+                    ? "<color=#3A7BD5>" + selectedAnimal.SexSymbol + " Male</color>"
+                    : "<color=#D5487A>" + selectedAnimal.SexSymbol + " Female</color>";
+                nameText.text = (selectedAnimal.IsYoung ? "Baby " : "") + System.Text.RegularExpressions.Regex.Replace(
+                    selectedAnimal.species_data.speciesName, "(?<=[a-z])(?=[A-Z])", " ") + "  " + sex;
             }
             else
             {
@@ -167,6 +177,9 @@ public class AnimalInfoUI : MonoBehaviour
                     selectedAnimal.gameObject.name;
             }
         }
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a fun fact that matches the animal
+        if (factText != null) factText.text = "Did you know?\n" + FactFor(selectedAnimal);
 
         // Hunger
         if (hungerText != null)
@@ -206,6 +219,18 @@ public class AnimalInfoUI : MonoBehaviour
             }
         }
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    static string FactFor(AnimalBrain a)
+    {
+        string n = a.species_data != null ? a.species_data.speciesName.ToLowerInvariant() : "";
+        if (n.Contains("leopard"))
+            return "Snow leopards live alone. Their long, thick tail keeps them warm and helps them balance on rocky cliffs.";
+        if (n.Contains("sheep"))
+            return "Blue sheep live in herds and run up steep cliffs to escape snow leopards. They are an important food for them.";
+        return "Every animal here needs food and water to stay healthy.";
+    }
+    // [AI-GENERATED END]
 
     private string GetActionText(
         AnimalBrain.AnimalAction action)

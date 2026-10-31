@@ -21,7 +21,7 @@
 
 ## M2 open tasks by person (from the 22 Oct task split, updated 26 Oct)
 
-Team: 2 UXGD (Shu Min, PM; Nomitha, Design Lead), 6 IMGD programmers, 1 RTIS (Wei Leong, Tech Lead). Integration build: branch `m2-integration`.
+Team: 2 UXGD (Shu Min, PM; Nomitha, Design Lead), 6 IMGD programmers, 1 RTIS (Wei Leong, Tech Lead). Integration build: branch `M2-Integration`.
 
 | Person | Role | M2 focus | Still open |
 | --- | --- | --- | --- |
@@ -33,4 +33,4 @@ Team: 2 UXGD (Shu Min, PM; Nomitha, Design Lead), 6 IMGD programmers, 1 RTIS (We
 | Reginald | IMGD | AI + breeding with Zhi Jie, time control | Population balance across seasons (sheep / leopard cycles) |
 | Yusuf | IMGD | Terrain generation | Real tree model (tree slot holds a grass prefab), remove the 3 stray `New Terrain` assets |
 | Li Juan | IMGD | Terrain / weather / live animal data, audio | Move the weather API key out of the code; CSV export (T05) |
-| Wei Leong | RTIS, Tech Lead | Animation, engine systems, integration, CI | PR `m2-integration` to `main`; courtship nuzzle animation; tablet build + test session (1–2 Nov) |
+| Wei Leong | RTIS, Tech Lead | Animation, engine systems, integration, CI | PR `M2-Integration` to `main`; courtship nuzzle animation; tablet build + test session (1–2 Nov) |

@@ -83,7 +83,7 @@ Full diagram and component owners: [architecture.md](../architecture.md).
 
 ## 10. UI/UX
 
-Wireframes, user flows and mockups: [ui-ux/](ui-ux/). *TODO (Design): add exported wireframes and the M1 mockup here.*
+Wireframes, user flows and mockups: [ui-ux/](ui-ux/). The 16 M2 wireframes (menus, simulation HUD, prediction loop, Field Journal) are in [ui-ux/wireframes/](ui-ux/wireframes/). *TODO (Design): add the M1 mockup.*
 
 ---
 *Compiled from the team's concept draft, M1 Feature Plan and milestone workbook. Formatted with AI assistance (Claude Code, Claude Opus 5.5) by Tan Wei Leong.*

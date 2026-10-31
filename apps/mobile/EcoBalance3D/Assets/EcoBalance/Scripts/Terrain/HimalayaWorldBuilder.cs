@@ -96,7 +96,8 @@ public class HimalayaWorldBuilder : MonoBehaviour
             else Debug.Log("[Himalaya] No land-cover image set; using elevation and slope rules only.");
 
             if (splatPainter != null) splatPainter.Paint(terrainBuilder, landCover);
-            if (treePlacer != null) treePlacer.Place(terrainBuilder, landCover, treeCap);
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): maxTrees 0 in the config = no trees at all (not wanted for M2)
+            if (treePlacer != null && config.maxTrees > 0) treePlacer.Place(terrainBuilder, landCover, treeCap);
 
             if (resourcePlacer != null)
             {
