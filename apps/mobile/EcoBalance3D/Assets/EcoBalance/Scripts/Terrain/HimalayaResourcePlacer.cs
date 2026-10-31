@@ -50,6 +50,29 @@ public class HimalayaResourcePlacer : MonoBehaviour
 
     readonly List<GameObject> spawned = new List<GameObject>();
     Mesh grassTuft;
+    Material grassMaterial;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): shared with grass painted by TerrainEditTool
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    /// <summary>The grass resource, so the in-game terrain editor can tell grass patches from water.</summary>
+    public ResourceDefinition GrassResource => grass;
+    /// <summary>The traced river's root object (meshes + no-walk volumes), or null.</summary>
+    public Transform RiverRoot { get; private set; }
+    /// <summary>Grass is kept at least this far from the river centre line.</summary>
+    public float RiverClearance => riverMouthWidth;
+
+    /// <summary>
+    /// Adds one grass patch at a world point, same look and regrowth as the generated meadows.
+    /// Used by TerrainEditTool's Add Grass brush.
+    /// </summary>
+    public ResourcePatch SpawnGrassAt(Vector3 position)
+    {
+        if (grass == null) return null;
+        if (grassMaterial == null) grassMaterial = MakeGrassMaterial();
+        if (grassTuft == null) grassTuft = GrassTuftMesh.Build(config.seed);
+        SpawnTuft(grass, position, Random.value * 360f, grassMaterial, $"Grass Patch (painted) {spawned.Count + 1}");
+        return spawned[spawned.Count - 1].GetComponent<ResourcePatch>();
+    }
+    // [AI-GENERATED END]
 
     public void Clear()
     {
@@ -64,7 +87,8 @@ public class HimalayaResourcePlacer : MonoBehaviour
         // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
         // Meadows: each seed spot grows into a lawn of several touching clumps, below the tree line
         // (alpine grassland, where blue sheep graze). Blades sway in the wind (EcoBalance/GrassWind).
-        var material = MakeGrassMaterial();
+        if (grassMaterial == null) grassMaterial = MakeGrassMaterial();
+        var material = grassMaterial;
         if (grassTuft == null) grassTuft = GrassTuftMesh.Build(config.seed);
         float meadowTop = Mathf.Min(config.treeLineMeters, config.snowLineMeters);
         int meadows = 0, placed = 0, tries = 0, maxTries = Mathf.Max(1, config.grassPatches) * 40;
@@ -129,6 +153,7 @@ public class HimalayaResourcePlacer : MonoBehaviour
         var system = new GameObject("River System");
         system.transform.SetParent(transform, true);
         spawned.Add(system);
+        RiverRoot = system.transform;
 
         var banks = HimalayaRiver.Build(tb, system.transform, mat, riverSourceWidth, riverMouthWidth);
         ClearTreesFromRiver(tb);

@@ -86,6 +86,12 @@ public class TerrainCameraController : MonoBehaviour
     public Transform FollowTarget => followTarget;
     public bool IsPov => pov;
 
+    /// <summary>
+    /// [AI-GENERATED] Claude Code (Claude Opus 5.5): set by TerrainEditTool while a brush is active, so a
+    /// left-drag / one-finger drag paints instead of panning. Right/middle drag, pinch, twist, wheel and keys still work.
+    /// </summary>
+    public static bool PrimaryPointerCaptured;
+
     void Awake() => cam = GetComponent<Camera>();
 
     void OnEnable() => EnhancedTouchSupport.Enable();
@@ -205,6 +211,7 @@ public class TerrainCameraController : MonoBehaviour
 
         if (touches.Count == 1)
         {
+            if (PrimaryPointerCaptured) { tapCandidate = false; return; }   // [AI-GENERATED] Claude Code (Claude Opus 5.5): brush owns one-finger drags
             var t = touches[0];
             if (t.phase == UnityEngine.InputSystem.TouchPhase.Began) { tapStart = t.screenPosition; tapCandidate = true; }
             if ((t.screenPosition - tapStart).sqrMagnitude > 20f * 20f) tapCandidate = false;
@@ -249,10 +256,13 @@ public class TerrainCameraController : MonoBehaviour
         var pos = mouse.position.ReadValue();
         var delta = mouse.delta.ReadValue();
 
-        if (mouse.leftButton.wasPressedThisFrame) { tapStart = pos; tapCandidate = true; }
-        if ((pos - tapStart).sqrMagnitude > 6f * 6f) tapCandidate = false;
-        if (mouse.leftButton.isPressed && !tapCandidate) Pan(delta);
-        if (mouse.leftButton.wasReleasedThisFrame && tapCandidate) Tap(pos);
+        if (!PrimaryPointerCaptured)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): brush owns the left button
+        {
+            if (mouse.leftButton.wasPressedThisFrame) { tapStart = pos; tapCandidate = true; }
+            if ((pos - tapStart).sqrMagnitude > 6f * 6f) tapCandidate = false;
+            if (mouse.leftButton.isPressed && !tapCandidate) Pan(delta);
+            if (mouse.leftButton.wasReleasedThisFrame && tapCandidate) Tap(pos);
+        }
 
         if (mouse.middleButton.isPressed) Pan(delta);
         if (mouse.rightButton.isPressed)
