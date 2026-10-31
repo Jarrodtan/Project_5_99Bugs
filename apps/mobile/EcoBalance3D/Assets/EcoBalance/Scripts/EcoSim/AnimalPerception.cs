@@ -91,10 +91,22 @@ public class AnimalPerception : MonoBehaviour
             Vector3 targetPosition = other.transform.position
                                      + Vector3.up * targetHeight;
 
-            if (!IsInsideVisionCone(targetPosition))
+            // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+            Vector3 flat = other.transform.position - transform.position; flat.y = 0f;
+            float flatDistance = flat.magnitude;
+
+            // A predator creeping low (stalking) is only noticed up close, so the stalk-and-pounce works.
+            if (other.IsStalking && flatDistance > ownBrain.spotStalkerDistance)
                 continue;
 
-            if (!HasLineOfSight(ownBrain, other, targetPosition))
+            // Very close by, an animal hears or smells the other one: no cone or line-of-sight needed.
+            bool sensed = flatDistance <= ownBrain.senseAnywayDistance;
+            // [AI-GENERATED END]
+
+            if (!sensed && !IsInsideVisionCone(targetPosition))
+                continue;
+
+            if (!sensed && !HasLineOfSight(ownBrain, other, targetPosition))
                 continue;
 
             visibleAnimals.Add(other);
@@ -157,7 +169,15 @@ public class AnimalPerception : MonoBehaviour
             if (hitBrain == targetBrain)
                 return true;
 
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): other animals don't hide a leopard (a sheep at the back
+            // of the herd still sees it past the others), and a bump in the ground right at either end isn't a hill.
+            if (hitBrain != null)
+                continue;
+            if (hit.collider is TerrainCollider && (hit.distance < 2f || hit.distance > distance - 2f))
+                continue;
+
             // Something else is blocking the view.
+            if (showDetectionLines) Debug.DrawLine(eyePosition, hit.point, Color.red, scanInterval);
             return false;
         }
 

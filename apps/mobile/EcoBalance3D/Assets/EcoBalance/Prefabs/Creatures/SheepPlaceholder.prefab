@@ -277,7 +277,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimalPerception
   visionRange: 20
-  visionAngle: 120
+  visionAngle: 300
   scanInterval: 0.2
   eyeHeight: 1.5
   targetHeight: 1.2
