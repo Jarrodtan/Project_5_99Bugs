@@ -106,7 +106,7 @@ M2 turns the M1 sandbox into two modes, chosen after Home → Choose an ecosyste
 | Guided | Events and endings | Done (GE01–GE08, 5 endings, gallery) |
 | Field Journal | Investigations OG01–03, PP01–03 | Screen opens over the run; investigations: to do (Dillon) |
 
-Simulation rules follow the research document (Simulation Logic tab); see [architecture.md](../architecture.md) §2.2 for the values used.
+Simulation rules follow the research document (Simulation Logic tab); see [architecture.md](../architecture.md) section 2.2 for the values used.
 
 ---
 *Compiled from the team's concept draft, M1 Feature Plan and milestone workbook. Formatted with AI assistance (Claude Code, Claude Opus 5.5) by Tan Wei Leong.*

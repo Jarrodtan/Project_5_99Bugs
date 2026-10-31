@@ -37,7 +37,7 @@ flowchart LR
     CI -- "builds" --> APP
 ```
 
-The core never depends on the app (arrows into `packages/ecosim` are calls through its public API; see §7).
+The core never depends on the app (arrows into `packages/ecosim` are calls through its public API; see section 7).
 The two packages don't know about each other: the app's `AnimalMotionBridge` is the only link between the AI and the animation.
 
 ### 2.2 Simulation loop — every tick
@@ -92,7 +92,7 @@ flowchart TB
     BRG -- "SetState, look target" --> PA
 ```
 
-Solid box `packages/ecosim` = reusable core; everything in `apps/mobile` depends on it, never the reverse (see §7).
+Solid box `packages/ecosim` = reusable core; everything in `apps/mobile` depends on it, never the reverse (see section 7).
 
 **How the parts communicate**
 - **App flow (M2):** `ScreenFlow` wires the menu screens by button name: `HomeScreen` → `EcosystemSelectionScreen` → `ModeSelectionScreen` → **Guided** (straight into `HimalayaSimulation`, 10 Blue Sheep / 2 Snow Leopards) or **Free** (`ConfigurationScreen`, which loads `HimalayaSimulation` additively behind the menu with time paused). In Free the player sets starting numbers with `SpeciesCounter` (default 10 / 2, max 20 / 5, from the live conservation status); **Start** stores them in `EcosystemSimulator.StartingPopulationOverrides`, resets the ecosystem and resumes time. When a run starts, `SimHud` loads Shu Min's `UI` scene on top as the HUD. The Field Journal opens over the paused run; Back asks before leaving. (The project skips scene reload on Play, so `ScreenFlow` also wires the scene that is already open.)
@@ -132,7 +132,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Utility AI + reproduction (M2) | `EcoSim/AnimalBrain` (utility scoring: flee, hunt, eat, drink, mate, roam) | T07 | Zhi Jie, Reginald | Done: per-animal hunger/thirst, pair mating; tuning by Wei Leong (spec timings, senses for the big map, fear beats hunger) |
 | Integration build (M2) | branch `M2-Integration` | — | Wei Leong | Merges everyone's work into one playable build; merged into `main` at the milestone |
 | Realistic world (M2) | `Terrain/HimalayaConfig` (Khumbu valleys box), `HimalayaRiver`, `WaterMeshBuilder`, `HimalayaResourcePlacer` (meadows), `GrassTuftMesh`, shaders `GrassWind`, `WaterFlow`; `CreatureSpawner` habitats | SCRUM-286 | Wei Leong | Done: real Khumbu heights (tree line 4,200 m, snow line 5,200 m), main river from the glacier snout (NavMesh-blocked, walk round over the ice), up to 5 glacier streams with fords, meadows kept off the water, 5 sheep herds + solitary leopard territories by habitat height |
-| Research numbers + health (M2) | `EcoSim/AnimalBrain` (Fullness, Hydration, HP, breeding), `EcoSim/AnimalData` (live status → starting numbers) | SCRUM-296 | Wei Leong | Done: values from the design research (see §2.2, Events mode) |
+| Research numbers + health (M2) | `EcoSim/AnimalBrain` (Fullness, Hydration, HP, breeding), `EcoSim/AnimalData` (live status → starting numbers) | SCRUM-296 | Wei Leong | Done: values from the design research (see section 2.2, Events mode) |
 | Perception (M2) | `EcoSim/AnimalPerception` | T07 | Reginald (Wei Leong: 300° prey vision, stalker and close-sense rules) | Done: vision cone + raycast line of sight, gizmo lines in the Scene view |
 | Hunting, herd alarm, danger memory (M2) | `EcoSim/AnimalBrain` (stalk / sprint), `EcoSim/DangerMemory` | T07 | Yusuf (Wei Leong: research hunt rules, merge) | Done: stalk then sprint, give up and rest, herd alarm calls, sheep avoid places they saw a leopard |
 | Guided Exploration (M2) | `Guided/GuidedChallenge`, `Guided/GuidedEffects` | SCRUM-297 | Wei Leong (design: Shu Min) | Done: 20-day challenge, events GE01–GE08 with pausing 3-choice popups and timed buffs/debuffs, early collapse, 5 endings, Ending Gallery |
@@ -275,7 +275,7 @@ stays in the app because it depends on scenes, TextMeshPro, NavMesh and teammate
 ## 8. Design principles
 
 - **Data-driven:** new organisms, resources or relationships are added as data assets, without new simulation code. This has been validated conceptually on two domains (Himalayan blue sheep/snow leopard, and a tree/paper resource cycle).
-- **Layered, one-way dependencies:** the simulation never references UI; this is enforced by the `EcoSim` package assembly (§7). The UI reads simulation state (through interfaces from M2).
+- **Layered, one-way dependencies:** the simulation never references UI; this is enforced by the `EcoSim` package assembly (section 7). The UI reads simulation state (through interfaces from M2).
 - **Testable core:** the simulation logic runs in EditMode tests without a scene, and CI runs those tests on every PR.
 - **Engine vs content vs UI (M2):** investigation cases are data assets written by design; the engine (`CaseDetector`) evaluates them against `PopulationHistory`; the UI only listens to `CaseUnlocked`. Each side changes without touching the others.
 
