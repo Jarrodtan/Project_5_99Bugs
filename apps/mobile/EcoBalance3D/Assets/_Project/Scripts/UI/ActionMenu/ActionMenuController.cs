@@ -12,6 +12,10 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
     [SerializeField]
     ActionMenuConfig config;
 
+    [Tooltip("Shared tooltip look and timing. Required for bubble and FAB tooltips.")]
+    [SerializeField]
+    TooltipStyle tooltipStyle;
+
     [Tooltip("FAB button already in the hierarchy.")]
     [SerializeField]
     Button fabButton;
@@ -58,6 +62,7 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
 
     readonly List<IActionMenuCategoryHandler> _handlers = new();
     readonly ActionMenuSettings _settings = new();
+    TooltipStyle _resolvedTooltipStyle;
     bool _menuOpen;
     bool _modalOpen;
     bool _seeded;
@@ -80,6 +85,8 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
         }
 
         SeedSettings();
+        _resolvedTooltipStyle = ResolveTooltipStyle();
+        TooltipHost.Ensure(_resolvedTooltipStyle);
         ApplyLayout();
         WireFab();
         WireModalClose();
@@ -150,6 +157,8 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
         if (fabLabel != null)
             fabLabel.text = config.fabLabel ?? string.Empty;
 
+        ApplyFabTooltip();
+
         if (modalRoot != null)
         {
             var modalRect = modalRoot.GetComponent<RectTransform>();
@@ -192,6 +201,7 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
             bubble.ApplyIcon(category.icon);
             bubble.ApplyDot(config.prototypeDotColor, config.prototypeDotSize);
             bubble.ApplyDiameter(config.bubbleDiameter);
+            bubble.SetTooltip(category.label, _resolvedTooltipStyle);
 
             var bubbleRect = (RectTransform)bubble.transform;
             bubbleRect.anchorMin = Vector2.right;
@@ -252,10 +262,12 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
             if (match == null)
                 continue;
 
-            bubble.ApplyLabel(match.label);
-            bubble.ApplyIcon(match.icon);
+            var icon = match.icon != null ? match.icon : ActionMenuPreview.Capture(match.preview);
+            bubble.ApplyLabel(icon != null ? string.Empty : match.label);
+            bubble.ApplyIcon(icon);
             bubble.ApplyDot(config.prototypeDotColor, config.prototypeDotSize);
             bubble.ApplyDiameter(config.bubbleDiameter);
+            bubble.SetTooltip(match.label, _resolvedTooltipStyle);
 
             var optionIndex = IndexOfOption(options, match.id);
             var rect = (RectTransform)bubble.transform;
@@ -297,6 +309,35 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
 
         fabButton.onClick.RemoveListener(ToggleMenu);
         fabButton.onClick.AddListener(ToggleMenu);
+    }
+
+    void ApplyFabTooltip()
+    {
+        if (fabButton == null)
+            return;
+
+        var trigger = fabButton.GetComponent<TooltipTrigger>();
+        var tooltipText = config != null ? config.fabTooltip : null;
+        if (string.IsNullOrEmpty(tooltipText) || _resolvedTooltipStyle == null)
+        {
+            if (trigger != null)
+                trigger.Text = string.Empty;
+            return;
+        }
+
+        if (trigger == null)
+            trigger = fabButton.gameObject.AddComponent<TooltipTrigger>();
+        trigger.Configure(tooltipText, _resolvedTooltipStyle);
+    }
+
+    TooltipStyle ResolveTooltipStyle()
+    {
+        if (tooltipStyle != null)
+            return tooltipStyle;
+
+        // Enter Play Mode without Domain Reload leaves newly added SerializeFields null
+        // even when the scene YAML references an asset. Fall back so tooltips still work.
+        return ScriptableObject.CreateInstance<TooltipStyle>();
     }
 
     void WireModalClose()

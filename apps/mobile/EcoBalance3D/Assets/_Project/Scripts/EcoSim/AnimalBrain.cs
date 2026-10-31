@@ -109,9 +109,17 @@ public class AnimalBrain : MonoBehaviour
         {
             base_speed = agent.speed;
 
-            // Let the NavMeshAgent rotate the animal.
+            // One brain drives the agent. A second brain on the same object
+            // (the IslandPlatform sheep, the snow leopard prefab) fights every path.
+            var otherBrain = GetComponent<GoalOrientedAnimalBrain>();
+            if (otherBrain != null)
+                otherBrain.enabled = false;
+
             agent.updateRotation = true;
-            agent.angularSpeed = 360f;
+            agent.angularSpeed = 180f;
+            agent.autoBraking = false;
+            agent.stoppingDistance = 0.6f;
+            FitFeetToNavMesh();
         }
 
         audio = GetComponent<AudioSource>();
@@ -121,18 +129,6 @@ public class AnimalBrain : MonoBehaviour
 
         simulator =
             FindAnyObjectByType<EcosystemSimulator>();
-
-        // Find collider to determine where the floor is.
-        Collider col = GetComponentInChildren<Collider>();
-
-        if (col != null && agent != null)
-        {
-            float dist =
-                col.bounds.min.y -
-                transform.position.y;
-
-            agent.baseOffset = -dist;
-        }
 
         // Fall back to the species the spawner assigned.
         if (species_data == null &&
@@ -343,9 +339,7 @@ public class AnimalBrain : MonoBehaviour
 
         if (away.sqrMagnitude < 0.01f)
         {
-            away =
-                Random.insideUnitSphere;
-
+            away = Random.insideUnitSphere;
             away.y = 0f;
         }
 
@@ -353,39 +347,15 @@ public class AnimalBrain : MonoBehaviour
             transform.position +
             away.normalized * 6f;
 
-        NavMeshHit hit;
-
-        if (!NavMesh.SamplePosition(
-                target,
-                out hit,
-                2f,
-                NavMesh.AllAreas))
-        {
-            Vector3 side =
-                Vector3.Cross(
-                    Vector3.up,
-                    away.normalized) *
-                (Random.value < 0.5f
-                    ? 6f
-                    : -6f);
-
-            if (!NavMesh.SamplePosition(
-                    transform.position + side,
-                    out hit,
-                    3f,
-                    NavMesh.AllAreas))
-            {
-                return false;
-            }
-        }
+        if (!TryPickWalkPoint(target, 4f, out var hit))
+            return false;
 
         agent.speed =
             base_speed *
             fleeSpeedMultiplier *
             speed;
 
-        agent.SetDestination(
-            hit.position);
+        agent.SetDestination(hit);
 
         wander_timer = 0.5f;
 
@@ -474,8 +444,8 @@ public class AnimalBrain : MonoBehaviour
         agent.speed =
             base_speed * speed;
 
-        agent.SetDestination(
-            forage_target.transform.position);
+        if (TryPickWalkPoint(forage_target.transform.position, 4f, out var foragePoint))
+            agent.SetDestination(foragePoint);
 
         return true;
     }
@@ -557,8 +527,8 @@ public class AnimalBrain : MonoBehaviour
             chaseSpeedMultiplier *
             speed;
 
-        agent.SetDestination(
-            prey.position);
+        if (TryPickWalkPoint(prey.position, 3f, out var huntPoint))
+            agent.SetDestination(huntPoint);
 
         wander_timer = 0.5f;
 
@@ -587,23 +557,61 @@ public class AnimalBrain : MonoBehaviour
 
         CurrentTargetName = "";
 
-        Vector3 rand_dir =
-            Random.insideUnitSphere * 10f;
+        // Horizontal pick. A 3D sphere on the Himalaya mesh snaps onto cliff faces
+        // and the agent then climbs or slides instead of walking the ground.
+        if (TryPickWalkPoint(transform.position, 8f, out var roamPoint))
+            agent.SetDestination(roamPoint);
+    }
 
-        rand_dir +=
-            transform.position;
-
-        NavMeshHit hit;
-
-        if (NavMesh.SamplePosition(
-                rand_dir,
-                out hit,
-                10f,
-                NavMesh.AllAreas))
+    void FitFeetToNavMesh()
+    {
+        var bottom = float.MaxValue;
+        var renderers = GetComponentsInChildren<Renderer>();
+        for (var i = 0; i < renderers.Length; i++)
         {
-            agent.SetDestination(
-                hit.position);
+            var renderer = renderers[i];
+            if (renderer == null || renderer.gameObject.name == "Spawn Ray")
+                continue;
+
+            bottom = Mathf.Min(bottom, renderer.bounds.min.y);
         }
+
+        if (bottom < float.MaxValue)
+            agent.baseOffset = Mathf.Clamp(transform.position.y - bottom, -0.5f, 1.5f);
+    }
+
+    bool TryPickWalkPoint(Vector3 around, float radius, out Vector3 point)
+    {
+        NavMeshHit fallback = default;
+        var haveFallback = false;
+        for (var i = 0; i < 8; i++)
+        {
+            var flat = Random.insideUnitCircle * radius;
+            var probe = new Vector3(around.x + flat.x, around.y, around.z + flat.y);
+            if (!NavMesh.SamplePosition(probe, out var hit, 4f, NavMesh.AllAreas))
+                continue;
+
+            if (!haveFallback)
+            {
+                fallback = hit;
+                haveFallback = true;
+            }
+
+            if (Mathf.Abs(hit.position.y - around.y) <= 4f)
+            {
+                point = hit.position;
+                return true;
+            }
+        }
+
+        if (haveFallback)
+        {
+            point = fallback.position;
+            return true;
+        }
+
+        point = around;
+        return false;
     }
 
 

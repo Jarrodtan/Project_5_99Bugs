@@ -1,5 +1,4 @@
 // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -36,6 +35,7 @@ public class SimDebugOverlay : MonoBehaviour
 
     static void TryInstall()
     {
+        if (!Debug.isDebugBuild) return;
         if (FindAnyObjectByType<SimDebugOverlay>() != null) return;
         var sim = FindAnyObjectByType<EcosystemSimulator>();
         if (sim == null) return;
@@ -115,5 +115,4 @@ public class SimDebugOverlay : MonoBehaviour
             detector.Journal.ResetAll();
     }
 }
-#endif
 // [AI-GENERATED END]

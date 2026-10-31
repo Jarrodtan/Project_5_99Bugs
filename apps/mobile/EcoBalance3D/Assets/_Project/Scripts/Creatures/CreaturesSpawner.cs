@@ -64,6 +64,16 @@ public class CreatureSpawner : MonoBehaviour {
             if (!TryGetSpawnPoint(out var spawnPos)) break;
 
             GameObject go = Instantiate(species.visualPrefab, spawnPos, Quaternion.identity, transform);
+            var navAgent = go.GetComponent<NavMeshAgent>();
+            if (navAgent != null)
+            {
+                // Prefabs keep the agent off so Instantiate does not register it before a mesh exists.
+                navAgent.enabled = false;
+                go.transform.position = spawnPos;
+                navAgent.enabled = true;
+                if (!navAgent.isOnNavMesh)
+                    navAgent.enabled = false;
+            }
 
             var entity = go.GetComponent<EcoEntity>();
             if (entity == null) entity = go.AddComponent<EcoEntity>();

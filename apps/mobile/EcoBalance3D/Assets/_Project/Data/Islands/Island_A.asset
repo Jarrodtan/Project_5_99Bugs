@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Island_A
   m_EditorClassIdentifier: Assembly-CSharp::IslandDefinition
   id: island_a
-  displayName: Island A
-  islandPrefab: {fileID: 1000000000000000101, guid: a5000000000000000000000000000002, type: 3}
-  centerOffset: {x: 0, y: 0, z: 0}
+  displayName: Himalaya Island
+  islandPrefab: {fileID: 3379243011467935674, guid: 3b5bed4f23486f741a6515d0e9fa8ef6, type: 3}
+  centerOffset: {x: 100, y: 0, z: 100}
   boundary:
     localCenter: {x: 0, y: 0, z: 0}
-    radius: 0
+    radius: 100
   modules: []

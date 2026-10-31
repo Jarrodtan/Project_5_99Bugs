@@ -56,7 +56,7 @@ public class ActionMenuBubble : MonoBehaviour
         dot.enabled = false;
     }
 
-    /// <summary>Shows <paramref name="sprite"/> when assigned; hides the icon image otherwise.</summary>
+    /// <summary>Fills the bubble with <paramref name="sprite"/> and hides the label. Hides the icon when the sprite is empty.</summary>
     public void ApplyIcon(Sprite sprite)
     {
         if (iconImage == null)
@@ -64,6 +64,29 @@ public class ActionMenuBubble : MonoBehaviour
 
         iconImage.sprite = sprite;
         iconImage.enabled = sprite != null;
+        iconImage.preserveAspect = true;
+        iconImage.color = Color.white;
+
+        if (sprite == null)
+        {
+            if (label != null)
+                label.enabled = true;
+            return;
+        }
+
+        var iconRect = iconImage.rectTransform;
+        iconRect.anchorMin = Vector2.zero;
+        iconRect.anchorMax = Vector2.one;
+        iconRect.pivot = new Vector2(0.5f, 0.5f);
+        iconRect.offsetMin = new Vector2(8f, 8f);
+        iconRect.offsetMax = new Vector2(-8f, -8f);
+        if (label != null)
+            label.enabled = false;
+
+        var mask = GetComponent<Mask>();
+        if (mask == null)
+            mask = gameObject.AddComponent<Mask>();
+        mask.showMaskGraphic = true;
     }
 
     /// <summary>Sets this bubble's rect to a square of <paramref name="diameter"/> pixels.</summary>
@@ -71,5 +94,25 @@ public class ActionMenuBubble : MonoBehaviour
     {
         var rect = (RectTransform)transform;
         rect.sizeDelta = new Vector2(diameter, diameter);
+    }
+
+    /// <summary>
+    /// Sets the shared tooltip caption for this bubble. Empty text disables the tooltip.
+    /// </summary>
+    /// <param name="tooltipText">Category or option label shown on hover / long-press.</param>
+    /// <param name="tooltipStyle">Shared look and timing for the host.</param>
+    public void SetTooltip(string tooltipText, TooltipStyle tooltipStyle)
+    {
+        var trigger = GetComponent<TooltipTrigger>();
+        if (string.IsNullOrEmpty(tooltipText) || tooltipStyle == null)
+        {
+            if (trigger != null)
+                trigger.Text = string.Empty;
+            return;
+        }
+
+        if (trigger == null)
+            trigger = gameObject.AddComponent<TooltipTrigger>();
+        trigger.Configure(tooltipText, tooltipStyle);
     }
 }

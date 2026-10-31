@@ -3,10 +3,14 @@ using UnityEngine;
 /// <summary>
 /// Paints the terrain from the data: snow above the snow line (or on WorldCover snow), rock on steep slopes
 /// (or bare ground), grass elsewhere. Terrain layer order must be: 0 grass, 1 rock, 2 snow.
+/// When the build profile forces grass, the alphamap is grass-only.
 /// </summary>
 public class HimalayaSplatPainter : MonoBehaviour
 {
     [SerializeField] HimalayaConfig config;
+
+    [Tooltip("Optional. When forceGrassSplat is set, paints grass-dominant cover.")]
+    [SerializeField] HimalayaBuildProfile profile;
 
     public void Paint(HimalayaTerrainBuilder builder, HimalayaLandCover landCover)
     {
@@ -19,10 +23,20 @@ public class HimalayaSplatPainter : MonoBehaviour
 
         int res = td.alphamapResolution;
         var alphas = new float[res, res, td.alphamapLayers];
+        bool forceGrass = profile != null && profile.forceGrassSplat;
+
         for (int y = 0; y < res; y++)
         {
             for (int x = 0; x < res; x++)
             {
+                if (forceGrass)
+                {
+                    alphas[y, x, 0] = 1f;
+                    alphas[y, x, 1] = 0f;
+                    alphas[y, x, 2] = 0f;
+                    continue;
+                }
+
                 float u = x / (res - 1f), v = y / (res - 1f);
                 float elev = builder.ElevationMeters(u, v);
                 float slope = td.GetSteepness(u, v);
