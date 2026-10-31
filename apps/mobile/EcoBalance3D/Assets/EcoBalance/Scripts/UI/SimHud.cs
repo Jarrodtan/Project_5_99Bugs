@@ -67,6 +67,7 @@ public class SimHud : MonoBehaviour
     GameObject inspection, expanded, overview;
     AnimalBrain shown;
     float nextRefresh;
+    bool weatherMoved;
 
     Transform Find(string name, Transform under = null)
     {
@@ -158,21 +159,24 @@ public class SimHud : MonoBehaviour
     /// <summary>The previous HUD in HimalayaSimulation, now replaced by Shumin's. Also called while Free mode
     /// is still on the Configuration screen, so the old buttons never show. withHud moves the live weather
     /// line up, clear of the new control bar.</summary>
-    public static void HideOldHud(bool withHud)
+    public static bool HideOldHud(bool withHud)
     {
         var sim = SceneManager.GetSceneByName(ScreenFlow.Simulation);
-        if (!sim.IsValid()) return;
+        if (!sim.IsValid()) return false;
+        bool moved = false;
         var hide = new HashSet<string> { "Play", "Pause", "Reset", "1x", "2x", "4x", "8x", "StatsTabs", "Speed1xButton", "Speed2xButton", "Speed4xButton", "Speed8xButton", "PlayButton", "PauseButton", "ResetButton" };
         foreach (var root in sim.GetRootGameObjects())
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
             {
                 if (hide.Contains(t.name)) t.gameObject.SetActive(false);
-                else if (withHud && t.TryGetComponent(out TMP_Text txt) && txt.text.StartsWith("Live Everest") && t is RectTransform rt && !movedWeather.Contains(rt))
+                else if (withHud && t.TryGetComponent(out TMP_Text txt) && txt.text != null && txt.text.StartsWith("Live Everest") && t is RectTransform rt && !movedWeather.Contains(rt))
                 {
                     movedWeather.Add(rt);
                     rt.anchoredPosition += new Vector2(0f, 150f);
                 }
+                if (withHud && t is RectTransform r2 && movedWeather.Contains(r2)) moved = true;
             }
+        return moved;
     }
     static readonly HashSet<RectTransform> movedWeather = new HashSet<RectTransform>();
 
@@ -239,6 +243,8 @@ public class SimHud : MonoBehaviour
         if (Time.unscaledTime < nextRefresh) return;
         nextRefresh = Time.unscaledTime + 0.3f;
         UpdatePlayLabel();
+        // The live weather line gets its text a moment after loading: keep looking until it is moved clear of the controls.
+        if (!weatherMoved) weatherMoved = HideOldHud(true);
         RefreshOverview();
         if (shown != null) RefreshInspection(shown);
     }

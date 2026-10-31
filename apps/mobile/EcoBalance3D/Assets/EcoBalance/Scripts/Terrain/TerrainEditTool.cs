@@ -572,6 +572,10 @@ public class TerrainEditTool : MonoBehaviour
 
     void BuildUi()
     {
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a developer tool, so only in the Editor and development
+        // builds; children never see a terrain editor in the real app.
+        if (!Application.isEditor && !Debug.isDebugBuild) return;
+
         if (EventSystem.current == null)
         {
             var es = new GameObject("EventSystem");
@@ -589,18 +593,19 @@ public class TerrainEditTool : MonoBehaviour
         scaler.matchWidthOrHeight = 0.5f;
         canvasGo.AddComponent<GraphicRaycaster>();
 
-        // Toggle button, top right.
+        // Toggle button, top left under the ecosystem name ([AI-GENERATED] Claude Code (Claude Opus 5.5): top right
+        // covered the HUD's Field Journal button).
         var toggle = MakeButton(canvasGo.transform, "Edit Terrain", ButtonColor, TogglePanel, out toggleLabel, out _);
         var tr = (RectTransform)toggle.transform;
         toggleRect = tr;
-        tr.anchorMin = tr.anchorMax = tr.pivot = new Vector2(1f, 1f);
-        tr.anchoredPosition = new Vector2(-20f, -20f);
+        tr.anchorMin = tr.anchorMax = tr.pivot = new Vector2(0f, 1f);
+        tr.anchoredPosition = new Vector2(20f, -110f);
         tr.sizeDelta = new Vector2(220f, 56f);
 
         // Panel under it.
         panel = NewRect("TerrainEditPanel", canvasGo.transform);
-        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(1f, 1f);
-        panel.anchoredPosition = new Vector2(-20f, -86f);
+        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0f, 1f);
+        panel.anchoredPosition = new Vector2(20f, -176f);
         panel.sizeDelta = new Vector2(340f, 0f);
         panel.gameObject.AddComponent<Image>().color = PanelColor;
         var layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
