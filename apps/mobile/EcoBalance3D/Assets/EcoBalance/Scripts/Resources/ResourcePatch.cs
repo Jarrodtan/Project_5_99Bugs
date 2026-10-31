@@ -137,9 +137,9 @@ public class ResourcePatch : MonoBehaviour
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
     // Like FindNearest, but each patch's distance gets extraCost(patch position) added, so an animal can
     // prefer a farther patch over a near one it thinks is dangerous. The radius still uses the real distance.
-    public static ResourcePatch FindBest(Vector3 from, IList<ResourceDefinition> wanted, float radius, System.Func<Vector3, float> extraCost)
+    public static ResourcePatch FindBest(Vector3 from, IList<ResourceDefinition> wanted, float radius, System.Func<Vector3, float> extraCost, System.Func<ResourcePatch, bool> skip = null)
     {
-        if (extraCost == null) return FindNearest(from, wanted, radius);
+        if (extraCost == null) return FindNearest(from, wanted, radius, skip);
 
         ResourcePatch best = null;
         float bestCost = float.PositiveInfinity;
@@ -147,7 +147,7 @@ public class ResourcePatch : MonoBehaviour
 
         foreach (var patch in All)
         {
-            if (patch == null || !patch.IsEdible || !wanted.Contains(patch.resource)) continue;
+            if (patch == null || !patch.IsEdible || !wanted.Contains(patch.resource) || (skip != null && skip(patch))) continue;
 
             Vector3 p = patch.transform.position;
             float sqr = (p - from).sqrMagnitude;

@@ -63,9 +63,15 @@ public class AnimalPerception : MonoBehaviour
         if (ownBrain == null || ownBrain.species_data == null)
             return;
 
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a predator standing out on grass can be seen beyond the
+        // normal vision range, so prey look further out (each animal's own range is checked below).
+        float searchRange = ownBrain.IsPredatorSpecies
+            ? visionRange
+            : visionRange * AnimalBrain.MaxVisibility;
+
         Collider[] nearbyColliders = Physics.OverlapSphere(
             transform.position,
-            visionRange,
+            searchRange,
             ~0,
             QueryTriggerInteraction.Ignore
         );
@@ -95,15 +101,19 @@ public class AnimalPerception : MonoBehaviour
             Vector3 flat = other.transform.position - transform.position; flat.y = 0f;
             float flatDistance = flat.magnitude;
 
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): camouflage. A predator of this animal is seen from
+            // further away on grass (it stands out) and only close up on snow (it blends in). 1 for anything else.
+            float visibility = IsPredatorOf(other, ownBrain) ? other.Visibility : 1f;
+
             // A predator creeping low (stalking) is only noticed up close, so the stalk-and-pounce works.
-            if (other.IsStalking && flatDistance > ownBrain.spotStalkerDistance)
+            if (other.IsStalking && flatDistance > ownBrain.spotStalkerDistance * visibility)
                 continue;
 
             // Very close by, an animal hears or smells the other one: no cone or line-of-sight needed.
             bool sensed = flatDistance <= ownBrain.senseAnywayDistance;
             // [AI-GENERATED END]
 
-            if (!sensed && !IsInsideVisionCone(targetPosition))
+            if (!sensed && !IsInsideVisionCone(targetPosition, visionRange * visibility))
                 continue;
 
             if (!sensed && !HasLineOfSight(ownBrain, other, targetPosition))
@@ -115,14 +125,20 @@ public class AnimalPerception : MonoBehaviour
         }
     }
 
-    private bool IsInsideVisionCone(Vector3 targetPosition)
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+    private static bool IsPredatorOf(AnimalBrain hunter, AnimalBrain target) =>
+        hunter.species_data != null && target.species_data != null &&
+        hunter.species_data.GetSpeciesTargets(RelationshipType.Eats).Contains(target.species_data);
+
+    // range: how far this target can be seen (vision range x its camouflage visibility).
+    private bool IsInsideVisionCone(Vector3 targetPosition, float range)
     {
         Vector3 direction =
             targetPosition - (transform.position + Vector3.up * eyeHeight);
 
         float distance = direction.magnitude;
 
-        if (distance > visionRange || distance <= 0.001f)
+        if (distance > range || distance <= 0.001f)
             return false;
 
         float angle = Vector3.Angle(transform.forward, direction);
