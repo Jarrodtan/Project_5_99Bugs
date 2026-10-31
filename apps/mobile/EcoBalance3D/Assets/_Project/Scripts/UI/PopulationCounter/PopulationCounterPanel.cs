@@ -19,6 +19,10 @@ public class PopulationCounterPanel : MonoBehaviour, ITabbedPanelContent
     [SerializeField]
     PopulationCounterUiConfig uiConfig;
 
+    [Tooltip("A count of zero is shown as extinct. Turn off when the number is a headcount of animals in the scene.")]
+    [SerializeField]
+    bool treatZeroAsExtinct = true;
+
     readonly SpeciesPopulationTracker tracker = new();
     readonly List<SpeciesCounterRowView> rowPool = new();
     readonly TabContentFrame frame = new();
@@ -75,6 +79,7 @@ public class PopulationCounterPanel : MonoBehaviour, ITabbedPanelContent
         if (!EnsureReady())
             return;
 
+        tracker.TreatZeroAsExtinct = treatZeroAsExtinct;
         tracker.Refresh(provider);
         var states = tracker.States;
         noDataText.gameObject.SetActive(states.Count == 0);

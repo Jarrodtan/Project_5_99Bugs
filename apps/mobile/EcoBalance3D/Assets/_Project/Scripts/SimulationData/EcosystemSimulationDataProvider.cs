@@ -12,7 +12,12 @@ public class EcosystemSimulationDataProvider : MonoBehaviour, ISimulationDataPro
     [SerializeField]
     EcosystemSimulator simulator;
 
+    [Tooltip("Skip species whose population is 0. Used when the count is spawned animals, so an empty island does not list the asset starting populations.")]
+    [SerializeField]
+    bool omitEmptyPopulations;
+
     readonly List<string> speciesIds = new();
+    readonly List<string> visibleSpeciesIds = new();
     readonly List<string> resourceIds = new();
     readonly Dictionary<string, SpeciesDefinition> speciesById = new();
     readonly Dictionary<string, ResourceDefinition> resourcesById = new();
@@ -25,7 +30,20 @@ public class EcosystemSimulationDataProvider : MonoBehaviour, ISimulationDataPro
     public IReadOnlyList<string> GetSpeciesIds()
     {
         RebuildLookups();
-        return speciesIds;
+        if (!omitEmptyPopulations)
+            return speciesIds;
+
+        visibleSpeciesIds.Clear();
+        for (var i = 0; i < speciesIds.Count; i++)
+        {
+            var id = speciesIds[i];
+            if (speciesById.TryGetValue(id, out var species)
+                && simulator.populations.TryGetValue(species, out var count)
+                && count > 0f)
+                visibleSpeciesIds.Add(id);
+        }
+
+        return visibleSpeciesIds;
     }
 
     /// <summary>
