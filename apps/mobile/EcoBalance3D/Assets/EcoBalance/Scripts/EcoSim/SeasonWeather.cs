@@ -38,10 +38,27 @@ public class SeasonWeather : MonoBehaviour
     float dryness;   // eased towards the target so grass changes colour gradually
     static readonly int DrynessId = Shader.PropertyToID("_EcoDryness");
 
+    EcosystemSimulator simulator;
+
     void Start()
     {
         clock = FindFirstObjectByType<ClockService>();
+        simulator = FindFirstObjectByType<EcosystemSimulator>();
+        if (simulator != null)
+        {
+            simulator.EatRecorded += OnEatRecorded;
+            simulator.Ticked += SyncResourceTotals;
+        }
     }
+
+    void OnDestroy()
+    {
+        if (simulator == null) return;
+        simulator.EatRecorded -= OnEatRecorded;
+        simulator.Ticked -= SyncResourceTotals;
+    }
+
+    void OnEatRecorded(SpeciesDefinition eater, ResourceDefinition resource) => SyncResourceTotals();
 
     void Update()
     {
@@ -54,16 +71,19 @@ public class SeasonWeather : MonoBehaviour
                      : CurrentWeather == Weather.Rain ? 0f : 0.15f;
         dryness = Mathf.MoveTowards(dryness, target, Time.deltaTime * 0.1f);
         Shader.SetGlobalFloat(DrynessId, dryness);
-
-        if (Time.time >= nextSync) { nextSync = Time.time + 0.5f; SyncResourceTotals(); }
     }
 
-    float nextSync;
+    // Every frame, after animals have eaten and patches have regrown, so the stats never show a stale value.
+    void LateUpdate() => SyncResourceTotals();
+
     readonly System.Collections.Generic.Dictionary<ResourceDefinition, (float sum, int count)> totals = new();
 
     // The simulator's Grass / Water numbers (HUD, graphs, investigation cases) used to be a separate pool
     // that every bite drained, so it ran dry even with a flowing river and full meadows. Now they show the
     // real average fullness of the patches on the map.
+    // The simulator still changes its own pool in Events mode (+eventRegenPerTick each tick, -bite on every
+    // RecordEat), so the stats dipped on each bite and snapped back on the next sync. Re-syncing right after
+    // those (EatRecorded / Ticked) and every LateUpdate keeps the patches the only source of the number.
     void SyncResourceTotals()
     {
         totals.Clear();

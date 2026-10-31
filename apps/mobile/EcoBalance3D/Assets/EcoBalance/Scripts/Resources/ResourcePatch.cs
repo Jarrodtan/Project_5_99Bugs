@@ -50,6 +50,8 @@ public class ResourcePatch : MonoBehaviour
     // Sets the resource for a patch created from code (see ResourcePatchSpawner) and refills it.
     /// <summary>Amount regrown per second, for patches created from code.</summary>
     public float RegrowPerSecond { get => regrowPerSecond; set => regrowPerSecond = Mathf.Max(0f, value); }   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+    /// <summary>Below this amount animals ignore the patch, for patches created from code.</summary>
+    public float MinEdibleAmount { get => minEdibleAmount; set => minEdibleAmount = Mathf.Max(0f, value); }   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
     public void Configure(ResourceDefinition value)
     {
@@ -112,6 +114,36 @@ public class ResourcePatch : MonoBehaviour
         }
         return best;
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // Like FindNearest, but each patch's distance gets extraCost(patch position) added, so an animal can
+    // prefer a farther patch over a near one it thinks is dangerous. The radius still uses the real distance.
+    public static ResourcePatch FindBest(Vector3 from, IList<ResourceDefinition> wanted, float radius, System.Func<Vector3, float> extraCost)
+    {
+        if (extraCost == null) return FindNearest(from, wanted, radius);
+
+        ResourcePatch best = null;
+        float bestCost = float.PositiveInfinity;
+        float radiusSqr = radius > 0f ? radius * radius : float.PositiveInfinity;
+
+        foreach (var patch in All)
+        {
+            if (patch == null || !patch.IsEdible || !wanted.Contains(patch.resource)) continue;
+
+            Vector3 p = patch.transform.position;
+            float sqr = (p - from).sqrMagnitude;
+            if (sqr > radiusSqr) continue;
+
+            float cost = Mathf.Sqrt(sqr) + extraCost(p);
+            if (cost < bestCost)
+            {
+                bestCost = cost;
+                best = patch;
+            }
+        }
+        return best;
+    }
+    // [AI-GENERATED END]
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() => All.Clear();

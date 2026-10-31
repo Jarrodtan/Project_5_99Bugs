@@ -100,7 +100,7 @@ MonoBehaviour:
   fleeRadius: 20
   catchDistance: 1.5
   eatDuration: 2
-  chaseSpeedMultiplier: 1.4
+  chaseSpeedMultiplier: 1.9
   fleeSpeedMultiplier: 1.25
   preyStarveAfterSeconds: 180
   predatorStarveAfterSeconds: 300

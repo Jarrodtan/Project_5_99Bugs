@@ -32,7 +32,10 @@ public class HimalayaResourcePlacer : MonoBehaviour
     [Tooltip("Distance between neighbouring clumps in a meadow. About a clump's width, so they join into one lawn.")]
     [SerializeField] float meadowClumpSpacing = 4.2f;
     [Tooltip("Grass regrown per second on each patch (a full patch is 100).")]
-    [SerializeField] float grassRegrowPerSecond = 5f;
+    [SerializeField] float grassRegrowPerSecond = 1.5f;
+    [Tooltip("A grass patch must regrow to at least this much before animals eat it again (a full patch is 100). " +
+             "High values make grazers leave a cropped meadow and move on instead of waiting beside it.")]
+    [SerializeField] float grassMinEdibleAmount = 60f;
 
     [Header("3D water")]
     [SerializeField] float streamWidth = 2.5f;
@@ -343,6 +346,7 @@ public class HimalayaResourcePlacer : MonoBehaviour
         var patch = go.AddComponent<ResourcePatch>();
         patch.Configure(def);
         patch.RegrowPerSecond = grassRegrowPerSecond;
+        patch.MinEdibleAmount = grassMinEdibleAmount;
         spawned.Add(go);
     }
     // [AI-GENERATED END]
