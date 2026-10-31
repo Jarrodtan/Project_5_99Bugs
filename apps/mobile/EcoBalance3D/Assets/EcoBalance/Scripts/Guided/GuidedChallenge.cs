@@ -1,0 +1,395 @@
+// [AI-GENERATED] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+using System;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+/// <summary>
+/// Guided Exploration (Shumin's research, "Guided Exploration" tab): a 20-simulated-day survival challenge
+/// on a fixed ecosystem (10 Blue Sheep, 2 Snow Leopards). Events pause the simulation and offer three
+/// choices that add temporary buffs or debuffs (<see cref="GuidedEffects"/>); the ending is chosen from the
+/// ecosystem's real state at the end of Day 20, or early if both species die out. Endings are kept in an
+/// Ending Gallery across restarts. Starts on its own when the simulation scene opens in Guided mode.
+/// </summary>
+public class GuidedChallenge : MonoBehaviour
+{
+    public const int ChallengeDays = 20;
+    const float QuietSecondsBetweenEvents = 12f;   // real seconds of watching between two popups
+    const string GalleryKey = "EcoBalance.GuidedEndings";
+
+    // ---------- Events (GE01-GE06 core, GE07-GE08 additional) ----------
+
+    class Choice { public string label, feedback; public Action apply; }
+    class GuidedEvent
+    {
+        public string id, title, text;
+        public bool conditionBased;      // shown before scheduled ones when both are waiting
+        public Func<bool> eligible;
+        public Action environment;       // applied whatever the player picks
+        public Choice[] choices;
+    }
+
+    List<GuidedEvent> events;
+    readonly HashSet<string> resolved = new HashSet<string>();
+
+    void BuildEvents()
+    {
+        Choice Nature() => new Choice { label = "Let nature take its course", feedback = "You let nature take its course. Let's watch what happens!", apply = () => { } };
+        events = new List<GuidedEvent>
+        {
+            new GuidedEvent {
+                id = "GE01", title = "Dry Season",
+                text = "The weather has been very dry! The animals are getting thirsty faster than usual. How should we help?",
+                eligible = () => Day >= 3,
+                environment = () => { GuidedEffects.Add(GuidedEffects.Kind.SheepThirst, 1.25f, 3); GuidedEffects.Add(GuidedEffects.Kind.LeopardThirst, 1.25f, 3); },
+                choices = new[] {
+                    new Choice { label = "Help the Blue Sheep", feedback = "The Blue Sheep won't get thirsty faster for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.SheepThirst, 0.8f, 3) },
+                    new Choice { label = "Help the Snow Leopards", feedback = "The Snow Leopards won't get thirsty faster for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.LeopardThirst, 0.8f, 3) },
+                    Nature() } },
+            new GuidedEvent {
+                id = "GE02", title = "Overgrazed Grassland", conditionBased = true,
+                text = "The Blue Sheep have eaten a lot of grass! There isn't much left for them to eat. What should we do?",
+                eligible = () => Vegetation <= 30f && Sheep > 0,
+                choices = new[] {
+                    new Choice { label = "Help the grass recover", feedback = "Grass grows back 50% faster for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.PlantRegen, 1.5f, 3) },
+                    new Choice { label = "Give the grass a break", feedback = "Each bite takes 40% less grass for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.Graze, 0.6f, 3) },
+                    Nature() } },
+            new GuidedEvent {
+                id = "GE03", title = "Growing Herd",
+                text = "The Blue Sheep herd is growing! More sheep need more grass to eat. How should we manage the growing herd?",
+                eligible = () => Day >= 10 && Sheep >= 8,
+                choices = new[] {
+                    new Choice { label = "Help the grass grow", feedback = "Grass grows back 50% faster for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.PlantRegen, 1.5f, 3) },
+                    new Choice { label = "Help the herd stay fed", feedback = "Blue Sheep get hungry 25% more slowly for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.SheepHunger, 0.75f, 3) },
+                    Nature() } },
+            new GuidedEvent {
+                id = "GE04", title = "Harsh Winter",
+                text = "The weather is getting colder! Grass is growing more slowly, and the Blue Sheep may struggle to find enough food. What should we do?",
+                eligible = () => Day >= 11,
+                environment = () => GuidedEffects.Add(GuidedEffects.Kind.PlantRegen, 0.5f, 3),
+                choices = new[] {
+                    new Choice { label = "Help the grass grow", feedback = "Grass keeps growing at its normal speed for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.PlantRegen, 2f, 3) },
+                    new Choice { label = "Help the Blue Sheep stay strong", feedback = "Blue Sheep get hungry 25% more slowly for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.SheepHunger, 0.75f, 3) },
+                    Nature() } },
+            new GuidedEvent {
+                id = "GE05", title = "Hungry Snow Leopards", conditionBased = true,
+                text = "The Snow Leopards are very hungry! They need to catch Blue Sheep to survive, but hunting also affects the herd. What should we do?",
+                eligible = () => Sheep > 0 && AnyHungryLeopard(),
+                choices = new[] {
+                    new Choice { label = "Help the Snow Leopards hunt", feedback = "Snow Leopards catch prey more often for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.HuntSuccess, 0.15f, 3) },
+                    new Choice { label = "Protect the Blue Sheep", feedback = "Blue Sheep escape more often for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.HuntSuccess, -0.15f, 3) },
+                    Nature() } },
+            new GuidedEvent {
+                id = "GE06", title = "Spring Recovery",
+                text = "Spring has arrived! The highlands have a chance to recover as the weather becomes warmer. What would you like to do?",
+                eligible = () => Day >= 16,
+                choices = new[] {
+                    new Choice { label = "Help the grass recover", feedback = "The grass grew back a little!", apply = () => { foreach (var p in ResourcePatch.All) if (p != null) p.Restore(15f); } },
+                    new Choice { label = "Support the animals", feedback = "Every animal had a good meal and a drink!", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) a.Refresh(15f, 15f); } },
+                    Nature() } },
+            new GuidedEvent {
+                id = "GE07", title = "Animal Illness",
+                text = "Some animals are becoming sick! They may lose their strength if they don't recover. What should we do?",
+                eligible = () => Day >= 12 && (Sheep > 0 || Leopards > 0),
+                environment = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) a.ChangeHealth(-20f); },
+                choices = new[] {
+                    new Choice { label = "Help the Blue Sheep recover", feedback = "The Blue Sheep got some of their strength back.", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught && !a.IsPredatorSpecies) a.ChangeHealth(15f); } },
+                    new Choice { label = "Help the Snow Leopards recover", feedback = "The Snow Leopards got some of their strength back.", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught && a.IsPredatorSpecies) a.ChangeHealth(15f); } },
+                    Nature() } },
+            new GuidedEvent {
+                id = "GE08", title = "Heavy Rainfall",
+                text = "Heavy rain has arrived in the highlands! The grass may grow faster with more water. What should we do?",
+                eligible = () => Day >= 18,
+                environment = () => GuidedEffects.Add(GuidedEffects.Kind.PlantRegen, 1.25f, 2),
+                choices = new[] {
+                    new Choice { label = "Encourage grass recovery", feedback = "Grass grows back even faster for 2 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.PlantRegen, 1.2f, 2) },
+                    new Choice { label = "Help the animals recover", feedback = "Every animal had a big drink!", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) a.Refresh(0f, 10f); } },
+                    Nature() } },
+        };
+    }
+
+    // ---------- Endings (priority order from the research) ----------
+
+    static readonly (string title, string text, string lesson)[] Endings =
+    {
+        ("Ecosystem Collapse", "The Blue Sheep and Snow Leopards have both disappeared. The highlands have lost important parts of their ecosystem. What could we do differently next time?", "Changes in food and animal numbers can affect the whole ecosystem."),
+        ("Predator-Free Highlands", "The Blue Sheep are still living in the highlands, but the Snow Leopards have disappeared. Without predators, the sheep population may grow and eat more grass!", "Predators help keep prey numbers in balance."),
+        ("Disappearing Herd", "The Blue Sheep have disappeared from the highlands. The Snow Leopards are still here, but without their prey, they may struggle to find food!", "Predators depend on prey to survive."),
+        ("Thriving Highlands", "The highlands are full of life! The Blue Sheep have grass to eat, and the Snow Leopards still have prey to hunt. Both animals and plants are doing well!", "A thriving ecosystem needs plants, prey and predators together."),
+        ("Fragile Balance", "The Blue Sheep and Snow Leopards are still here, but the highlands are struggling. There may not be enough food or animals to keep everything balanced!", "An ecosystem can survive but still be at risk."),
+    };
+
+    int PickEnding()
+    {
+        int s = Sheep, l = Leopards;
+        if (s == 0 && l == 0) return 0;
+        if (l == 0) return 1;
+        if (s == 0) return 2;
+        if (s >= 5 && l >= 1 && Vegetation >= 50f) return 3;
+        return 4;
+    }
+
+    // ---------- State ----------
+
+    ClockService clock;
+    SimulationSpeedController speed;
+    int lastDay = -1;
+    bool started, finished, showing;
+    float quietUntil;
+
+    int Day => clock != null ? clock.Day : 1;
+    static float Vegetation => ResourcePatch.VegetationPercent();
+    static int Count(bool predator)
+    {
+        int n = 0;
+        foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught && a.IsPredatorSpecies == predator) n++;
+        return n;
+    }
+    static int Sheep => Count(false);
+    static int Leopards => Count(true);
+    static bool AnyHungryLeopard()
+    {
+        foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught && a.IsPredatorSpecies && a.curr_hunger <= 30f) return true;
+        return false;
+    }
+
+    // ---------- Startup ----------
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void Hook()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name != ScreenFlow.Simulation) return;
+        SeasonWeather.ForcedStartSeason = ScreenFlow.GuidedMode ? SeasonWeather.Season.Summer : (SeasonWeather.Season?)null;
+        GuidedEffects.Clear();
+        if (ScreenFlow.GuidedMode) new GameObject("[GuidedChallenge]").AddComponent<GuidedChallenge>();
+    }
+
+    void Awake()
+    {
+        // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
+        var sim = FindFirstObjectByType<EcosystemSimulator>();
+        if (sim != null) sim.mode = EcosystemSimulator.SimulationMode.Events;
+        foreach (var sp in FindObjectsByType<CreatureSpawner>(FindObjectsSortMode.None)) sp.populationPerVisual = 1f;
+        BuildEvents();
+    }
+
+    void Start()
+    {
+        clock = FindFirstObjectByType<ClockService>();
+        speed = FindFirstObjectByType<SimulationSpeedController>();
+        BuildUI();
+    }
+
+    void Update()
+    {
+        if (finished) return;
+        int day = Day;
+        if (day != lastDay) { lastDay = day; GuidedEffects.NewDay(day); }
+        if (!started) { started = Sheep > 0 || Leopards > 0; UpdatePill(); return; }   // wait for the animals to spawn
+        UpdatePill();
+
+        if (Sheep == 0 && Leopards == 0) { Finish(); return; }       // early collapse
+        if (day > ChallengeDays) { Finish(); return; }               // end of Day 20
+
+        if (showing || Time.unscaledTime < quietUntil) return;
+        var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
+        if (next != null) Show(next);
+    }
+
+    GuidedEvent NextEvent(bool conditionBased)
+    {
+        foreach (var e in events)
+            if (e.conditionBased == conditionBased && !resolved.Contains(e.id) && e.eligible()) return e;
+        return null;
+    }
+
+    // ---------- Decision popup ----------
+
+    void Show(GuidedEvent e)
+    {
+        showing = true;
+        if (speed != null) speed.Pause();
+        popupTitle.text = e.title;
+        popupText.text = e.text;
+        for (int i = 0; i < choiceButtons.Length; i++)
+        {
+            bool has = i < e.choices.Length;
+            choiceButtons[i].gameObject.SetActive(has);
+            if (!has) continue;
+            var c = e.choices[i];
+            choiceLabels[i].text = c.label;
+            choiceButtons[i].onClick.RemoveAllListeners();
+            choiceButtons[i].onClick.AddListener(() => Choose(e, c));
+        }
+        popup.SetActive(true);
+    }
+
+    void Choose(GuidedEvent e, Choice c)
+    {
+        e.environment?.Invoke();
+        c.apply();
+        resolved.Add(e.id);
+        popup.SetActive(false);
+        showing = false;
+        quietUntil = Time.unscaledTime + QuietSecondsBetweenEvents;
+        if (speed != null) speed.Play();
+        DramaDirector.Announce(c.feedback);
+    }
+
+    // ---------- Ending ----------
+
+    void Finish()
+    {
+        finished = true;
+        if (speed != null) speed.Pause();
+        int i = PickEnding();
+        int mask = PlayerPrefs.GetInt(GalleryKey, 0);
+        bool isNew = (mask & (1 << i)) == 0;
+        PlayerPrefs.SetInt(GalleryKey, mask | (1 << i));
+        PlayerPrefs.Save();
+
+        var (title, text, lesson) = Endings[i];
+        endTitle.text = title;
+        endText.text = $"{text}\n\n<i>{lesson}</i>\n\n<size=80%>Day {Mathf.Min(Day, ChallengeDays)} of {ChallengeDays} · Blue Sheep {Sheep} · Snow Leopards {Leopards} · Grass {Vegetation:0}%</size>"
+                     + (isNew ? "\n<color=#E0A000>New ending unlocked!</color>" : "");
+        endPanel.SetActive(true);
+    }
+
+    void ShowGallery()
+    {
+        int mask = PlayerPrefs.GetInt(GalleryKey, 0);
+        var sb = new System.Text.StringBuilder();
+        int found = 0;
+        // Gallery order: best to worst, as the children would read it.
+        foreach (int i in new[] { 3, 4, 1, 2, 0 })
+        {
+            bool got = (mask & (1 << i)) != 0;
+            if (got) found++;
+            sb.Append(got ? $"<b>{Endings[i].title}</b>\n<size=80%>{Endings[i].text}</size>\n\n" : "<b>???</b>\n<size=80%>Not discovered yet. Try different choices!</size>\n\n");
+        }
+        galleryText.text = $"Endings found: {found} of {Endings.Length}\n\n" + sb;
+        gallery.SetActive(true);
+    }
+
+    // ---------- UI (built in code, 1920x1200 reference like the wireframes) ----------
+
+    GameObject popup, endPanel, gallery, pillBox;
+    TextMeshProUGUI pill, popupTitle, popupText, endTitle, endText, galleryText;
+    Button[] choiceButtons; TextMeshProUGUI[] choiceLabels;
+
+    void UpdatePill()
+    {
+        if (pill != null) pill.text = $"Guided challenge · Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}";
+        if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it
+    }
+
+    void BuildUI()
+    {
+        var canvasGo = new GameObject("Guided Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        canvasGo.transform.SetParent(transform, false);
+        var canvas = canvasGo.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 60;   // above the HUD and the Watch banner
+        var scaler = canvasGo.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1200);
+        scaler.matchWidthOrHeight = 0.5f;
+        var root = canvasGo.transform;
+
+        // Day counter, bottom-right (top is taken by Play/Pause/Reset, the banner and the season pill).
+        pillBox = Box(root, "Day pill", new Vector2(1f, 0f), new Vector2(-30f, 30f), new Vector2(520f, 70f), new Color(0.08f, 0.1f, 0.14f, 0.8f), new Vector2(1f, 0f));
+        pill = Label(pillBox.transform, "", 30f, Color.white);
+
+        // Decision popup.
+        popup = Dim(root, "Decision");
+        var card = Box(popup.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 760f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        popupTitle = Label(card.transform, "", 54f, new Color(0.12f, 0.16f, 0.2f), 60f, 40f, 620f, TextAlignmentOptions.Top);
+        popupText = Label(card.transform, "", 36f, new Color(0.2f, 0.24f, 0.28f), 70f, 150f, 420f, TextAlignmentOptions.Top);
+        choiceButtons = new Button[3]; choiceLabels = new TextMeshProUGUI[3];
+        var colors = new[] { new Color(0.3f, 0.62f, 0.38f), new Color(0.28f, 0.5f, 0.75f), new Color(0.55f, 0.55f, 0.55f) };
+        for (int i = 0; i < 3; i++)
+        {
+            var b = Box(card.transform, $"Choice {i + 1}", new Vector2(0.5f, 0f), new Vector2(0f, 300f - i * 125f), new Vector2(900f, 105f), colors[i], new Vector2(0.5f, 0f));
+            choiceButtons[i] = b.AddComponent<Button>();
+            choiceLabels[i] = Label(b.transform, "", 36f, Color.white);
+        }
+        popup.SetActive(false);
+
+        // Ending screen.
+        endPanel = Dim(root, "Ending");
+        var endCard = Box(endPanel.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1200f, 820f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        endTitle = Label(endCard.transform, "", 64f, new Color(0.12f, 0.16f, 0.2f), 60f, 40f, 670f, TextAlignmentOptions.Top);
+        endText = Label(endCard.transform, "", 36f, new Color(0.2f, 0.24f, 0.28f), 80f, 160f, 170f, TextAlignmentOptions.Top);
+        Button(endCard.transform, "Play again", new Vector2(-370f, 50f), new Color(0.3f, 0.62f, 0.38f), ScreenFlow.RestartGuided);
+        Button(endCard.transform, "Ending Gallery", new Vector2(0f, 50f), new Color(0.28f, 0.5f, 0.75f), ShowGallery);
+        Button(endCard.transform, "Home", new Vector2(370f, 50f), new Color(0.55f, 0.55f, 0.55f), ScreenFlow.GoHome);
+        endPanel.SetActive(false);
+
+        // Ending Gallery.
+        gallery = Dim(root, "Gallery");
+        var galCard = Box(gallery.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1200f, 1000f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        Label(galCard.transform, "Ending Gallery", 56f, new Color(0.12f, 0.16f, 0.2f), 60f, 30f, 880f, TextAlignmentOptions.Top);
+        galleryText = Label(galCard.transform, "", 32f, new Color(0.2f, 0.24f, 0.28f), 80f, 130f, 150f, TextAlignmentOptions.TopLeft);
+        Button(galCard.transform, "Back", new Vector2(0f, 30f), new Color(0.55f, 0.55f, 0.55f), () => gallery.SetActive(false));
+        gallery.SetActive(false);
+    }
+
+    static GameObject Dim(Transform parent, string name)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(parent, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
+        go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.55f);   // also blocks taps on the world behind
+        return go;
+    }
+
+    static GameObject Box(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size, Color color, Vector2? pivot = null)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(parent, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = rt.anchorMax = anchor;
+        rt.pivot = pivot ?? anchor;
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = size;
+        go.GetComponent<Image>().color = color;
+        return go;
+    }
+
+    static void Button(Transform parent, string text, Vector2 pos, Color color, UnityEngine.Events.UnityAction onClick)
+    {
+        var b = Box(parent, text, new Vector2(0.5f, 0f), pos, new Vector2(330f, 100f), color, new Vector2(0.5f, 0f));
+        b.AddComponent<Button>().onClick.AddListener(onClick);
+        Label(b.transform, text, 36f, Color.white);
+    }
+
+    // Text filling its parent, inset from each side, the top and the bottom; wraps and shrinks to fit.
+    static TextMeshProUGUI Label(Transform parent, string text, float size, Color color,
+                                 float side = 0f, float top = 0f, float bottom = 0f, TextAlignmentOptions align = TextAlignmentOptions.Center)
+    {
+        var t = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+        t.transform.SetParent(parent, false);
+        var rt = t.rectTransform;
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(side, bottom);
+        rt.offsetMax = new Vector2(-side, -top);
+        t.text = text;
+        t.color = color;
+        t.alignment = align;
+        t.textWrappingMode = TextWrappingModes.Normal;
+        t.enableAutoSizing = true;
+        t.fontSizeMax = size;
+        t.fontSizeMin = size * 0.5f;
+        t.raycastTarget = false;
+        return t;
+    }
+}

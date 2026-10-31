@@ -83,7 +83,30 @@ Full diagram and component owners: [architecture.md](../architecture.md).
 
 ## 10. UI/UX
 
-Wireframes, user flows and mockups: [ui-ux/](ui-ux/). *TODO (Design): add exported wireframes and the M1 mockup here.*
+Wireframes, user flows and mockups: [ui-ux/](ui-ux/). The 16 M2 wireframes (menus, simulation HUD, prediction loop, Field Journal) are in [ui-ux/wireframes/](ui-ux/wireframes/). *TODO (Design): add the M1 mockup.*
+
+## 11. Milestone 2 (status 31 Oct)
+
+*Added by Tech for review by Design (Shu Min). Source: the M2 research document "EcoBalance — Ecosystem Research & Simulation Reference" and the wireframes.*
+
+M2 turns the M1 sandbox into two modes, chosen after Home → Choose an ecosystem → Guided or free:
+
+- **Free Exploration:** set the starting Blue Sheep and Snow Leopards (default 10 / 2, max 20 / 5), run, observe, and discover investigations in the Field Journal.
+- **Guided Exploration:** a 20-day survival challenge on a fixed ecosystem (10 / 2, starting in summer). Events pause the game and offer three choices (help one side, the other, or let nature take its course) that add short buffs or debuffs. The run ends on Day 20, or early if both species die out, with one of 5 endings (Thriving Highlands, Fragile Balance, Predator-Free Highlands, Disappearing Herd, Ecosystem Collapse), kept in an Ending Gallery.
+
+| ID | Feature | M2 status |
+|---|---|---|
+| F01 | Configure starting ecosystem | Done (Free mode, research limits) |
+| F02 / F06 | Run, control, speed | Done (Shu Min's HUD) |
+| F03 / F04 | Observe behaviour and resources | Done: realistic Khumbu world, grazing, drinking, hunting (stalk and sprint), herd alarm, breeding, research numbers with health |
+| F05 | Changes over time | Overview with trends done; history graph not yet |
+| F07 | Contextual questions | Prediction questions CQ01–05: to do (Nomitha) |
+| F08 | Did You Know | Facts on the inspection panel; full DY01–DY10 set: to do |
+| F09 | Inspect individual organisms | Done (inspection panel: Fullness, Hydration, Health, action) |
+| Guided | Events and endings | Done (GE01–GE08, 5 endings, gallery) |
+| Field Journal | Investigations OG01–03, PP01–03 | Screen opens over the run; investigations: to do (Dillon) |
+
+Simulation rules follow the research document (Simulation Logic tab); see [architecture.md](../architecture.md) section 2.2 for the values used.
 
 ---
 *Compiled from the team's concept draft, M1 Feature Plan and milestone workbook. Formatted with AI assistance (Claude Code, Claude Opus 5.5) by Tan Wei Leong.*

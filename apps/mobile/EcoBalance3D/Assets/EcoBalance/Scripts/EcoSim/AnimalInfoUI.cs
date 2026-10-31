@@ -1,0 +1,260 @@
+using TMPro;
+using UnityEngine;
+
+public class AnimalInfoUI : MonoBehaviour
+{
+    public static AnimalInfoUI Instance { get; private set; }
+
+    [Header("Panel")]
+    public GameObject panel;
+
+    [Header("Text")]
+    public TMP_Text nameText;
+    public TMP_Text hungerText;
+    public TMP_Text thirstText;
+    public TMP_Text actionText;
+    public TMP_Text targetText;
+
+    private AnimalBrain selectedAnimal;
+    public AnimalBrain SelectedAnimal => selectedAnimal;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): read by SimHud
+    private TMP_Text factText;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): set per species
+
+    private void Awake()
+    {
+        Instance = this;
+
+        if (panel != null)
+        {
+            LayoutCard();
+            AddCloseButton();
+            panel.SetActive(false);
+        }
+    }
+
+    private void Update()
+    {
+        if (selectedAnimal == null)
+        {
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): the animal was removed (died) while selected
+            if (panel != null && panel.activeSelf) HidePanel();
+            return;
+        }
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): Esc closes it too, and a dead animal's card goes away
+        if ((UnityEngine.InputSystem.Keyboard.current != null &&
+             UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame) ||
+            selectedAnimal.IsCaught)
+        {
+            HidePanel();
+            return;
+        }
+
+        UpdateUI();
+    }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // The panel was set to stretch over the whole screen with its texts placed from the screen centre,
+    // so on a tablet it covered the view and drifted. Make it a fixed card on the right edge, middle height,
+    // with the texts stacked top to bottom inside it.
+    void LayoutCard()
+    {
+        var rt = panel.transform as RectTransform;
+        if (rt == null) return;
+        rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
+        rt.pivot = new Vector2(1f, 0.5f);
+        rt.anchoredPosition = new Vector2(-40f, 0f);
+        rt.sizeDelta = new Vector2(680f, 900f);
+        rt.localScale = Vector3.one;
+        if (!panel.TryGetComponent(out UnityEngine.UI.Image bg)) bg = panel.AddComponent<UnityEngine.UI.Image>();
+        bg.color = new Color(0.97f, 0.97f, 0.95f, 0.92f);
+
+        TMP_Text fact = null;
+        foreach (var t in panel.GetComponentsInChildren<TMP_Text>(true))
+            if (t.name == "DidYouKnow") { fact = t; break; }
+        factText = fact;
+        var rows = new (TMP_Text text, float height, float size)[]
+        {
+            (nameText, 90f, 52f), (hungerText, 70f, 38f), (thirstText, 70f, 38f),
+            (actionText, 70f, 38f), (targetText, 70f, 38f), (fact, 330f, 32f),
+        };
+
+        float y = -40f;
+        foreach (var (text, height, size) in rows)
+        {
+            if (text == null) continue;
+            var t = text.rectTransform;
+            // Some texts sat inside another box in the card, so positions were measured from the wrong place.
+            // Put every row directly in the card.
+            if (t.parent != panel.transform) t.SetParent(panel.transform, false);
+            t.anchorMin = new Vector2(0f, 1f); t.anchorMax = new Vector2(1f, 1f);
+            t.pivot = new Vector2(0.5f, 1f);
+            t.localScale = Vector3.one;
+            // Left edge 40 in, right edge 110 in (room for the X); row at y, this tall.
+            t.offsetMin = new Vector2(40f, y - height);
+            t.offsetMax = new Vector2(text == nameText ? -110f : -40f, y);
+            // Shrink to fit its row instead of spilling out of the card (long names, long fun facts).
+            // The scene saved old negative margins (e.g. -104 left on Hunger) that pushed text out of the card.
+            text.margin = Vector4.zero;
+            text.enableAutoSizing = true;
+            text.fontSizeMax = size;
+            text.fontSizeMin = size * 0.5f;
+            text.alignment = TextAlignmentOptions.TopLeft;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.overflowMode = TextOverflowModes.Ellipsis;
+            y -= height + 12f;
+        }
+    }
+
+    // A big "X" in the panel's top-right corner, built in code so the scene doesn't need changing.
+    void AddCloseButton()
+    {
+        var go = new GameObject("Close", typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
+        go.transform.SetParent(panel.transform, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 1f);
+        rt.anchoredPosition = new Vector2(-12f, -12f);
+        rt.sizeDelta = new Vector2(90f, 90f);   // big enough for a child's finger
+        go.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.35f);
+        go.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(HidePanel);
+
+        var label = new GameObject("X", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+        label.transform.SetParent(go.transform, false);
+        var lrt = label.rectTransform;
+        lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one; lrt.offsetMin = lrt.offsetMax = Vector2.zero;
+        label.text = "X";   // the font has no ✕ symbol (it showed as an empty box)
+        label.fontSize = 56f;
+        label.color = Color.white;
+        label.alignment = TextAlignmentOptions.Center;
+    }
+    // [AI-GENERATED END]
+
+    public void ShowAnimal(AnimalBrain animal)
+    {
+        if (animal == null)
+            return;
+
+        selectedAnimal = animal;
+
+        if (panel != null)
+        {
+            panel.SetActive(true);
+        }
+
+        UpdateUI();
+    }
+
+    public void HidePanel()
+    {
+        selectedAnimal = null;
+
+        if (panel != null)
+        {
+            panel.SetActive(false);
+        }
+    }
+
+    private void UpdateUI()
+    {
+        if (selectedAnimal == null)
+            return;
+
+        // Animal name
+        if (nameText != null)
+        {
+            if (selectedAnimal.species_data != null)
+            {
+                // [AI-GENERATED] Claude Code (Claude Opus 5.5): "SnowLeopard" -> "Snow Leopard"
+                // [AI-GENERATED] Claude Code (Claude Opus 5.5): sex symbol (blue ♂ / pink ♀) and "Baby" so each animal is easy to tell apart
+                string sex = selectedAnimal.AnimalSex == AnimalBrain.Sex.Male
+                    ? "<color=#3A7BD5>" + selectedAnimal.SexSymbol + " Male</color>"
+                    : "<color=#D5487A>" + selectedAnimal.SexSymbol + " Female</color>";
+                nameText.text = (selectedAnimal.IsYoung ? "Baby " : "") + System.Text.RegularExpressions.Regex.Replace(
+                    selectedAnimal.species_data.speciesName, "(?<=[a-z])(?=[A-Z])", " ") + "  " + sex;
+            }
+            else
+            {
+                nameText.text =
+                    selectedAnimal.gameObject.name;
+            }
+        }
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a fun fact that matches the animal
+        if (factText != null) factText.text = "Did you know?\n" + FactFor(selectedAnimal);
+
+        // Hunger
+        if (hungerText != null)
+        {
+            hungerText.text =
+                $"Hunger: {selectedAnimal.curr_hunger:0}%";
+        }
+
+        // Thirst (blank for species that don't need water)
+        if (thirstText != null)
+        {
+            thirstText.text =
+                selectedAnimal.HasThirst
+                    ? $"Thirst: {selectedAnimal.curr_thirst:0}%"
+                    : "";
+        }
+
+        // Current action
+        if (actionText != null)
+        {
+            actionText.text =
+                $"Currently: {GetActionText(selectedAnimal.CurrentAction)}";
+        }
+
+        // Target
+        if (targetText != null)
+        {
+            if (string.IsNullOrEmpty(
+                    selectedAnimal.CurrentTargetName))
+            {
+                targetText.text = "";
+            }
+            else
+            {
+                targetText.text =
+                    $"Target: {selectedAnimal.CurrentTargetName}";
+            }
+        }
+    }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    static string FactFor(AnimalBrain a)
+    {
+        string n = a.species_data != null ? a.species_data.speciesName.ToLowerInvariant() : "";
+        if (n.Contains("leopard"))
+            return "Snow leopards live alone. Their long, thick tail keeps them warm and helps them balance on rocky cliffs.";
+        if (n.Contains("sheep"))
+            return "Blue sheep live in herds and run up steep cliffs to escape snow leopards. They are an important food for them.";
+        return "Every animal here needs food and water to stay healthy.";
+    }
+    // [AI-GENERATED END]
+
+    private string GetActionText(
+        AnimalBrain.AnimalAction action)
+    {
+        switch (action)
+        {
+            case AnimalBrain.AnimalAction.EatingGrass:
+                return "Eating Grass";
+
+            case AnimalBrain.AnimalAction.DrinkingWater:
+                return "Drinking Water";
+
+            case AnimalBrain.AnimalAction.Hunting:
+                return "Hunting";
+
+            case AnimalBrain.AnimalAction.Fleeing:
+                return "Fleeing";
+
+            case AnimalBrain.AnimalAction.Reproducing:
+                return "Reproducing";
+
+            case AnimalBrain.AnimalAction.Roaming:
+            default:
+                return "Roaming";
+        }
+    }
+}

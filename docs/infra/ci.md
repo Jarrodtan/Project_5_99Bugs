@@ -1,22 +1,25 @@
 # CI/CD pipeline (GitHub Actions)
 
 Workflow: [`.github/workflows/unity-ci.yml`](../../.github/workflows/unity-ci.yml). Runs on GitHub-hosted runners
-(student GitHub Pro: 3,000 min/month). APKs and performance history are stored on the team Gitea VM, so
+(student GitHub Pro: about $18 of compute a month, reset on the 1st). APKs and performance history are stored on the team Gitea VM, so
 GitHub artifact storage stays at 0.
 
 ## What runs when
 
 | Event | Repo checks | EditMode tests (incl. smoke + perf) | Android APK | Linux headless build | Perf history |
 |---|---|---|---|---|---|
-| Pull request into `main` | ✅ | skipped (counts as passing) | — | — | — |
-| Nightly, 02:00 SGT (only if `main` changed in the last 24 h) | — | ✅ | — | — | ✅ |
+| Pull request into `main` | ✅ | ✅ | — | — | — |
+| Nightly, 02:00 SGT (only if `NIGHTLY_BRANCH`, now `M2-Integration`, changed in the last 24 h) | — | ✅ | — | — | ✅ |
 | Actions → Unity CI → **Run workflow** | ✅ | ✅ | ✅ release **or** development | if `headless` ticked | — |
 | Tag `v*` (e.g. `v0.2-m2`) | ✅ | ✅ | ✅ release, kept permanently | ✅ | — |
 
-Since 22 Oct 2026 the Unity tests run nightly on `main` instead of on every PR, to stay inside the
-Actions minutes (~12 min per nightly run, ~50 per build). A red nightly run means something merged
-the day before broke `main`; fix it first thing. Approximate use: ~400 of 3,000 minutes/month, 0 GB
-GitHub storage. An Actions budget of $1 with
+From 22 to 31 Oct the Unity tests ran only nightly on `main`, to stay inside the Actions minutes
+(October used $15 of $18, most of it APK uploads before they moved to Gitea). From 1 Nov, with the
+allowance reset, the tests run again on PRs into `main` (only a few, at milestone merges), and the
+nightly run tests the branch the team actually merges into: `NIGHTLY_BRANCH` in the workflow,
+`M2-Integration` during M2. Set it back to `main` after the milestone. A red nightly run means
+something merged the day before broke the integration branch; fix it first thing. Each Unity run is
+~12 minutes (~50 for a build); expected M2 use is well under a tenth of the allowance, 0 GB storage. An Actions budget of $1 with
 "stop usage" means CI pauses rather than charges if the limit is ever reached.
 
 ## Where results are
@@ -31,7 +34,7 @@ GitHub storage. An Actions budget of $1 with
 
 | Rubric item | Level | Covered by |
 |---|---|---|
-| T4 Automated build: CI checks `main`, reports failures | REQUIRED | Repo checks on every PR; EditMode tests nightly on `main` |
+| T4 Automated build: CI checks `main`, reports failures | REQUIRED | Repo checks + EditMode tests on PRs into `main`; EditMode tests nightly on the integration branch |
 | T5 Automated checks/tests, team can show results | REQUIRED | EditMode tests (ecosim package + app) |
 | CI/Build pipeline: automating builds | REQUIRED | Tag / manual Android APK |
 | …testing on target device/platform | REQUIRED | APK from Gitea installed on the Android tablet |
@@ -49,7 +52,7 @@ The VM (3.7 GB RAM) can't run the Unity **editor**, but it can run a **headless 
 started with no graphics. CI builds it on `v*` tags and on demand (Run workflow, tick `headless`) and publishes it to Gitea; the VM downloads it, runs the simulation for
 2,000 simulated days, and records crashes, errors, memory and final populations.
 
-- **Game side:** `Assets/_Project/Scripts/DevTools/HeadlessSoakRunner.cs` only activates when started with `-soakDays N`.
+- **Game side:** `Assets/EcoBalance/Scripts/DevTools/HeadlessSoakRunner.cs` only activates when started with `-soakDays N`.
   Exit code 0 = passed, 1 = errors logged, 2 = no simulator, 3 = timed out. Report: JSON.
 - **Run locally on Linux:** `./EcoBalanceHeadless.x86_64 -batchmode -nographics -soakDays 200 -soakReport report.json`
 

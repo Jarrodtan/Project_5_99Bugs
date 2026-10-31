@@ -34,7 +34,7 @@ faster and an animal that stops stops stepping. The other states loop in time.
   so the NavMeshAgent moving the root is never fought.
 
 ## Tuning
-Select `Assets/_Project/Resources/Motion/BlueSheep` (or `SnowLeopard`) and change values in Play mode;
+Select `Assets/EcoBalance/Resources/Motion/BlueSheep` (or `SnowLeopard`) and change values in Play mode;
 heights are in metres, angles in degrees. Add a new species by creating `Motion/<SpeciesAssetName>`.
 
 ## Rules
