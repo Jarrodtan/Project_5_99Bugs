@@ -5545,6 +5545,9 @@ MonoBehaviour:
   thirstText: {fileID: 1580478688}
   actionText: {fileID: 437800972}
   targetText: {fileID: 116047207}
+  popSound: {fileID: 8300000, guid: 4fde3ea4ac544014ebe699d79212bf9b, type: 3}
+  popVolume: 1
+  sfxSource: {fileID: 1115360657}
 --- !u!1 &1614410765
 GameObject:
   m_ObjectHideFlags: 0

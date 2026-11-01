@@ -174,7 +174,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -280,7 +280,7 @@ MonoBehaviour:
   personalCooldown: 120
   playLength: {x: 2, y: 4}
   maxClipSeconds: 6
-  debugLog: 0
+  debugLog: 1
   maxDistance: 60
   rolloff:
     serializedVersion: 2
