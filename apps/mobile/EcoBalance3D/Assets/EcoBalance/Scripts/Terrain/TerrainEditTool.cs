@@ -140,6 +140,7 @@ public class TerrainEditTool : MonoBehaviour
     {
         if (terrain == null) return;
         UpdateToggleButton();
+        PlaceToggle();
 
         bool editing = panel != null && panel.gameObject.activeSelf && tool != Tool.Look;
         TerrainCameraController.PrimaryPointerCaptured = editing;
@@ -681,6 +682,17 @@ public class TerrainEditTool : MonoBehaviour
     }
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // With Shumin's HUD the season pill is hidden (the day panel shows it), so sit right under the top row
+    // of HUD buttons instead of leaving a gap; the panel follows.
+    void PlaceToggle()
+    {
+        if (toggleRect == null) return;
+        float y = SimHud.Active ? -40f - 88f - 20f : -170f - 84f - 20f;   // top row (88 tall) + gap, or under the pill
+        if (Mathf.Approximately(toggleRect.anchoredPosition.y, y)) return;
+        toggleRect.anchoredPosition = new Vector2(-40f, y);
+        if (panel != null) panel.anchoredPosition = new Vector2(-40f, y - toggleRect.sizeDelta.y - 16f);
+    }
+
     void UpdateToggleButton()
     {
         if (toggleRect == null) return;
