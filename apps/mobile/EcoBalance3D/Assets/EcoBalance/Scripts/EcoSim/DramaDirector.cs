@@ -63,11 +63,11 @@ public class DramaDirector : MonoBehaviour
         UpdateStatusVisibility();
     }
 
-    /// <summary>Guided with Shumin's HUD: her day panel shows the season and weather instead (one day count, not two).</summary>
+    /// <summary>With Shumin's HUD, her day panel shows the season and weather instead (one day count, not two).</summary>
     public static void UpdateStatusVisibility()
     {
         if (instance == null || instance.status == null) return;
-        instance.status.transform.parent.gameObject.SetActive(!(ScreenFlow.GuidedMode && SimHud.Active));
+        instance.status.transform.parent.gameObject.SetActive(!SimHud.Active);
     }
 
     void Offer(Moment moment, Transform target, string text)

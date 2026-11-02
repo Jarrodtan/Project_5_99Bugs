@@ -258,7 +258,11 @@ public class SimHud : MonoBehaviour
     void RefreshOverview()
     {
         int day = clock != null ? clock.Day : 1;
-        SetText("Text (TMP)", ScreenFlow.GuidedMode ? $"Day {Mathf.Min(day, GuidedChallenge.ChallengeDays)} / {GuidedChallenge.ChallengeDays}" : $"Day {day}", Find("DayPanel"));
+        if (!ScreenFlow.GuidedMode)   // Guided's day panel is filled by GuidedChallenge
+        {
+            StyleFreeDayPanel();
+            SetText("Text (TMP)", $"<b>Day {day}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C", Find("DayPanel"));
+        }
 
         int sheep = 0, leopards = 0;
         foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) { if (a.IsPredatorSpecies) leopards++; else sheep++; }
@@ -380,6 +384,36 @@ public class SimHud : MonoBehaviour
             sum += p.Amount / max; n++;
         }
         return n > 0 ? sum / n * 100f : 100f;
+    }
+
+    // Free mode: the same dark one-line day pill as Guided, widened leftwards (its right edge stays put)
+    // so the season and weather fit; the separate season pill then hides.
+    bool dayStyled;
+    void StyleFreeDayPanel()
+    {
+        if (dayStyled) return;
+        dayStyled = true;
+        DramaDirector.UpdateStatusVisibility();
+        var panel = Find("DayPanel") as RectTransform;
+        if (panel == null) return;
+        float right = panel.anchoredPosition.x + (1f - panel.pivot.x) * panel.sizeDelta.x;
+        panel.pivot = new Vector2(1f, panel.pivot.y);
+        panel.sizeDelta = new Vector2(Mathf.Max(panel.sizeDelta.x, 480f), panel.sizeDelta.y);
+        panel.anchoredPosition = new Vector2(right, panel.anchoredPosition.y);
+        if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
+        bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+        bg.raycastTarget = false;
+        var t = Txt("Text (TMP)", panel);
+        if (t == null) return;
+        var rt = t.rectTransform;
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(16f, 4f); rt.offsetMax = new Vector2(-16f, -4f);
+        t.color = Color.white;
+        t.alignment = TextAlignmentOptions.Center;
+        t.textWrappingMode = TextWrappingModes.NoWrap;
+        t.enableAutoSizing = true;
+        t.fontSizeMax = 30f;
+        t.fontSizeMin = 22f;
     }
 
     void SetText(string name, string value, Transform under = null)
