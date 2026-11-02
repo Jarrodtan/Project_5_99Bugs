@@ -587,9 +587,8 @@ public class TerrainEditTool : MonoBehaviour
 
     void BuildUi()
     {
-        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a developer tool, so only in the Editor and development
-        // builds; children never see a terrain editor in the real app.
-        if (!Application.isEditor && !Debug.isDebugBuild) return;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): in every build since 3 Nov (was Editor / development
+        // only): players can reshape the land and watch how the animals respond.
 
         if (EventSystem.current == null)
         {
