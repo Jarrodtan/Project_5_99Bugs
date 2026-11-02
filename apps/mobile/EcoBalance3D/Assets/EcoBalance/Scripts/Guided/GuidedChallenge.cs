@@ -333,12 +333,23 @@ public class GuidedChallenge : MonoBehaviour
         if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
         bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
         bg.raycastTarget = false;
-        foreach (var t in panel.GetComponentsInChildren<TextMeshProUGUI>(true))
+        foreach (var name in new[] { "SeasonTxt", "Divider" })
         {
+            var hide = Find(panel, name);
+            if (hide != null) hide.gameObject.SetActive(false);
+        }
+        var day = Find(panel, "DayCounterTxt");
+        if (day != null && day.TryGetComponent(out TextMeshProUGUI t))
+        {
+            var rt = t.rectTransform;
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(16f, 4f); rt.offsetMax = new Vector2(-16f, -4f);
             t.color = Color.white;
+            t.alignment = TextAlignmentOptions.Center;
+            t.textWrappingMode = TextWrappingModes.NoWrap;
             t.enableAutoSizing = true;
             t.fontSizeMax = 30f;
-            t.fontSizeMin = 14f;
+            t.fontSizeMin = 22f;   // readable on a 10" tablet
         }
     }
 
@@ -458,8 +469,8 @@ public class GuidedChallenge : MonoBehaviour
         if (pill != null) pill.text = $"Guided challenge · Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}";
         if (FindShuminUI())   // Shumin's DayPanel: "Day 12 / 20 | Summer" in the mock-up
         {
-            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>");
-            SetText(shuminRoot, "SeasonTxt", $"<b>{SeasonWeather.CurrentSeason}</b> · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");
+            // One line across the whole panel: the season box alone was too narrow to read on a tablet.
+            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");
             if (!dayPanelStyled) StyleDayPanel();
         }
         if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it

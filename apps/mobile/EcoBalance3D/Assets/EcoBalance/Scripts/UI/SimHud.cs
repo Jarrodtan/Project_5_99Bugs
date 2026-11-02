@@ -152,7 +152,7 @@ public class SimHud : MonoBehaviour
         {
             if (t.enableAutoSizing) continue;
             t.fontSizeMax = t.fontSize;
-            t.fontSizeMin = Mathf.Max(8f, t.fontSize * 0.45f);
+            t.fontSizeMin = Mathf.Max(18f, t.fontSize * 0.6f);   // shrink to fit, but stay readable on a tablet
             t.enableAutoSizing = true;
         }
     }
@@ -173,7 +173,10 @@ public class SimHud : MonoBehaviour
                 else if (withHud && t.TryGetComponent(out TMP_Text txt) && txt.text != null && txt.text.StartsWith("Live Everest") && t is RectTransform rt && !movedWeather.Contains(rt))
                 {
                     movedWeather.Add(rt);
-                    rt.anchoredPosition += new Vector2(0f, 150f);
+                    // Top-left, under the "Himalayan Highlands" title box: the bottom-left is the control bar.
+                    rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
+                    rt.anchoredPosition = new Vector2(40f, -150f);
+                    txt.alignment = TextAlignmentOptions.TopLeft;
                 }
                 if (withHud && t is RectTransform r2 && movedWeather.Contains(r2)) moved = true;
             }
