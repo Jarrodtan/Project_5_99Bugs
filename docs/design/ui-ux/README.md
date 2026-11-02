@@ -24,9 +24,9 @@ Which wireframe is built in Unity and whether it runs on live data. Scenes are i
 | 12 HUD | `UI` → `SimulationPanel`, `DayPanel`, `EcosystemOverviewPanel` | ✅ day, populations, vegetation / water, Play/Pause, speed, Reset, Back | Value icons (`ValueImage`) still placeholders |
 | 11 Overview expanded | `UI` → `ExpandedOverviewPanel` | ✅ numbers, trends, Enough / Low, bars | |
 | 09 Animal inspection | `UI` → `AnimalInspectionPanel` | ✅ name, sex, baby, Fullness, Hydration, Health, action, Did You Know | Animal portrait placeholder |
-| 08 Discovery toast | — | ❌ | Needs the Field Journal investigations (Dillon) |
+| 08 Discovery toast | `CaseDiscoveryToast` (Dillon) | ✅ | Pops up when a case is discovered during the run |
 | 10 Let's think · 16 Your prediction · 01 What happened | `UI` → `ContextualPanel` | ❌ hidden | Prediction questions CQ01–05 (Nomitha) |
-| 07 Journal home · 03 Ecosystem · 04 Investigations · 05 Detail · 06 Observations · 02 Fun facts | `FieldJournalScene` | ⚠️ opens over the paused run, Back returns | Content and investigations OG/PP not wired (Dillon) |
+| 07 Journal home · 03 Ecosystem · 04 Investigations · 05 Detail · 06 Observations · 02 Fun facts | `FieldJournalScene` + `FieldJournalScreen` (Dillon) | ✅ investigations, observations graph; opens over the paused run, Back returns | Fun facts DY01–DY10 and the research's OG/PP wording still to add |
 | 17 Guided top bar (Back, ecosystem + mode, Day x / 20 + season, Field Journal, Ending Gallery) | `UI` top bar | ⚠️ day, Back, Field Journal wired; mode label, season and Ending Gallery button not yet | Needs these objects in `UI.unity` (Shu Min), then wiring |
 | 18 Guided intro ("Your Ecosystem Adventure!") | — | ❌ | New: shown before Day 1 with the starting grass / sheep / leopards and Start Simulation |
 | 19 Event · 20 Choice feedback | built in code (`GuidedChallenge`) | ✅ logic; ⚠️ look | Popup works (3 choices, pauses); to match: option cards with pictures + Confirm Choice, then a feedback card (effect + duration) with Continue |
