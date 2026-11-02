@@ -223,9 +223,7 @@ public static class ScreenFlow
 
     const string SoundKey = "EcoBalance.SoundOn";
     static bool SoundOn => PlayerPrefs.GetInt(SoundKey, 1) == 1;
-    static string SoundCaption => SoundOn ? "Sound
-On" : "Sound
-Off";
+    static string SoundCaption => SoundOn ? "Sound\nOn" : "Sound\nOff";
     static readonly List<TMPro.TextMeshProUGUI> soundLabels = new List<TMPro.TextMeshProUGUI>();
 
     static void ToggleSound()
