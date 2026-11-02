@@ -8,7 +8,7 @@ Unity only compiles test code inside the project, so the automated tests live in
 
 How to run them:
 - **Editor:** open **Window → General → Test Runner → EditMode → Run All**.
-- **CI:** they run on every pull request into `main` and nightly on the integration branch (`.github/workflows/unity-ci.yml`, see `docs/infra/ci.md`).
+- **CI:** they run on every pull request into `main` and every `v*` tag (`.github/workflows/unity-ci.yml`, see `docs/infra/ci.md`).
 
 This folder holds test plans, testbed measurement definitions and manual test checklists.
 

@@ -105,7 +105,7 @@ The built app starts from the first scene in Build Settings (HomeScreen).
   - Windows: `tools\unity.bat test`
 
   Results are written to `test-results.xml`.
-- **CI:** every pull request into `main` runs the repo checks (`python tools/ci/repo-checks.py`, also runnable locally) **and** the EditMode tests (including scene smoke tests and performance tests). The tests also run **nightly** at 02:00 SGT on the integration branch (`M2-Integration` during M2), only if it changed. Failures are printed in the job log.
+- **CI:** every pull request into `main` runs the repo checks (`python tools/ci/repo-checks.py`, also runnable locally) **and** the EditMode tests (including scene smoke tests and performance tests). There is no nightly run: everything reaches `main` through a PR, which runs the same tests. Each PR run also adds a row to the performance history on Gitea. Failures are printed in the job log.
 
 ## Build
 

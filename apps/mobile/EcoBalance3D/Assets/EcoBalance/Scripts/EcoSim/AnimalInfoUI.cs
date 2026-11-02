@@ -15,6 +15,14 @@ public class AnimalInfoUI : MonoBehaviour
     public TMP_Text actionText;
     public TMP_Text targetText;
 
+    // [AI-GENERATED BEGIN] Claude (Claude Sonnet 5.5, claude.ai chat) - not yet reviewed
+    [Header("Sound")]
+    public AudioClip popSound;                    // drag your pop clip here
+    [Range(0f, 1f)] public float popVolume = 1f;
+    public AudioSource sfxSource;                 // optional: drag your AudioManager's SFX AudioSource here so its volume setting applies
+    private AudioSource uiAudio;
+    // [AI-GENERATED END]
+
     private AnimalBrain selectedAnimal;
     public AnimalBrain SelectedAnimal => selectedAnimal;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): read by SimHud
     public TMP_Text factText;   // wired by IslandPlatformHud / LayoutCard
@@ -22,6 +30,15 @@ public class AnimalInfoUI : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+
+        // [AI-GENERATED] Claude (Claude Sonnet 5.5, claude.ai chat): use the SFX source if one was given,
+        // otherwise create a plain 2D AudioSource just for UI sounds
+        uiAudio = sfxSource != null ? sfxSource : gameObject.AddComponent<AudioSource>();
+        if (sfxSource == null)
+        {
+            uiAudio.playOnAwake = false;
+            uiAudio.spatialBlend = 0f;
+        }
 
         if (panel != null)
         {
@@ -133,6 +150,10 @@ public class AnimalInfoUI : MonoBehaviour
         if (animal == null)
             return;
 
+        // [AI-GENERATED] Claude (Claude Sonnet 5.5, claude.ai chat): remember if the card was already open,
+        // so the pop only plays when it actually appears
+        bool wasOpen = panel != null && panel.activeSelf;
+
         selectedAnimal = animal;
 
         if (panel != null)
@@ -140,8 +161,18 @@ public class AnimalInfoUI : MonoBehaviour
             panel.SetActive(true);
         }
 
+        if (!wasOpen) PlayPop();
+
         UpdateUI();
     }
+
+    // [AI-GENERATED BEGIN] Claude (Claude Sonnet 5.5, claude.ai chat) - not yet reviewed
+    private void PlayPop()
+    {
+        if (popSound == null || uiAudio == null) return;
+        uiAudio.PlayOneShot(popSound, popVolume);
+    }
+    // [AI-GENERATED END]
 
     public void HidePanel()
     {

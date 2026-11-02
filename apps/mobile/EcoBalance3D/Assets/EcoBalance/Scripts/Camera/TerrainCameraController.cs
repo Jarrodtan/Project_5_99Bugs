@@ -362,7 +362,7 @@ public class TerrainCameraController : MonoBehaviour
         distTarget = Mathf.Clamp(distTarget, minDistance, maxDistance);
         pitchTarget = Mathf.Clamp(pitchTarget, pov ? -30f : minPitch, maxPitch);
 
-        if (terrain != null && followTarget == null)
+        if (terrain != null && terrain.terrainData != null && followTarget == null)
         {
             // Keep the view over the land: a margin from the edges, so the camera never shows the void beyond.
             var min = terrain.GetPosition() + new Vector3(edgeMargin, 0f, edgeMargin);

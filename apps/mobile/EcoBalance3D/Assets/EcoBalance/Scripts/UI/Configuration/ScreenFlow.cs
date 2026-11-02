@@ -99,6 +99,12 @@ public static class ScreenFlow
         // the Back buttons are blank white squares in every scene (no icon yet)
         if (buttons.TryGetValue("BackBtn", out var backs))
             foreach (var b in backs) ButtonCaption.Ensure(b, "‹ Back", 26f);
+
+        // The settings square (top right in every screen) has no settings page yet: it opens a volume slider.
+        On("SettingBtn", OpenVolume);
+        if (buttons.TryGetValue("SettingBtn", out var settings))
+            foreach (var b in settings) ButtonCaption.Ensure(b, "Sound", 20f);
+        AudioListener.volume = Volume;
     }
 
     // Back button on the simulation (both modes), bottom-left above the weather text. Asks first, so a
@@ -213,6 +219,47 @@ public static class ScreenFlow
         SceneManager.UnloadSceneAsync(Journal);
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         if (journalWasRunning && speed != null) speed.Play();
+    }
+
+    // ---------- Volume (all sound: music, animals, river), kept between runs ----------
+    const string VolumeKey = "EcoBalance.Volume";
+    static float Volume => PlayerPrefs.GetFloat(VolumeKey, 1f);
+
+    static void OpenVolume()
+    {
+        var canvasGo = new GameObject("[Volume Canvas]", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvas = canvasGo.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 100;   // above the journal and gallery overlays
+        var scaler = canvasGo.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1200);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        var dim = Rect(canvasGo.transform, "Dim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
+        dim.AddComponent<Button>().onClick.AddListener(() => Object.Destroy(canvasGo));   // tap outside to close
+        var card = Rect(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        card.AddComponent<Button>().transition = UnityEngine.UI.Selectable.Transition.None;   // taps on the card don't close it
+        Text(card.transform, "Sound volume", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 130f), new Vector2(820f, 80f));
+
+        var slider = DefaultControls.CreateSlider(new DefaultControls.Resources());
+        slider.transform.SetParent(card.transform, false);
+        var srt = (RectTransform)slider.transform;
+        srt.anchoredPosition = new Vector2(0f, 10f);
+        srt.sizeDelta = new Vector2(700f, 60f);
+        var handle = slider.transform.Find("Handle Slide Area/Handle") as RectTransform;
+        if (handle != null) handle.sizeDelta = new Vector2(60f, 0f);   // finger-sized
+        var fill = slider.transform.Find("Fill Area/Fill");
+        if (fill != null) fill.GetComponent<Image>().color = new Color(0.3f, 0.62f, 0.38f);
+        var s = slider.GetComponent<Slider>();
+        s.minValue = 0f; s.maxValue = 1f; s.value = Volume;
+        s.onValueChanged.AddListener(v =>
+        {
+            AudioListener.volume = v;
+            PlayerPrefs.SetFloat(VolumeKey, v);
+        });
+
+        Btn(card.transform, "Done", new Vector2(0f, -130f), new Color(0.3f, 0.62f, 0.38f), () => { PlayerPrefs.Save(); Object.Destroy(canvasGo); });
     }
 
     static void Load(string scene)

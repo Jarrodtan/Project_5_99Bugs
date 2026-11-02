@@ -2,11 +2,9 @@
 name: Unity CI
 
 # Minutes budget (GitHub Pro: about $18 of compute a month, Unity runs are ~12 min each):
-# - PRs into main: Repo checks + EditMode tests (only a few PRs, at milestone merges).
-# - Nightly (02:00 SGT): EditMode tests on the integration branch (NIGHTLY_BRANCH), only if
-#   it got new commits in the last 24 h. A failure there means something merged yesterday
-#   broke it. During M2 the team merges into M2-Integration, so that is what is tested;
-#   set it back to main after the milestone.
+# - PRs into main: Repo checks + EditMode tests, and one performance-history row per run.
+#   No nightly run: everything reaches main through a PR, so a nightly run only re-tested
+#   the same code (removed 2 Nov to save minutes).
 # - APK + headless builds: only on version tags (v*) and on demand
 #   (Actions > Unity CI > Run workflow). Run workflow also runs the tests first.
 # APKs are stored on the team Gitea (package "ecobalance-apk"); nothing is uploaded to
@@ -27,8 +25,6 @@ on:
         description: 'Also build the Linux headless build for the VM soak test'
         type: boolean
         default: false
-  schedule:
-    - cron: '0 18 * * *'   # 02:00 Singapore time daily: tests + perf history
 
 # On PRs a newer push cancels the older run instead of paying for both.
 concurrency:
@@ -44,7 +40,6 @@ env:
   UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
   PROJECT_PATH: apps/mobile/EcoBalance3D
-  NIGHTLY_BRANCH: M2-Integration
 
 # No Library cache on purpose: runs that restored a cached Library were killed
 # (exit 137) while Unity reloaded assemblies; clean imports passed.
@@ -54,37 +49,14 @@ jobs:
   # markers, editor-only code in runtime folders). Seconds, so it runs on every PR/push.
   repo-checks:
     name: Repo checks
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4   # no LFS needed: checks what Git stores
       - run: python3 tools/ci/repo-checks.py
 
-  # Nightly runs skip the tests when nothing was pushed to main in the last 24 h.
-  # Only runs on the schedule (every job is billed as at least 1 minute).
-  check:
-    name: Anything new?
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.c.outputs.changed }}
-    steps:
-      - id: c
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          SINCE=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
-          NEW=$(gh api "repos/$GITHUB_REPOSITORY/commits?sha=$NIGHTLY_BRANCH&since=$SINCE&per_page=1" --jq length || echo 1)
-          if [ "$NEW" -gt 0 ]; then echo "changed=true" >> "$GITHUB_OUTPUT"
-          else echo "No commits on $NIGHTLY_BRANCH since $SINCE, skipping"; echo "changed=false" >> "$GITHUB_OUTPUT"; fi
-
   test:
     name: EditMode tests
-    needs: check
-    # PRs into main, tags, manual runs, and the nightly run when the integration branch changed.
-    if: >-
-      always() &&
-      (needs.check.result == 'skipped' || needs.check.outputs.changed == 'true')
+    # PRs into main, tags and manual runs.
     runs-on: ubuntu-latest
     steps:
       # Free runner disk is too small for the Unity 6 Docker image (~15 GB)
@@ -95,9 +67,6 @@ jobs:
           swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
 
       - uses: actions/checkout@v4
-        with:
-          # Nightly tests the integration branch; everything else tests what triggered the run.
-          ref: ${{ github.event_name == 'schedule' && env.NIGHTLY_BRANCH || '' }}
 
       # LFS files live on the team Gitea, not GitHub, so pull them with a Gitea token
       - name: Pull LFS files from Gitea
@@ -116,15 +85,15 @@ jobs:
           checkName: EditMode Test Results
           # No GPU on the runner: skip software OpenGL, which used enough RAM to get
           # Unity killed (exit 137) while loading assemblies.
-          # Nightly run: PerformanceTests also write their timings for the history below.
+          # PRs and tags: PerformanceTests also write their timings for the history below.
           customParameters: >-
             -nographics
-            ${{ github.event_name == 'schedule' && '-perfOut /github/workspace/artifacts/perf.txt' || '' }}
+            ${{ github.event_name != 'workflow_dispatch' && '-perfOut /github/workspace/artifacts/perf.txt' || '' }}
 
       # Performance history (rubric: performance tests with a historical representation):
-      # one CSV row per nightly run, kept on Gitea as ecobalance-perf/history/perf.csv.
+      # one CSV row per PR or tag run, kept on Gitea as ecobalance-perf/history/perf.csv.
       - name: Append performance history on Gitea
-        if: github.event_name == 'schedule' && success()
+        if: github.event_name != 'workflow_dispatch' && success()
         env:
           GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
         run: |
@@ -150,11 +119,9 @@ jobs:
 
   build:
     name: Build (Android)
-    needs: [check, test]
+    needs: test
     # Only on v* tags and Run workflow (~50 min each).
-    if: >-
-      always() && needs.test.result == 'success' &&
-      (github.event_name == 'workflow_dispatch' || github.ref_type == 'tag')
+    if: github.event_name == 'workflow_dispatch' || github.ref_type == 'tag'
     runs-on: ubuntu-latest
     env:
       GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
@@ -169,9 +136,6 @@ jobs:
           swap-storage: false   # keep swap: Unity 6 can exceed 7 GB RAM (exit 137)
 
       - uses: actions/checkout@v4
-        with:
-          # Nightly tests the integration branch; everything else tests what triggered the run.
-          ref: ${{ github.event_name == 'schedule' && env.NIGHTLY_BRANCH || '' }}
 
       # LFS files live on the team Gitea, not GitHub, so pull them with a Gitea token
       - name: Pull LFS files from Gitea
@@ -228,10 +192,8 @@ jobs:
   # editor but runs a headless player fine. On v* tags, or Run workflow with headless=true.
   headless:
     name: Build (Linux headless)
-    needs: [check, test]
-    if: >-
-      always() && needs.test.result == 'success' &&
-      (github.ref_type == 'tag' || github.event.inputs.headless == 'true')
+    needs: test
+    if: github.ref_type == 'tag' || github.event.inputs.headless == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1

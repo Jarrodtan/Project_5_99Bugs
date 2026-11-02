@@ -17,7 +17,7 @@ public class GuidedChallenge : MonoBehaviour
 {
     public const int ChallengeDays = 20;
     const float QuietSecondsBetweenEvents = 12f;   // real seconds of watching between two popups
-    const string GalleryKey = "EcoBalance.GuidedEndings";
+    public const string GalleryKey = "EcoBalance.GuidedEndings";
 
     // ---------- Events (GE01-GE06 core, GE07-GE08 additional) ----------
 
@@ -112,7 +112,7 @@ public class GuidedChallenge : MonoBehaviour
 
     // ---------- Endings (priority order from the research) ----------
 
-    static readonly (string title, string text, string lesson)[] Endings =
+    public static readonly (string title, string text, string lesson)[] Endings =
     {
         ("Ecosystem Collapse", "The Blue Sheep and Snow Leopards have both disappeared. The highlands have lost important parts of their ecosystem. What could we do differently next time?", "Changes in food and animal numbers can affect the whole ecosystem."),
         ("Predator-Free Highlands", "The Blue Sheep are still living in the highlands, but the Snow Leopards have disappeared. Without predators, the sheep population may grow and eat more grass!", "Predators help keep prey numbers in balance."),
@@ -199,6 +199,7 @@ public class GuidedChallenge : MonoBehaviour
         if (Sheep == 0 && Leopards == 0) { Finish(); return; }       // early collapse
         if (day > ChallengeDays) { Finish(); return; }               // end of Day 20
 
+        if (!introDone) { ShowIntro(); return; }
         if (showing || Time.unscaledTime < quietUntil) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
@@ -217,6 +218,7 @@ public class GuidedChallenge : MonoBehaviour
     {
         showing = true;
         if (speed != null) speed.Pause();
+        if (FindShuminUI()) { ShowShumin(e); return; }
         popupTitle.text = e.title;
         popupText.text = e.text;
         for (int i = 0; i < choiceButtons.Length; i++)
@@ -237,7 +239,7 @@ public class GuidedChallenge : MonoBehaviour
         e.environment?.Invoke();
         c.apply();
         resolved.Add(e.id);
-        popup.SetActive(false);
+        if (popup != null) popup.SetActive(false);
         showing = false;
         quietUntil = Time.unscaledTime + QuietSecondsBetweenEvents;
         if (speed != null) speed.Play();
@@ -255,6 +257,12 @@ public class GuidedChallenge : MonoBehaviour
         bool isNew = (mask & (1 << i)) == 0;
         PlayerPrefs.SetInt(GalleryKey, mask | (1 << i));
         PlayerPrefs.Save();
+
+        // Shumin's Ending screen when it's in the build; otherwise the card below.
+        if (GuidedScreens.ShowEnding(new GuidedScreens.Result {
+                ending = i, isNew = isNew, day = Mathf.Min(Day, ChallengeDays),
+                sheep = Sheep, leopards = Leopards, vegetation = Vegetation }))
+            return;
 
         var (title, text, lesson) = Endings[i];
         endTitle.text = title;
@@ -279,6 +287,177 @@ public class GuidedChallenge : MonoBehaviour
         gallery.SetActive(true);
     }
 
+    // ---------- Shumin's Guided Exploration HUD (GuidedExploration.unity), found by object name ----------
+
+    Transform shuminRoot, introPanel, eventPanel, eventCard, feedbackCard;
+    bool introDone, introShown;
+
+    bool FindShuminUI()
+    {
+        if (shuminRoot != null) return eventCard != null;
+        var scene = SceneManager.GetSceneByName(SimHud.GuidedSceneName);
+        if (!scene.isLoaded) return false;
+        foreach (var root in scene.GetRootGameObjects())
+            if (root.GetComponent<Canvas>() != null) shuminRoot = root.transform;
+        if (shuminRoot == null) return false;
+        introPanel = Find(shuminRoot, "IntroPanel");
+        eventPanel = Find(shuminRoot, "EventPanel");
+        eventCard = Find(eventPanel, "EventCard");
+        feedbackCard = Find(eventPanel, "FeedbackCard");
+        if (eventPanel != null) eventPanel.gameObject.SetActive(false);
+        if (introPanel != null) introPanel.gameObject.SetActive(false);
+        OnTop(introPanel);
+        OnTop(eventPanel);
+        return eventCard != null;
+    }
+
+    // The cards are part of the HUD canvas, so the season banner and the live weather line drew over
+    // them. Their own canvas puts them above everything in the run (the journal overlay is 90).
+    static void OnTop(Transform panel)
+    {
+        if (panel == null || panel.GetComponent<Canvas>() != null) return;
+        var c = panel.gameObject.AddComponent<Canvas>();
+        c.overrideSorting = true;
+        c.sortingOrder = 80;
+        panel.gameObject.AddComponent<GraphicRaycaster>();
+    }
+
+    // The mock-up's day text is small and pale grey over the world: make it a readable dark pill.
+    bool dayPanelStyled;
+    void StyleDayPanel()
+    {
+        dayPanelStyled = true;
+        DramaDirector.UpdateStatusVisibility();
+        var panel = Find(shuminRoot, "DayPanel");
+        if (panel == null) return;
+        if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
+        bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+        bg.raycastTarget = false;
+        foreach (var name in new[] { "SeasonTxt", "Divider" })
+        {
+            var hide = Find(panel, name);
+            if (hide != null) hide.gameObject.SetActive(false);
+        }
+        var day = Find(panel, "DayCounterTxt");
+        if (day != null && day.TryGetComponent(out TextMeshProUGUI t))
+        {
+            var rt = t.rectTransform;
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(16f, 4f); rt.offsetMax = new Vector2(-16f, -4f);
+            t.color = Color.white;
+            t.alignment = TextAlignmentOptions.Center;
+            t.textWrappingMode = TextWrappingModes.NoWrap;
+            t.enableAutoSizing = true;
+            t.fontSizeMax = 30f;
+            t.fontSizeMin = 22f;   // readable on a 10" tablet
+        }
+    }
+
+    static Transform Find(Transform under, string name)
+    {
+        if (under == null) return null;
+        foreach (var t in under.GetComponentsInChildren<Transform>(true))
+            if (t.name.Trim().Trim('\'').Trim() == name) return t;
+        return null;
+    }
+
+    static void SetText(Transform under, string name, string text)
+    {
+        var t = Find(under, name);
+        if (t != null && t.TryGetComponent(out TextMeshProUGUI tmp)) tmp.text = text;
+    }
+
+    static void OnClick(Transform under, string name, UnityEngine.Events.UnityAction action)
+    {
+        var t = Find(under, name);
+        if (t == null) return;
+        if (!t.TryGetComponent(out Button b)) b = t.gameObject.AddComponent<Button>();
+        b.onClick = new Button.ButtonClickedEvent();
+        b.onClick.AddListener(action);
+    }
+
+    // Shumin's intro card (wireframe 17): the run waits, paused, until Start. No Guided HUD after a few
+    // seconds = skip the intro (the code-built popups still work).
+    void ShowIntro()
+    {
+        if (introShown) return;
+        if (!FindShuminUI())
+        {
+            if (Time.timeSinceLevelLoad > 5f) introDone = true;
+            return;
+        }
+        introShown = true;
+        if (introPanel == null) { introDone = true; return; }
+        if (speed != null) speed.Pause();
+        int card = 0;
+        foreach (var t in introPanel.GetComponentsInChildren<Transform>(true))
+            if (t.name.StartsWith("AnimalCard")) SetText(t, "AmountTxt", $"x{(card++ == 0 ? Sheep : Leopards)}");
+        SetText(Find(introPanel, "GrassCard"), "ValueTxt", $"{Vegetation:0}%");
+        introPanel.gameObject.SetActive(true);
+        OnClick(introPanel, "StartBtn", () =>
+        {
+            introPanel.gameObject.SetActive(false);
+            introDone = true;
+            quietUntil = Time.unscaledTime + QuietSecondsBetweenEvents;
+            if (speed != null) speed.Play();
+        });
+    }
+
+    // Event card (wireframes 18-19): pick one of three options, then Confirm; the feedback card follows.
+    void ShowShumin(GuidedEvent e)
+    {
+        Choice picked = null;
+        SetText(eventCard, "FeedbackTitleTxt", e.title);
+        SetText(eventCard, "EventDescriptionTxt", e.text);
+        var confirm = Find(eventCard, "ConfirmBtn");
+        Button confirmButton = confirm != null ? confirm.GetComponent<Button>() : null;
+        if (confirmButton != null) confirmButton.interactable = false;
+        for (int i = 0; i < 3; i++)
+        {
+            var box = Find(eventCard, $"OptionBox0{i + 1}");
+            if (box == null) continue;
+            bool has = i < e.choices.Length;
+            box.gameObject.SetActive(has);
+            if (!has) continue;
+            var c = e.choices[i];
+            SetText(box, "Option Title", c.label);
+            SetText(box, "EffectDescriptionTxt (1)", c.feedback);
+            if (box.TryGetComponent(out Image boxImage)) boxImage.color = Color.white;
+            OnClick(box, "SelectionBtn", () =>
+            {
+                picked = c;
+                for (int j = 1; j <= 3; j++)
+                {
+                    var other = Find(eventCard, $"OptionBox0{j}");
+                    if (other != null && other.TryGetComponent(out Image img)) img.color = other == box ? new Color(0.85f, 0.95f, 0.85f) : Color.white;
+                }
+                if (confirmButton != null) confirmButton.interactable = true;
+            });
+        }
+        OnClick(eventCard, "ConfirmBtn", () =>
+        {
+            if (picked == null) return;
+            var chosen = picked;
+            eventCard.gameObject.SetActive(false);
+            if (feedbackCard == null) { eventPanel.gameObject.SetActive(false); Choose(e, chosen); return; }
+            SetText(feedbackCard, "FeedbackTitleTxt", chosen.label);
+            SetText(feedbackCard, "FeedbackDescriptionTxt", chosen.feedback);
+            SetText(feedbackCard, "EffectDescriptionTxt (1)", chosen.feedback);
+            SetText(feedbackCard, "ObservationDescriptionTxt (1)", "Watch the animals and the grass over the next few days. What changes?");
+            feedbackCard.gameObject.SetActive(true);
+            OnClick(feedbackCard, "ContinueBtn", () =>
+            {
+                feedbackCard.gameObject.SetActive(false);
+                eventPanel.gameObject.SetActive(false);
+                Choose(e, chosen);
+            });
+        });
+        eventCard.gameObject.SetActive(true);
+        if (feedbackCard != null) feedbackCard.gameObject.SetActive(false);
+        eventPanel.gameObject.SetActive(true);
+    }
+
+
     // ---------- UI (built in code, 1920x1200 reference like the wireframes) ----------
 
     GameObject popup, endPanel, gallery, pillBox;
@@ -288,6 +467,12 @@ public class GuidedChallenge : MonoBehaviour
     void UpdatePill()
     {
         if (pill != null) pill.text = $"Guided challenge · Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}";
+        if (FindShuminUI())   // Shumin's DayPanel: "Day 12 / 20 | Summer" in the mock-up
+        {
+            // One line across the whole panel: the season box alone was too narrow to read on a tablet.
+            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");
+            if (!dayPanelStyled) StyleDayPanel();
+        }
         if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it
     }
 

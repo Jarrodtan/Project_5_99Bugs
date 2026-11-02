@@ -15,7 +15,9 @@ using UnityEngine.UI;
 /// </summary>
 public class SimHud : MonoBehaviour
 {
-    public const string SceneName = "UI";
+    // Guided mode uses Shumin's Guided Exploration HUD (same panels plus the intro and event cards).
+    public const string FreeSceneName = "UI", GuidedSceneName = "GuidedExploration";
+    public static string SceneName => ScreenFlow.GuidedMode ? GuidedSceneName : FreeSceneName;
 
     /// <summary>Loads the HUD scene on top of the simulation (once). Call when the simulation starts running.</summary>
     public static void Enter()
@@ -117,6 +119,7 @@ public class SimHud : MonoBehaviour
         Button("SpeedBtn", NextSpeed);
         Button("BackBtn", ScreenFlow.ShowLeaveConfirm);
         Button("FieldJournalBtn", ScreenFlow.OpenJournalOverlay);   // opens on top, Back returns to this run
+        Button("EndingGalleryBtn", GuidedScreens.OpenGallery);       // Guided HUD only; opens on top too
         if (overview != null) Button("DetailBtn", () => ShowExpanded(true), overview.transform);
         if (expanded != null) Button("DetailBtn", () => ShowExpanded(false), expanded.transform);
         if (inspection != null)
@@ -149,7 +152,7 @@ public class SimHud : MonoBehaviour
         {
             if (t.enableAutoSizing) continue;
             t.fontSizeMax = t.fontSize;
-            t.fontSizeMin = Mathf.Max(8f, t.fontSize * 0.45f);
+            t.fontSizeMin = Mathf.Max(18f, t.fontSize * 0.6f);   // shrink to fit, but stay readable on a tablet
             t.enableAutoSizing = true;
         }
     }
@@ -170,7 +173,23 @@ public class SimHud : MonoBehaviour
                 else if (withHud && t.TryGetComponent(out TMP_Text txt) && txt.text != null && txt.text.StartsWith("Live Everest") && t is RectTransform rt && !movedWeather.Contains(rt))
                 {
                     movedWeather.Add(rt);
-                    rt.anchoredPosition += new Vector2(0f, 150f);
+                    // Top-left, under the "Himalayan Highlands" title box: the bottom-left is the control bar.
+                    rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
+                    rt.anchoredPosition = new Vector2(48f, -185f);   // clear of the title box
+                    txt.alignment = TextAlignmentOptions.TopLeft;
+
+                    // White text was lost on the snowy peaks: the same dark pill as the day panel behind it.
+                    var bg = new GameObject("Weather Bg", typeof(RectTransform), typeof(Image));
+                    bg.transform.SetParent(rt.parent, false);
+                    bg.transform.SetSiblingIndex(rt.GetSiblingIndex());   // drawn just before (under) the text
+                    var brt = (RectTransform)bg.transform;
+                    brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0f, 1f);
+                    Vector2 size = txt.GetPreferredValues(txt.text);
+                    brt.anchoredPosition = rt.anchoredPosition + new Vector2(-14f, 8f);
+                    brt.sizeDelta = size + new Vector2(28f, 16f);
+                    var img = bg.GetComponent<Image>();
+                    img.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+                    img.raycastTarget = false;
                 }
                 if (withHud && t is RectTransform r2 && movedWeather.Contains(r2)) moved = true;
             }
@@ -252,7 +271,11 @@ public class SimHud : MonoBehaviour
     void RefreshOverview()
     {
         int day = clock != null ? clock.Day : 1;
-        SetText("Text (TMP)", ScreenFlow.GuidedMode ? $"Day {Mathf.Min(day, GuidedChallenge.ChallengeDays)} / {GuidedChallenge.ChallengeDays}" : $"Day {day}", Find("DayPanel"));
+        if (!ScreenFlow.GuidedMode)   // Guided's day panel is filled by GuidedChallenge
+        {
+            StyleFreeDayPanel();
+            SetText("Text (TMP)", $"<b>Day {day}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C", Find("DayPanel"));
+        }
 
         int sheep = 0, leopards = 0;
         foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) { if (a.IsPredatorSpecies) leopards++; else sheep++; }
@@ -374,6 +397,36 @@ public class SimHud : MonoBehaviour
             sum += p.Amount / max; n++;
         }
         return n > 0 ? sum / n * 100f : 100f;
+    }
+
+    // Free mode: the same dark one-line day pill as Guided, widened leftwards (its right edge stays put)
+    // so the season and weather fit; the separate season pill then hides.
+    bool dayStyled;
+    void StyleFreeDayPanel()
+    {
+        if (dayStyled) return;
+        dayStyled = true;
+        DramaDirector.UpdateStatusVisibility();
+        var panel = Find("DayPanel") as RectTransform;
+        if (panel == null) return;
+        float right = panel.anchoredPosition.x + (1f - panel.pivot.x) * panel.sizeDelta.x;
+        panel.pivot = new Vector2(1f, panel.pivot.y);
+        panel.sizeDelta = new Vector2(Mathf.Max(panel.sizeDelta.x, 480f), panel.sizeDelta.y);
+        panel.anchoredPosition = new Vector2(right, panel.anchoredPosition.y);
+        if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
+        bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+        bg.raycastTarget = false;
+        var t = Txt("Text (TMP)", panel);
+        if (t == null) return;
+        var rt = t.rectTransform;
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(16f, 4f); rt.offsetMax = new Vector2(-16f, -4f);
+        t.color = Color.white;
+        t.alignment = TextAlignmentOptions.Center;
+        t.textWrappingMode = TextWrappingModes.NoWrap;
+        t.enableAutoSizing = true;
+        t.fontSizeMax = 30f;
+        t.fontSizeMin = 22f;
     }
 
     void SetText(string name, string value, Transform under = null)
