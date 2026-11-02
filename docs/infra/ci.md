@@ -8,18 +8,19 @@ GitHub artifact storage stays at 0.
 
 | Event | Repo checks | EditMode tests (incl. smoke + perf) | Android APK | Linux headless build | Perf history |
 |---|---|---|---|---|---|
-| Pull request into `main` | ✅ | ✅ | — | — | — |
-| Nightly, 02:00 SGT (only if `NIGHTLY_BRANCH`, now `M2-Integration`, changed in the last 24 h) | — | ✅ | — | — | ✅ |
+| Pull request into `main` | ✅ | ✅ | — | — | ✅ |
 | Actions → Unity CI → **Run workflow** | ✅ | ✅ | ✅ release **or** development | if `headless` ticked | — |
-| Tag `v*` (e.g. `v0.2-m2`) | ✅ | ✅ | ✅ release, kept permanently | ✅ | — |
+| Tag `v*` (e.g. `v0.2-m2`) | ✅ | ✅ | ✅ release, kept permanently | ✅ | ✅ |
 
-From 22 to 31 Oct the Unity tests ran only nightly on `main`, to stay inside the Actions minutes
-(October used $15 of $18, most of it APK uploads before they moved to Gitea). From 1 Nov, with the
-allowance reset, the tests run again on PRs into `main` (only a few, at milestone merges), and the
-nightly run tests the branch the team actually merges into: `NIGHTLY_BRANCH` in the workflow,
-`M2-Integration` during M2. Set it back to `main` after the milestone. A red nightly run means
-something merged the day before broke the integration branch; fix it first thing. Each Unity run is
-~12 minutes (~50 for a build); expected M2 use is well under a tenth of the allowance, 0 GB storage. An Actions budget of $1 with
+**No nightly run (removed 2 Nov).** The team merges into `M2-Integration`, and everything reaches `main`
+through a PR, which runs the same tests, so a nightly run only re-tested the same code. Before opening
+the PR, the integrator plays the merged branch in Unity (compile errors show there first). From 22 to
+31 Oct the tests ran only nightly, to stay inside the minutes (October used $15 of $18, most of it APK
+uploads before they moved to Gitea).
+
+**Minutes per run:** repo checks 1, EditMode tests ~12, Android APK ~50, + headless ~20 (each job rounded
+up to a whole minute, about $0.006 a minute). A month in M2 (about 6 PRs, 4 manual APKs, 1 release tag)
+is roughly 80 + 200 + 70 = **~350 of 3,000 minutes (~12%, ~$2 of the $18), so $0 to pay.** An Actions budget of $1 with
 "stop usage" means CI pauses rather than charges if the limit is ever reached.
 
 ## Where results are
@@ -28,13 +29,13 @@ something merged the day before broke the integration branch; fix it first thing
 - **APKs:** Gitea → team21-admin → Packages → `ecobalance-apk` (newest 10 `build-*`; `v*` kept; `-dev` = development build).
 - **Headless build (for the VM):** Gitea → Packages → `ecobalance-headless` → `latest/EcoBalanceHeadless.tar.gz`.
 - **Soak test results:** Gitea → Packages → `ecobalance-soak` (one report per run + `history/soak.csv`).
-- **Performance history:** Gitea → Packages → `ecobalance-perf` → `history/perf.csv` (one row per nightly run that had new commits: date, commit, timings in ms; includes the spatial grid and animation benchmarks).
+- **Performance history:** Gitea → Packages → `ecobalance-perf` → `history/perf.csv` (one row per PR or tag run: date, commit, timings in ms; includes the spatial grid and animation benchmarks).
 
 ## Rubric mapping (M1 / M2 / M3)
 
 | Rubric item | Level | Covered by |
 |---|---|---|
-| T4 Automated build: CI checks `main`, reports failures | REQUIRED | Repo checks + EditMode tests on PRs into `main`; EditMode tests nightly on the integration branch |
+| T4 Automated build: CI checks `main`, reports failures | REQUIRED | Repo checks + EditMode tests on every PR into `main` and every `v*` tag |
 | T5 Automated checks/tests, team can show results | REQUIRED | EditMode tests (ecosim package + app) |
 | CI/Build pipeline: automating builds | REQUIRED | Tag / manual Android APK |
 | …testing on target device/platform | REQUIRED | APK from Gitea installed on the Android tablet |
@@ -42,7 +43,7 @@ something merged the day before broke the integration branch; fix it first thing
 | Static analysis build | BASIC | **Repo checks** (`tools/ci/repo-checks.py`): missing/orphan `.meta`, large files outside LFS, merge markers, `UnityEditor` in runtime code |
 | Create all builds (debug/release), verify no errors, let the team know | BASIC | Run workflow → release or development APK; failures fail the run |
 | Smoke tests | ADVANCED | `SceneSmokeTests`: every build scene opens with no errors or missing scripts; simulator wired to real assets |
-| Performance tests with historical representation | ADVANCED | `PerformanceTests` (budgets) + nightly row appended to `perf.csv` |
+| Performance tests with historical representation | ADVANCED | `PerformanceTests` (budgets) + one row per PR/tag run appended to `perf.csv` |
 | Stability / soak tests ("test the build", Tomas's VM guide) | ADVANCED | Headless Linux build (built on tags / on demand) soak-tested weekly on the team VM (`HeadlessSoakRunner` + `tools/vm/soak.sh`), history in `soak.csv` |
 | Tech Items TI-31 / TI-32 (simulation model, determinism) | Optional | `BalanceModel` + determinism tests |
 
