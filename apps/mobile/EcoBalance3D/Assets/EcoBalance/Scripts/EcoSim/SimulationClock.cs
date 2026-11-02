@@ -50,9 +50,8 @@ public class SimulationClock : MonoBehaviour
         }
     }
 
-    void OnEnable() => Listen();
-
-    void OnDisable()
+    // Merge of Dillon (single Ticked refresh) and Yan De (clock-day ticks): one OnEnable / OnDisable does both.
+    void StopListening()
     {
         // ReferenceEquals: on scene unload the simulator can be destroyed first, and Unity's == null would
         // then skip the clean-up (the handler and this dictionary entry would outlive the scene).
@@ -68,7 +67,7 @@ public class SimulationClock : MonoBehaviour
     void Listen()
     {
         if (listening == simulator) return;
-        OnDisable();
+        StopListening();
         if (simulator == null) return;
         listening = simulator;
         listening.Ticked += OnTicked;
@@ -96,12 +95,16 @@ public class SimulationClock : MonoBehaviour
 
         if (_clock != null)
             _clock.OnDayChanged += OnClockDay;
+
+        Listen();
     }
 
     void OnDisable()
     {
         if (_clock != null)
             _clock.OnDayChanged -= OnClockDay;
+
+        StopListening();
     }
 
     void OnClockDay(int _) => Step();
