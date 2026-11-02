@@ -2985,6 +2985,7 @@ MonoBehaviour:
   spawn_rivers: 0
   spawn_hills: 0
   spawn_mud: 0
+  wikidataId: Q513
 --- !u!1 &1047648194
 GameObject:
   m_ObjectHideFlags: 0
@@ -5675,6 +5676,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3078265897409347826, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_Resource
+      value: 
+      objectReference: {fileID: 8300000, guid: 496e339755c2d0b499feddb2240e2f1d, type: 3}
     - target: {fileID: 3572933053264363125, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
       propertyPath: m_Name
       value: SFX

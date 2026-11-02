@@ -12,10 +12,10 @@ GameObject:
   - component: {fileID: 1037438966784679502}
   - component: {fileID: 5372906650820145570}
   - component: {fileID: 7960127166656185812}
-  - component: {fileID: 1049992325530015973}
   - component: {fileID: -1853422331891634858}
   - component: {fileID: 4044817424565879165}
-  - component: {fileID: 3517882205652913174}
+  - component: {fileID: 926905095560895190}
+  - component: {fileID: -6979119130552828020}
   m_Layer: 0
   m_Name: snow leopard
   m_TagString: Untagged
@@ -79,7 +79,7 @@ NavMeshAgent:
   m_AutoBraking: 1
   m_AutoRepath: 1
   m_Height: 1
-  m_BaseOffset: 0.5
+  m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
 --- !u!114 &7960127166656185812
@@ -104,23 +104,13 @@ MonoBehaviour:
   eatDuration: 2
   chaseSpeedMultiplier: 1.9
   fleeSpeedMultiplier: 1.25
-  huntBelowHunger: 50
-  stalkSpeedMultiplier: 0.45
-  pounceDistance: 8
-  sprintSpeedMultiplier: 2.2
-  maxSprintSeconds: 6
-  huntSuccessRate: 0.7
-  huntCooldownSeconds: 120
-  giveUpRestSeconds: 20
-  senseAnywayDistance: 10
-  spotStalkerDistance: 9
-  preyStarveAfterSeconds: 600
-  predatorStarveAfterSeconds: 1000
-  dehydrateAfterSeconds: 600
+  preyStarveAfterSeconds: 180
+  predatorStarveAfterSeconds: 300
+  dehydrateAfterSeconds: 90
   desperateNeed: 0.6
   predatorRoamHunger: 0.35
   desperateSearchMultiplier: 2
-  fullBiteFill: 40
+  fullBiteFill: 50
   fullDrinkFill: 60
   forageRadius: 60
   biteSize: 20
@@ -128,8 +118,8 @@ MonoBehaviour:
   mateRadius: 10
   predatorMateRadius: 90
   mateDistance: 2
-  reproduceMinWellFed: 70
-  reproduceCooldownSeconds: 600
+  reproduceMinWellFed: 60
+  reproduceCooldownSeconds: 30
   reproduceHungerCost: 25
   mateDuration: 2
   fleeWeight: 1.5
@@ -144,8 +134,35 @@ MonoBehaviour:
   growUpSeconds: 60
   babyScale: 0.45
   followMotherDistance: 2.5
-  showSightLines: 1
---- !u!82 &1049992325530015973
+--- !u!114 &-1853422331891634858
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9037334413921091483}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b346922b55f62e48b0ced28f4714813, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GoalOrientedAnimalBrain
+  species_data: {fileID: 11400000, guid: 2829b3f512f18b14d931a7a5801afa6d, type: 2}
+  audio: {fileID: 0}
+  tickInterval: 0.25
+  showDebugLabel: 1
+--- !u!114 &4044817424565879165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9037334413921091483}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69d5ba30c04d9b44597a1597cec12b47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalSelectable
+--- !u!82 &926905095560895190
 AudioSource:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -154,11 +171,11 @@ AudioSource:
   m_GameObject: {fileID: 9037334413921091483}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 8398752308171947730, guid: 7fe6ea83d9535d74bb98d600d73600ef, type: 2}
+  OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: ea542f53d05d0d244b7c1d944b5726e3, type: 3}
+  m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
-  m_Volume: 0.3
+  m_Volume: 1
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -166,10 +183,10 @@ AudioSource:
   SpatializePostEffects: 0
   Priority: 128
   DopplerLevel: 1
-  MinDistance: 5
-  MaxDistance: 20
+  MinDistance: 20
+  MaxDistance: 50
   Pan2D: 0
-  rolloffMode: 1
+  rolloffMode: 0
   BypassEffects: 0
   BypassListenerEffects: 0
   BypassReverbZones: 0
@@ -242,23 +259,7 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &-1853422331891634858
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9037334413921091483}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3b346922b55f62e48b0ced28f4714813, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GoalOrientedAnimalBrain
-  species_data: {fileID: 11400000, guid: 2829b3f512f18b14d931a7a5801afa6d, type: 2}
-  audio: {fileID: 0}
-  tickInterval: 0.25
-  showDebugLabel: 1
---- !u!114 &4044817424565879165
+--- !u!114 &-6979119130552828020
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -267,28 +268,74 @@ MonoBehaviour:
   m_GameObject: {fileID: 9037334413921091483}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 69d5ba30c04d9b44597a1597cec12b47, type: 3}
+  m_Script: {fileID: 11500000, guid: e881ddb171fa83f43809a72118f708cf, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AnimalSelectable
---- !u!114 &3517882205652913174
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9037334413921091483}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 85f865a1c25e9204d8c597a0acfe2a3c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AnimalPerception
-  visionRange: 80
-  visionAngle: 180
-  scanInterval: 0.2
-  eyeHeight: 1.5
-  targetHeight: 1.2
-  showVisionGizmo: 1
-  showDetectionLines: 1
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalAudio
+  idle:
+  - {fileID: 8300000, guid: 4c4412d9da00abe4ea92c7381f87691d, type: 3}
+  herdId: SnowLeopard
+  herdGap: {x: 40, y: 120}
+  burstChance: 0
+  burstGap: {x: 1.5, y: 4}
+  personalCooldown: 120
+  playLength: {x: 2, y: 4}
+  maxClipSeconds: 6
+  debugLog: 1
+  maxDistance: 60
+  rolloff:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.25
+      value: 0.65
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.5
+      value: 0.3
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.75
+      value: 0.1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  volumeRange: {x: 0.8, y: 1}
+  pitchRange: {x: 0.85, y: 1.15}
+  muffleWithDistance: 1
 --- !u!1001 &753629060257976942
 PrefabInstance:
   m_ObjectHideFlags: 0

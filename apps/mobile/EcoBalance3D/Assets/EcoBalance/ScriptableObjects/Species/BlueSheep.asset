@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: BlueSheep
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
   speciesName: BlueSheep
-  footstep: {fileID: 8300000, guid: 0d060756bae59d445ae864e4e045b17e, type: 3}
-  idle: {fileID: 8300000, guid: 7d59bd7e7c4ae914f97bdd4bba45d438, type: 3}
+  footstep: {fileID: 0}
+  idle: {fileID: 0}
   eat: {fileID: 0}
   death: {fileID: 0}
   startingPopulation: 50

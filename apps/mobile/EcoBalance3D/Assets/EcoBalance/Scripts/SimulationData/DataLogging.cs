@@ -5,15 +5,67 @@ using System.IO;
 
 public class DataLogging : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private struct Data
     {
-        
+        public int check;
+        public int blue_sheep;
+        public int snow_leopard;
+        public int trees;
     }
 
-    // Update is called once per frame
-    void Update()
+    private List<Data> temp = new List<Data>();
+    private bool recording = false;
+
+    public void Start()
     {
-        
+        Record();
+    }
+
+    public void Record ()
+    {
+        temp.Clear();
+        recording = true;
+        Debug.Log("[DATA LOG] Data logging started.");
+    }
+
+    public void RecordTick(int curr, int sheep, int leopard, int tree_num)
+    {
+        if (!recording) return;
+        temp.Add(new Data {check = curr, blue_sheep = sheep, snow_leopard = leopard, trees = tree_num});
+    }
+
+    public void ExportCSV()
+    {
+        if (!recording)
+        {
+            Debug.LogWarning("[DATA LOG] Cannot export: Recording was never started.");
+            return;
+        }
+        if (temp.Count == 0)
+        {
+            Debug.LogWarning("[DATA LOG] Cannot export: 0 ticks were recorded. Are you calling RecordTick()?");
+            return;
+        }
+        recording = false;
+
+        StringBuilder csv = new StringBuilder();
+        csv.AppendLine("Tick,Blue Sheep,Snow Leopard,Tree");
+
+        foreach (var data in temp) {
+            csv.AppendLine($"{data.check},{data.blue_sheep},{data.snow_leopard},{data.trees}");
+        }
+
+        string folder = Path.Combine(Application.dataPath, "EcoBalance/Data/DataLogging");
+
+        if (!Directory.Exists(folder))
+        {
+            Directory.CreateDirectory(folder);
+        }
+
+        string filepath = Path.Combine(folder, "Simulation_Run_Export.csv");
+        File.WriteAllText(filepath, csv.ToString());
+
+        Debug.Log($"[DATA LOG] Exported {temp.Count} ticks to: {filepath}");
+
     }
 }
