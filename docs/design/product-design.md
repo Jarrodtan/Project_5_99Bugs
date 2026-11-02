@@ -99,12 +99,12 @@ M2 turns the M1 sandbox into two modes, chosen after Home → Choose an ecosyste
 | F01 | Configure starting ecosystem | Done (Free mode, research limits) |
 | F02 / F06 | Run, control, speed | Done (Shu Min's HUD) |
 | F03 / F04 | Observe behaviour and resources | Done: realistic Khumbu world, grazing, drinking, hunting (stalk and sprint), herd alarm, breeding, research numbers with health |
-| F05 | Changes over time | Overview with trends done; history graph not yet |
+| F05 | Changes over time | Done: overview with trends + live population graph in the Field Journal |
 | F07 | Contextual questions | Prediction questions CQ01–05: to do (Nomitha) |
 | F08 | Did You Know | Facts on the inspection panel; full DY01–DY10 set: to do |
 | F09 | Inspect individual organisms | Done (inspection panel: Fullness, Hydration, Health, action) |
 | Guided | Events and endings | Done (GE01–GE08, 5 endings, gallery) |
-| Field Journal | Investigations OG01–03, PP01–03 | Screen opens over the run; investigations: to do (Dillon) |
+| Field Journal | Investigations OG01–03, PP01–03 | Done (Dillon): investigations, observations graph, discovery popup; research wording for OG/PP still to match |
 
 Simulation rules follow the research document (Simulation Logic tab); see [architecture.md](../architecture.md) section 2.2 for the values used.
 

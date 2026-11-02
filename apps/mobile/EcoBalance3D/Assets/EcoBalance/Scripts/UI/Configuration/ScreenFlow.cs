@@ -87,12 +87,18 @@ public static class ScreenFlow
             case Journal:
                 if (mode == LoadSceneMode.Additive) { SetUpJournalOverlay(scene); On("BackBtn", CloseJournalOverlay); }
                 else On("BackBtn", () => Load(journalReturn));
+                FieldJournalScreen.Attach(scene);   // tabs, Investigations and Observations pages
                 break;
             case Simulation:
+                FieldJournalInstaller.InstallInSimulation(scene);   // history graph + "New case discovered" popup
                 if (mode == LoadSceneMode.Single) SimHud.Enter();   // Shumin's HUD on top; not when Configuration loads it behind itself
                 else SimHud.HideOldHud(false);                    // Free: hide the old buttons while choosing animals
                 break;
         }
+
+        // the Back buttons are blank white squares in every scene (no icon yet)
+        if (buttons.TryGetValue("BackBtn", out var backs))
+            foreach (var b in backs) ButtonCaption.Ensure(b, "‹ Back", 26f);
     }
 
     // Back button on the simulation (both modes), bottom-left above the weather text. Asks first, so a

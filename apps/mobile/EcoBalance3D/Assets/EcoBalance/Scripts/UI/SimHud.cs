@@ -61,8 +61,6 @@ public class SimHud : MonoBehaviour
     readonly Dictionary<string, List<Transform>> byName = new Dictionary<string, List<Transform>>();
     SimulationSpeedController speed;
     ClockService clock;
-    readonly float[] speeds = { 1f, 2f, 4f, 8f };
-    int speedIndex;
 
     GameObject inspection, expanded, overview;
     AnimalBrain shown;
@@ -124,7 +122,7 @@ public class SimHud : MonoBehaviour
         if (inspection != null)
         {
             Button("CrossBtn", CloseInspection, inspection.transform);
-            Button("ViewMoreBtn", ScreenFlow.OpenJournalOverlay, inspection.transform);
+            Button("ViewMoreBtn", () => { FieldJournalScreen.Request(FieldJournalScreen.Page.Facts); ScreenFlow.OpenJournalOverlay(); }, inspection.transform);   // sits under the animal's fun fact, so open the journal's Did You Know? page
         }
 
         ScreenFlow.AddLeaveButton(ownButton: false);   // the confirm box, opened by BackBtn
@@ -192,13 +190,14 @@ public class SimHud : MonoBehaviour
     void NextSpeed()
     {
         if (speed == null) return;
-        speedIndex = (speedIndex + 1) % speeds.Length;
-        switch (speedIndex) { case 0: speed.SetSpeed1x(); break; case 1: speed.SetSpeed2x(); break; case 2: speed.SetSpeed4x(); break; default: speed.SetSpeed8x(); break; }
+        speed.CycleSpeed();
         UpdateSpeedLabel();
     }
 
+    // Read from the controller, not kept here: the speed also changes from the Field Journal graph and on Reset.
     void UpdateSpeedLabel()
     {
+        int speedIndex = speed != null ? Mathf.Max(0, System.Array.IndexOf(SimulationSpeedController.Steps, speed.CurrentSpeed)) : 0;
         string[] names = { "1xTxt", "2xTxt", "4xTxt", "8xTxt" };
         for (int i = 0; i < names.Length; i++) { var t = Find(names[i]); if (t != null) t.gameObject.SetActive(i == speedIndex); }
     }
@@ -243,6 +242,7 @@ public class SimHud : MonoBehaviour
         if (Time.unscaledTime < nextRefresh) return;
         nextRefresh = Time.unscaledTime + 0.3f;
         UpdatePlayLabel();
+        UpdateSpeedLabel();
         // The live weather line gets its text a moment after loading: keep looking until it is moved clear of the controls.
         if (!weatherMoved) weatherMoved = HideOldHud(true);
         RefreshOverview();

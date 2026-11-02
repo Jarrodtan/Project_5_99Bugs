@@ -196,12 +196,27 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
             ? FootprintFallback(footprint)
             : pivot + Vector3.up * lift;
 
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+        // A simulated species: each placed animal counts (+1 on the HUD, the graph and the cases) and joins its
+        // spawner. Before, they were never counted but their deaths were, so placing animals made the count drift down.
+        var species = FindSpecies(category, optionId);
+        var spawner = CreatureSpawner.For(species);
+        var simulator = spawner != null ? spawner.simulator : FindAnyObjectByType<EcosystemSimulator>();
+        bool counted = species != null && simulator != null && simulator.populations.ContainsKey(species);
+        // [AI-GENERATED END]
+
         for (var i = 0; i < count; i++)
         {
+            if (counted && simulator.AddAnimals(species, 1) == 0)
+            {
+                Debug.Log($"[EntitySpawn] {optionId} is at its limit of {simulator.maxPopulationPerSpecies:0}. Spawned {i} of {count}.");
+                break;
+            }
             var position = ChoosePosition(pivot, scatter, hasFootprint, footprint, lift);
             position = SnapToSurface(position, fallback, hasFootprint, footprint);
             var instance = SpawnVisual(prefab, position);
             instance.name = prefab.name;
+            if (counted && spawner != null) spawner.Adopt(instance);
             ActivateAiOnSurface(instance, position, fallback);
             AttachSpawnRay(instance);
             FlashSpawnLight(instance);

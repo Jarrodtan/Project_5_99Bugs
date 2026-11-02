@@ -178,6 +178,32 @@ public class CreatureSpawner : MonoBehaviour {
     }
     // [AI-GENERATED END]
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    /// <summary>The spawner that shows <paramref name="sp"/>, or null.</summary>
+    public static CreatureSpawner For(SpeciesDefinition sp)
+    {
+        if (sp == null) return null;
+        foreach (var s in FindObjectsByType<CreatureSpawner>())
+            if (s.species == sp && s.simulator != null) return s;
+        return null;
+    }
+
+    /// <summary>
+    /// Takes a model placed from the action menu (already counted with <see cref="EcosystemSimulator.AddAnimals"/>)
+    /// as one of this spawner's animals, so it is removed like the others when the population drops and its
+    /// body is cleared after it dies, and the next refresh doesn't add a second model for it.
+    /// </summary>
+    public void Adopt(GameObject go)
+    {
+        if (go == null || spawned.Contains(go)) return;
+        var entity = go.GetComponent<EcoEntity>();
+        if (entity == null) entity = go.AddComponent<EcoEntity>();
+        entity.SetDefinition(species);
+        if (go.TryGetComponent(out AnimalBrain brain)) brain.SetHabitat(minElevationFraction, maxElevationFraction);
+        spawned.Add(go);
+    }
+    // [AI-GENERATED END]
+
     public void RefreshVisuals() {
         if (!simulator.populations.ContainsKey(species)) return;
         if (species.visualPrefab == null) return;

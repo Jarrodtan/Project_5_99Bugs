@@ -30,10 +30,10 @@ Team: 2 UXGD (Shu Min, PM; Nomitha, Design Lead), 6 IMGD programmers, 1 RTIS (We
 | --- | --- | --- |
 | Shu Min | UXGD, PM | Icons for the HUD value boxes; style the Guided event popup, ending screen and gallery; update `docs/design/product-design.md` for M2 |
 | Nomitha | UXGD, Design Lead | Prediction questions CQ01–05 in the HUD's `ContextualPanel` (SCRUM-46); Did You Know facts DY01–DY10 (SCRUM-18) |
-| Dillon | IMGD | Field Journal UI + investigations OG01–03 / PP01–03 from the research doc (SCRUM-277) |
-| Yan De | IMGD | Check the FAB, tooltips and camera inside HimalayaSimulation; test on a real tablet |
+| Dillon | IMGD | Field Journal UI done (investigations, observations graph, discovery popup, merged 2 Nov); left: match the investigations to OG01–03 / PP01–03 from the research doc (SCRUM-277) |
+| Yan De | IMGD | IslandPlatform HUD done (PR #54); left: check the FAB, tooltips and camera inside HimalayaSimulation, test on a real tablet; merge into `M2-Integration`, not `main` |
 | Zhi Jie | IMGD | Play Guided 5+ times, record which ending each run gets; check every ending can be reached (SCRUM-256) |
 | Reginald | IMGD | Tune `AnimalPerception` and hunting at 8x; report balance |
-| Yusuf | IMGD | Pink terrain bug after terrain edits; check `TerrainEditTool` stays dev-only |
+| Yusuf | IMGD | Hunting camouflage done (merged 2 Nov); left: pink terrain bug after terrain edits |
 | Li Juan | IMGD | Merge `M2-Integration` into `lijuan_2`, fix the 3 conflicts (animal prefabs, HimalayaSimulation), delete the `._` Mac files; audio into M2 |
 | Wei Leong | RTIS, Tech Lead | Review and merge the team's work into `M2-Integration`; PR `M2-Integration` → `main`; release tag `v0.2-m2` (SCRUM-262) |

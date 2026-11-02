@@ -69,6 +69,10 @@ public class TerrainEditTool : MonoBehaviour
     RectTransform panel;
     RectTransform toggleRect;
     TMP_Text toggleLabel;
+    Image toggleImage;
+    Button toggleButton;
+    bool hudLookCopied;
+    float nextHudLookTry;
     TMP_Text statusText;
     bool wasStroking;
     readonly Dictionary<Tool, Image> toolButtons = new Dictionary<Tool, Image>();
@@ -80,6 +84,15 @@ public class TerrainEditTool : MonoBehaviour
     static readonly Color PanelColor = new Color(0.08f, 0.1f, 0.12f, 0.88f);
     static readonly Color ButtonColor = new Color(0.22f, 0.26f, 0.3f, 1f);
     static readonly Color ActiveColor = new Color(0.25f, 0.6f, 0.35f, 1f);
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // The Edit Terrain button matches Shumin's HUD buttons (Scenes/UI.unity: white rounded, dark grey text, 88 tall)
+    // and sits under DramaDirector's season / day / weather / temperature pill (top right, y -170, 84 tall).
+    static readonly Color HudTextColor = new Color(0.196f, 0.196f, 0.196f, 1f);
+    static readonly Vector2 HudReference = new Vector2(2560f, 1600f);   // same canvas size as the HUD and the pill
+    // The panel was laid out for a 1920x1080 canvas; this scale keeps it the same size on screen (match 0.5).
+    static readonly float PanelScale = Mathf.Sqrt(2560f * 1600f / (1920f * 1080f));
+    // [AI-GENERATED END]
 
     public void Init(HimalayaTerrainBuilder tb, HimalayaResourcePlacer placer, NavMeshSurface surface, HimalayaSplatPainter painter = null)
     {
@@ -126,6 +139,7 @@ public class TerrainEditTool : MonoBehaviour
     void LateUpdate()
     {
         if (terrain == null) return;
+        UpdateToggleButton();
 
         bool editing = panel != null && panel.gameObject.activeSelf && tool != Tool.Look;
         TerrainCameraController.PrimaryPointerCaptured = editing;
@@ -236,7 +250,7 @@ public class TerrainEditTool : MonoBehaviour
 
     bool OverOwnUi(Vector2 screen)
     {
-        if (toggleRect != null && RectTransformUtility.RectangleContainsScreenPoint(toggleRect, screen, null)) return true;
+        if (toggleRect != null && toggleRect.gameObject.activeInHierarchy && RectTransformUtility.RectangleContainsScreenPoint(toggleRect, screen, null)) return true;
         return panel != null && panel.gameObject.activeSelf && RectTransformUtility.RectangleContainsScreenPoint(panel, screen, null);
     }
 
@@ -589,23 +603,25 @@ public class TerrainEditTool : MonoBehaviour
         canvas.sortingOrder = 50;
         var scaler = canvasGo.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.referenceResolution = HudReference;
         scaler.matchWidthOrHeight = 0.5f;
         canvasGo.AddComponent<GraphicRaycaster>();
 
-        // Toggle button, top left under the ecosystem name ([AI-GENERATED] Claude Code (Claude Opus 5.5): top right
-        // covered the HUD's Field Journal button).
-        var toggle = MakeButton(canvasGo.transform, "Edit Terrain", ButtonColor, TogglePanel, out toggleLabel, out _);
-        var tr = (RectTransform)toggle.transform;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): toggle button, top right, right under the
+        // season / day / weather / temperature pill, styled like the HUD's own buttons.
+        toggleButton = MakeButton(canvasGo.transform, "Edit Terrain", Color.white, TogglePanel, out toggleLabel, out toggleImage);
+        var tr = (RectTransform)toggleButton.transform;
         toggleRect = tr;
-        tr.anchorMin = tr.anchorMax = tr.pivot = new Vector2(0f, 1f);
-        tr.anchoredPosition = new Vector2(20f, -110f);
-        tr.sizeDelta = new Vector2(220f, 56f);
+        tr.anchorMin = tr.anchorMax = tr.pivot = new Vector2(1f, 1f);
+        tr.anchoredPosition = new Vector2(-40f, -170f - 84f - 20f);   // pill top, pill height, gap
+        tr.sizeDelta = new Vector2(330f, 88f);                          // Field Journal button size
+        StyleLikeHud();
 
         // Panel under it.
         panel = NewRect("TerrainEditPanel", canvasGo.transform);
-        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0f, 1f);
-        panel.anchoredPosition = new Vector2(20f, -176f);
+        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(1f, 1f);
+        panel.anchoredPosition = new Vector2(-40f, tr.anchoredPosition.y - tr.sizeDelta.y - 16f);
+        panel.localScale = Vector3.one * PanelScale;
         panel.sizeDelta = new Vector2(340f, 0f);
         panel.gameObject.AddComponent<Image>().color = PanelColor;
         var layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
@@ -663,6 +679,83 @@ public class TerrainEditTool : MonoBehaviour
             else if (savedPixelError > 0f) terrain.heightmapPixelError = savedPixelError;
         }
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    void UpdateToggleButton()
+    {
+        if (toggleRect == null) return;
+
+        // The HUD scene loads a moment after the world: once it is there, copy its button's exact sprite and font.
+        if (!hudLookCopied && Time.unscaledTime >= nextHudLookTry)
+        {
+            nextHudLookTry = Time.unscaledTime + 0.5f;
+            hudLookCopied = CopyHudLook();
+        }
+
+        // The animal card opens on the right, just under the pill: get out of its way (and off its close button)
+        // unless the editor itself is open.
+        var info = AnimalInfoUI.Instance;
+        bool cardOpen = info != null && info.SelectedAnimal != null;
+        bool show = !cardOpen || panel.gameObject.activeSelf;
+        if (toggleRect.gameObject.activeSelf != show) toggleRect.gameObject.SetActive(show);
+    }
+
+    // White rounded button with dark grey text and the HUD's colour tint, before the HUD's own sprite is found.
+    void StyleLikeHud()
+    {
+        toggleImage.color = Color.white;
+        toggleImage.sprite = RoundedSprite();
+        toggleImage.type = Image.Type.Sliced;
+        var colors = toggleButton.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = colors.selectedColor = new Color(0.96f, 0.96f, 0.96f, 1f);
+        colors.pressedColor = new Color(0.78f, 0.78f, 0.78f, 1f);
+        toggleButton.colors = colors;
+        toggleLabel.color = HudTextColor;
+        toggleLabel.fontSize = 24f;
+    }
+
+    bool CopyHudLook()
+    {
+        var src = GameObject.Find("FieldJournalBtn");
+        if (src == null || !src.TryGetComponent(out Image img) || img.sprite == null) return false;
+        toggleImage.sprite = img.sprite;
+        toggleImage.type = img.type;
+        toggleImage.pixelsPerUnitMultiplier = img.pixelsPerUnitMultiplier;
+        if (src.TryGetComponent(out Button b)) toggleButton.colors = b.colors;
+        var text = src.GetComponentInChildren<TMP_Text>(true);
+        if (text != null)
+        {
+            toggleLabel.font = text.font;
+            toggleLabel.color = text.color;
+            toggleLabel.fontSize = text.enableAutoSizing ? text.fontSizeMax : text.fontSize;
+        }
+        return true;
+    }
+
+    static Sprite roundedSprite;
+    static Sprite RoundedSprite()
+    {
+        if (roundedSprite != null) return roundedSprite;
+        const int size = 32;
+        const float r = 10f;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        var px = new Color32[size * size];
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float dx = Mathf.Max(0f, Mathf.Max(r - (x + 0.5f), x + 0.5f - (size - r)));
+                float dy = Mathf.Max(0f, Mathf.Max(r - (y + 0.5f), y + 0.5f - (size - r)));
+                float a = Mathf.Clamp01(r - Mathf.Sqrt(dx * dx + dy * dy) + 0.5f);   // soft edge
+                px[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+            }
+        tex.SetPixels32(px);
+        tex.Apply();
+        roundedSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0,
+            SpriteMeshType.FullRect, new Vector4(r, r, r, r));
+        return roundedSprite;
+    }
+    // [AI-GENERATED END]
 
     void AddToolButton(Transform parent, Tool t, string label)
     {
