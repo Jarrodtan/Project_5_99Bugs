@@ -15,7 +15,9 @@ using UnityEngine.UI;
 /// </summary>
 public class SimHud : MonoBehaviour
 {
-    public const string SceneName = "UI";
+    // Guided mode uses Shumin's Guided Exploration HUD (same panels plus the intro and event cards).
+    public const string FreeSceneName = "UI", GuidedSceneName = "GuidedExploration";
+    public static string SceneName => ScreenFlow.GuidedMode ? GuidedSceneName : FreeSceneName;
 
     /// <summary>Loads the HUD scene on top of the simulation (once). Call when the simulation starts running.</summary>
     public static void Enter()
@@ -117,6 +119,7 @@ public class SimHud : MonoBehaviour
         Button("SpeedBtn", NextSpeed);
         Button("BackBtn", ScreenFlow.ShowLeaveConfirm);
         Button("FieldJournalBtn", ScreenFlow.OpenJournalOverlay);   // opens on top, Back returns to this run
+        Button("EndingGalleryBtn", GuidedScreens.OpenGallery);       // Guided HUD only; opens on top too
         if (overview != null) Button("DetailBtn", () => ShowExpanded(true), overview.transform);
         if (expanded != null) Button("DetailBtn", () => ShowExpanded(false), expanded.transform);
         if (inspection != null)
