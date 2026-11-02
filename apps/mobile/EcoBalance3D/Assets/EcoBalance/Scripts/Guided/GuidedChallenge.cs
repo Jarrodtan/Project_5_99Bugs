@@ -306,7 +306,20 @@ public class GuidedChallenge : MonoBehaviour
         feedbackCard = Find(eventPanel, "FeedbackCard");
         if (eventPanel != null) eventPanel.gameObject.SetActive(false);
         if (introPanel != null) introPanel.gameObject.SetActive(false);
+        OnTop(introPanel);
+        OnTop(eventPanel);
         return eventCard != null;
+    }
+
+    // The cards are part of the HUD canvas, so the season banner and the live weather line drew over
+    // them. Their own canvas puts them above everything in the run (the journal overlay is 90).
+    static void OnTop(Transform panel)
+    {
+        if (panel == null || panel.GetComponent<Canvas>() != null) return;
+        var c = panel.gameObject.AddComponent<Canvas>();
+        c.overrideSorting = true;
+        c.sortingOrder = 80;
+        panel.gameObject.AddComponent<GraphicRaycaster>();
     }
 
     static Transform Find(Transform under, string name)
