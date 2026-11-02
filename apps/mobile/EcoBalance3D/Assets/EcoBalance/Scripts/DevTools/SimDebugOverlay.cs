@@ -55,7 +55,7 @@ public class SimDebugOverlay : MonoBehaviour
             detector = sim.gameObject.AddComponent<CaseDetector>();
             detector.cases = Resources.LoadAll<InvestigationCase>("Cases").OrderBy(c => c.name).ToList();
         }
-        detector.CaseUnlocked += c => { banner = $"New case discovered: {c.title}"; bannerUntil = Time.unscaledTime + 4f; };
+        detector.CaseUnlocked += c => { if (CaseDiscoveryToast.Active) return; banner = $"New case discovered: {c.title}"; bannerUntil = Time.unscaledTime + 4f; };
     }
 
     void Update()

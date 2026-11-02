@@ -124,7 +124,7 @@ public class SimHud : MonoBehaviour
         if (inspection != null)
         {
             Button("CrossBtn", CloseInspection, inspection.transform);
-            Button("ViewMoreBtn", ScreenFlow.OpenJournalOverlay, inspection.transform);
+            Button("ViewMoreBtn", () => { FieldJournalScreen.Request(FieldJournalScreen.Page.Facts); ScreenFlow.OpenJournalOverlay(); }, inspection.transform);   // sits under the animal's fun fact, so open the journal's Did You Know? page
         }
 
         ScreenFlow.AddLeaveButton(ownButton: false);   // the confirm box, opened by BackBtn
