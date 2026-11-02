@@ -201,7 +201,7 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
         // spawner. Before, they were never counted but their deaths were, so placing animals made the count drift down.
         var species = FindSpecies(category, optionId);
         var spawner = CreatureSpawner.For(species);
-        var simulator = spawner != null ? spawner.simulator : FindFirstObjectByType<EcosystemSimulator>();
+        var simulator = spawner != null ? spawner.simulator : FindAnyObjectByType<EcosystemSimulator>();
         bool counted = species != null && simulator != null && simulator.populations.ContainsKey(species);
         // [AI-GENERATED END]
 

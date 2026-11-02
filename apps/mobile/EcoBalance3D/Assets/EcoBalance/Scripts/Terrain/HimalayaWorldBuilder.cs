@@ -81,7 +81,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
         // Don't tick before the world exists. Every clock on the same simulator is held, not just this one:
         // otherwise another species' clock takes over ticking the simulator while the world is still building.
         if (clockToEnable != null)
-            foreach (var c in FindObjectsByType<SimulationClock>(FindObjectsSortMode.None))
+            foreach (var c in FindObjectsByType<SimulationClock>())
                 if (c == clockToEnable || (c.simulator != null && c.simulator == clockToEnable.simulator && c.enabled))
                 {
                     c.enabled = false;

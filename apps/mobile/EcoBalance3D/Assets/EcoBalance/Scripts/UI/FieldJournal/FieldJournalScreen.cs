@@ -366,7 +366,7 @@ public class FieldJournalScreen : MonoBehaviour
         summary = Text(side, "", 32f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
 
         // Inside a run: let the player run it from here and watch the lines move, at any speed.
-        liveSpeed = FieldJournalObservations.IsLive ? FindFirstObjectByType<SimulationSpeedController>() : null;
+        liveSpeed = FieldJournalObservations.IsLive ? FindAnyObjectByType<SimulationSpeedController>() : null;
         Place(summary.rectTransform, new Vector2(36f, -36f), new Vector2(368f, liveSpeed != null ? 680f : 808f));
         if (liveSpeed != null)
         {

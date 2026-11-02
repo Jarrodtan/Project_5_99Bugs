@@ -49,7 +49,9 @@ public class SimulationClock : MonoBehaviour
 
     void OnDisable()
     {
-        if (listening != null)
+        // ReferenceEquals: on scene unload the simulator can be destroyed first, and Unity's == null would
+        // then skip the clean-up (the handler and this dictionary entry would outlive the scene).
+        if (!ReferenceEquals(listening, null))
         {
             listening.Ticked -= OnTicked;
             if (drivers.TryGetValue(listening, out var d) && d == this) drivers.Remove(listening);

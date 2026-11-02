@@ -183,7 +183,7 @@ public class CreatureSpawner : MonoBehaviour {
     public static CreatureSpawner For(SpeciesDefinition sp)
     {
         if (sp == null) return null;
-        foreach (var s in FindObjectsByType<CreatureSpawner>(FindObjectsSortMode.None))
+        foreach (var s in FindObjectsByType<CreatureSpawner>())
             if (s.species == sp && s.simulator != null) return s;
         return null;
     }
