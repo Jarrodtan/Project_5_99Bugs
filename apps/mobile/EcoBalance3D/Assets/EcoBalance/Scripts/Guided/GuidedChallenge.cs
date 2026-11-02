@@ -322,6 +322,26 @@ public class GuidedChallenge : MonoBehaviour
         panel.gameObject.AddComponent<GraphicRaycaster>();
     }
 
+    // The mock-up's day text is small and pale grey over the world: make it a readable dark pill.
+    bool dayPanelStyled;
+    void StyleDayPanel()
+    {
+        dayPanelStyled = true;
+        DramaDirector.UpdateStatusVisibility();
+        var panel = Find(shuminRoot, "DayPanel");
+        if (panel == null) return;
+        if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
+        bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+        bg.raycastTarget = false;
+        foreach (var t in panel.GetComponentsInChildren<TextMeshProUGUI>(true))
+        {
+            t.color = Color.white;
+            t.enableAutoSizing = true;
+            t.fontSizeMax = 30f;
+            t.fontSizeMin = 14f;
+        }
+    }
+
     static Transform Find(Transform under, string name)
     {
         if (under == null) return null;
@@ -438,8 +458,9 @@ public class GuidedChallenge : MonoBehaviour
         if (pill != null) pill.text = $"Guided challenge · Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}";
         if (FindShuminUI())   // Shumin's DayPanel: "Day 12 / 20 | Summer" in the mock-up
         {
-            SetText(shuminRoot, "DayCounterTxt", $"Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}");
-            SetText(shuminRoot, "SeasonTxt", SeasonWeather.CurrentSeason.ToString());
+            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>");
+            SetText(shuminRoot, "SeasonTxt", $"<b>{SeasonWeather.CurrentSeason}</b> · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");
+            if (!dayPanelStyled) StyleDayPanel();
         }
         if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it
     }
