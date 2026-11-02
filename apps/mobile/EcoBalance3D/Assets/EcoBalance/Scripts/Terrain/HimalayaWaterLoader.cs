@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -35,35 +36,80 @@ public class HimalayaWaterLoader : MonoBehaviour
                            $"way[\"natural\"=\"water\"]({box});" +
                            $"node[\"natural\"=\"spring\"]({box});" +
                            ");out geom;";
-            // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-            // Main server first, then the backups. Runs in the background after the world is ready,
-            // and the first success is cached, so later runs don't need the network.
-            var servers = new List<string> { config.overpassUrl };
-            if (config.overpassBackupUrls != null) servers.AddRange(config.overpassBackupUrls);
-
-            foreach (var server in servers)
+            // Main/configured server first, then known backups. POST + User-Agent avoids
+            // some public Overpass blocks; first success is cached for later runs.
+            string encoded = UnityWebRequest.EscapeURL(query);
+            var body = Encoding.UTF8.GetBytes("data=" + encoded);
+            string lastError = null;
+            var servers = new List<string>();
+            foreach (var endpoint in Endpoints(config.overpassUrl))
+                servers.Add(endpoint);
+            if (config.overpassBackupUrls != null)
             {
-                if (string.IsNullOrEmpty(server)) continue;
-                using (var req = UnityWebRequest.Get(server + "?data=" + UnityWebRequest.EscapeURL(query)))
+                foreach (var backup in config.overpassBackupUrls)
                 {
-                    req.timeout = 30;
+                    if (!string.IsNullOrWhiteSpace(backup))
+                        servers.Add(backup.Trim().TrimEnd('/'));
+                }
+            }
+
+            foreach (var endpoint in servers)
+            {
+                if (string.IsNullOrEmpty(endpoint)) continue;
+                using (var req = new UnityWebRequest(endpoint, UnityWebRequest.kHttpVerbPOST))
+                {
+                    req.uploadHandler = new UploadHandlerRaw(body);
+                    req.downloadHandler = new DownloadHandlerBuffer();
+                    req.timeout = 15;
+                    req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                    req.SetRequestHeader("User-Agent", "EcoBalance3D/1.0 (educational Unity client)");
                     yield return req.SendWebRequest();
-                    if (req.result == UnityWebRequest.Result.Success) { json = req.downloadHandler.text; break; }
-                    Debug.LogWarning($"[Himalaya] Overpass server {server} failed: {req.error}", this);
+                    if (req.result == UnityWebRequest.Result.Success && !string.IsNullOrEmpty(req.downloadHandler.text))
+                    {
+                        json = req.downloadHandler.text;
+                        lastError = null;
+                        break;
+                    }
+
+                    lastError = $"{endpoint}: {req.error}";
+                    Debug.LogWarning($"[Himalaya] Overpass request failed: {lastError}", this);
                 }
             }
 
             if (json == null)
             {
-                Debug.LogWarning("[Himalaya] No Overpass server answered; using valley water instead.", this);
+                Debug.LogWarning(
+                    $"[Himalaya] Overpass unavailable ({lastError}). Placing water in low valleys instead.",
+                    this);
                 done(new List<WaterFeature>());
                 yield break;
             }
-            // [AI-GENERATED END]
+
             if (config.useCache) GeoCache.WriteText(file, json);
         }
 
         done(Parse(json, b));
+    }
+
+    static IEnumerable<string> Endpoints(string configured)
+    {
+        var seen = new HashSet<string>();
+        foreach (var url in new[]
+        {
+            configured,
+            "https://overpass-api.de/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter",
+            "https://overpass.osm.ch/api/interpreter",
+            "http://overpass-api.de/api/interpreter"
+        })
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                continue;
+
+            var trimmed = url.Trim().TrimEnd('/');
+            if (seen.Add(trimmed))
+                yield return trimmed;
+        }
     }
 
     static List<WaterFeature> Parse(string json, GeoBounds b)

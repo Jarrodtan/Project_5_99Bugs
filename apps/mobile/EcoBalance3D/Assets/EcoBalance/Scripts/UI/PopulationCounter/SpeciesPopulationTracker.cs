@@ -74,6 +74,12 @@ public class SpeciesPopulationTracker
     readonly Dictionary<string, PopulationTrend> lastTrends = new();
 
     /// <summary>
+    /// When true, a displayed count of zero is <see cref="SpeciesCounterStatus.Extinct"/>.
+    /// Island Platform turns this off so zero means no animals of that species are in the scene.
+    /// </summary>
+    public bool TreatZeroAsExtinct { get; set; } = true;
+
+    /// <summary>
     /// Current row snapshots in provider order. Valid after the first <see cref="Refresh"/>.
     /// </summary>
     public IReadOnlyList<SpeciesCounterState> States => states;
@@ -134,7 +140,9 @@ public class SpeciesPopulationTracker
         }
 
         var count = ToDisplayCount(raw);
-        var status = count == 0 ? SpeciesCounterStatus.Extinct : SpeciesCounterStatus.Alive;
+        var status = count == 0 && TreatZeroAsExtinct
+            ? SpeciesCounterStatus.Extinct
+            : SpeciesCounterStatus.Alive;
 
         lastTrends.TryGetValue(id, out var trend);
         var changed = false;
