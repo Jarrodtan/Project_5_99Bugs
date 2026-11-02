@@ -99,6 +99,12 @@ public static class ScreenFlow
         // the Back buttons are blank white squares in every scene (no icon yet)
         if (buttons.TryGetValue("BackBtn", out var backs))
             foreach (var b in backs) ButtonCaption.Ensure(b, "‹ Back", 26f);
+
+        // The settings square (top right in every screen) has no settings page yet: make it a sound on/off switch.
+        On("SettingBtn", ToggleSound);
+        if (buttons.TryGetValue("SettingBtn", out var settings))
+            foreach (var b in settings) soundLabels.Add(ButtonCaption.Ensure(b, SoundCaption, 20f));
+        AudioListener.volume = SoundOn ? 1f : 0f;
     }
 
     // Back button on the simulation (both modes), bottom-left above the weather text. Asks first, so a
@@ -213,6 +219,22 @@ public static class ScreenFlow
         SceneManager.UnloadSceneAsync(Journal);
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         if (journalWasRunning && speed != null) speed.Play();
+    }
+
+    const string SoundKey = "EcoBalance.SoundOn";
+    static bool SoundOn => PlayerPrefs.GetInt(SoundKey, 1) == 1;
+    static string SoundCaption => SoundOn ? "Sound
+On" : "Sound
+Off";
+    static readonly List<TMPro.TextMeshProUGUI> soundLabels = new List<TMPro.TextMeshProUGUI>();
+
+    static void ToggleSound()
+    {
+        PlayerPrefs.SetInt(SoundKey, SoundOn ? 0 : 1);
+        PlayerPrefs.Save();
+        AudioListener.volume = SoundOn ? 1f : 0f;
+        soundLabels.RemoveAll(l => l == null);   // labels from scenes already closed
+        foreach (var l in soundLabels) l.text = SoundCaption;
     }
 
     static void Load(string scene)

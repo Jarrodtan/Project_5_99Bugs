@@ -423,6 +423,11 @@ public class GuidedChallenge : MonoBehaviour
     void UpdatePill()
     {
         if (pill != null) pill.text = $"Guided challenge · Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}";
+        if (FindShuminUI())   // Shumin's DayPanel: "Day 12 / 20 | Summer" in the mock-up
+        {
+            SetText(shuminRoot, "DayCounterTxt", $"Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}");
+            SetText(shuminRoot, "SeasonTxt", SeasonWeather.CurrentSeason.ToString());
+        }
         if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it
     }
 
