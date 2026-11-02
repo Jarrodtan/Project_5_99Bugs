@@ -175,7 +175,7 @@ public class SimHud : MonoBehaviour
                     movedWeather.Add(rt);
                     // Top-left, under the "Himalayan Highlands" title box: the bottom-left is the control bar.
                     rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
-                    rt.anchoredPosition = new Vector2(40f, -150f);
+                    rt.anchoredPosition = new Vector2(48f, -185f);   // clear of the title box
                     txt.alignment = TextAlignmentOptions.TopLeft;
                 }
                 if (withHud && t is RectTransform r2 && movedWeather.Contains(r2)) moved = true;
