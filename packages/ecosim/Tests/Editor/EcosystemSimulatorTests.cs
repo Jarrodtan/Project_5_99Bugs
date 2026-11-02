@@ -353,5 +353,27 @@ public class EcosystemSimulatorTests
         Assert.AreEqual(0f, sim.populations[leopard]);
         Assert.IsFalse(raised);
     }
+
+    // Animals placed from the action menu count, even into an extinct species, up to the cap.
+    [Test]
+    public void AddAnimals_CountsPlacedAnimals_UpToTheCap()
+    {
+        sim.maxPopulationPerSpecies = 12f;
+        sim.populations[leopard] = 0f;
+        SpeciesDefinition raisedFor = null; int raisedCount = 0;
+        sim.AnimalsAdded += (s, n) => { raisedFor = s; raisedCount = n; };
+
+        Assert.AreEqual(2, sim.AddAnimals(leopard, 2));
+        Assert.AreEqual(2f, sim.populations[leopard]);
+        Assert.AreEqual(leopard, raisedFor);
+        Assert.AreEqual(2, raisedCount);
+
+        sim.populations[sheep] = 10f;
+        Assert.AreEqual(2, sim.AddAnimals(sheep, 5), "capped");
+        Assert.AreEqual(12f, sim.populations[sheep]);
+        Assert.AreEqual(0, sim.AddAnimals(sheep));
+        Assert.AreEqual(0, sim.AddAnimals(null));
+        Assert.AreEqual(0, sim.AddAnimals(leopard, 0));
+    }
 }
 // [AI-GENERATED END]

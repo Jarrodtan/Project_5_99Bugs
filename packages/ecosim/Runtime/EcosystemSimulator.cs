@@ -305,6 +305,26 @@ public class EcosystemSimulator : MonoBehaviour, IEcosystemReset
     }
     // [AI-GENERATED END]
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    /// <summary>Raised after <see cref="AddAnimals"/> adds animals: (species, how many were added).</summary>
+    public event System.Action<SpeciesDefinition, int> AnimalsAdded;
+
+    /// <summary>
+    /// The player placed <paramref name="count"/> animals of <paramref name="species"/> (action menu):
+    /// species +count, capped at <see cref="maxPopulationPerSpecies"/>. Unlike <see cref="RecordBirth"/> this
+    /// also works for an extinct species. Returns how many were added (0 if the species isn't simulated or is at the cap).
+    /// </summary>
+    public int AddAnimals(SpeciesDefinition species, int count = 1)
+    {
+        if (species == null || count < 1 || !populations.TryGetValue(species, out var pop)) return 0;
+        int added = Mathf.Min(count, Mathf.FloorToInt(maxPopulationPerSpecies - pop));
+        if (added <= 0) return 0;
+        AddPopulation(species, added);
+        AnimalsAdded?.Invoke(species, added);
+        return added;
+    }
+    // [AI-GENERATED END]
+
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 
     void AddPopulation(SpeciesDefinition s, float delta)

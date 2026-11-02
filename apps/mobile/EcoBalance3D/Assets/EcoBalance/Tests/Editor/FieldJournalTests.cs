@@ -127,6 +127,50 @@ public class FieldJournalTests
     }
 
     [Test]
+    public void GraphHistory_FollowsCountsGoingUpAndDown()
+    {
+        var saved = new Dictionary<string, float>(EcosystemSimulator.StartingPopulationOverrides);
+        EcosystemSimulator.StartingPopulationOverrides.Clear();
+        try
+        {
+            var sheep = Make<SpeciesDefinition>("BlueSheep"); sheep.startingPopulation = 10;
+            var go = Go("Sim");
+            var sim = go.AddComponent<EcosystemSimulator>();
+            sim.mode = EcosystemSimulator.SimulationMode.Events;
+            sim.species = new List<SpeciesDefinition> { sheep };
+            sim.resources = new List<ResourceDefinition>();
+            sim.ResetEcosystem();
+            var rec = go.AddComponent<PopulationHistoryRecorder>();
+            rec.Bind(sim);
+
+            Assert.AreEqual(3, sim.RecordBirth(sheep, 3));
+            sim.Tick();
+            Assert.AreEqual(13f, rec.History.Latest.Get("BlueSheep"), "births show on the next day");
+            for (int i = 0; i < 5; i++) sim.RecordStarvation(sheep);
+            sim.Tick();
+            Assert.AreEqual(8f, rec.History.Latest.Get("BlueSheep"), "deaths show on the next day");
+            CollectionAssert.AreEqual(new[] { 10f, 13f, 8f }, rec.History.Series("BlueSheep"));
+        }
+        finally
+        {
+            foreach (var kv in saved) EcosystemSimulator.StartingPopulationOverrides[kv.Key] = kv.Value;
+        }
+    }
+
+    [Test]
+    public void SpeedButton_CyclesOneTwoFourEight()
+    {
+        // The HUD and the Field Journal graph share this, so the graph runs at the speed the HUD shows.
+        var speed = Go("Speed").AddComponent<SimulationSpeedController>();
+        Assert.AreEqual(2f, speed.CycleSpeed());
+        Assert.AreEqual(4f, speed.CycleSpeed());
+        Assert.AreEqual(8f, speed.CycleSpeed());
+        Assert.AreEqual(1f, speed.CycleSpeed());
+        speed.SetSpeed(3f);
+        Assert.AreEqual(1f, speed.CycleSpeed(), "an odd speed goes back to 1x");
+    }
+
+    [Test]
     public void ButtonCaption_LabelsBlankButtonsOnly()
     {
         var blank = Go("BackBtn", typeof(RectTransform), typeof(UnityEngine.UI.Image)).AddComponent<UnityEngine.UI.Button>();

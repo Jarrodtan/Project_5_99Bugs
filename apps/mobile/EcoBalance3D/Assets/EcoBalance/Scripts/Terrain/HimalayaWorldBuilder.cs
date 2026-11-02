@@ -31,6 +31,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
 
     [Tooltip("Enabled once the world is ready.")]
     [SerializeField] SimulationClock clockToEnable;
+    readonly List<SimulationClock> heldClocks = new();   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
     [Tooltip("Leave OFF when TerrainConfig / AutoBakeFloor starts the build, or it would run twice.")]
     [SerializeField] bool buildOnStart = false;
@@ -77,7 +78,15 @@ public class HimalayaWorldBuilder : MonoBehaviour
 
     IEnumerator Start()
     {
-        if (clockToEnable != null) clockToEnable.enabled = false;   // don't tick before the world exists
+        // Don't tick before the world exists. Every clock on the same simulator is held, not just this one:
+        // otherwise another species' clock takes over ticking the simulator while the world is still building.
+        if (clockToEnable != null)
+            foreach (var c in FindObjectsByType<SimulationClock>(FindObjectsSortMode.None))
+                if (c == clockToEnable || (c.simulator != null && c.simulator == clockToEnable.simulator && c.enabled))
+                {
+                    c.enabled = false;
+                    heldClocks.Add(c);
+                }
         if (buildOnStart) yield return Build();
     }
 
@@ -160,7 +169,8 @@ public class HimalayaWorldBuilder : MonoBehaviour
 
             if (vertCount > 0)
             {
-                if (clockToEnable != null) clockToEnable.enabled = true;
+                foreach (var held in heldClocks) if (held != null) held.enabled = true;
+                heldClocks.Clear();
                 IsReady = true;
                 if (GetComponent<SeasonWeather>() == null) gameObject.AddComponent<SeasonWeather>();   // [AI-GENERATED] Claude Code (Claude Opus 5.5): seasons start with the world
                 if (enableTerrainEditor)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): in-game terrain/grass editor

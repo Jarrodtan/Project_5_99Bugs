@@ -114,6 +114,10 @@ public class FieldJournalScreen : MonoBehaviour
     // Observations
     PopulationGraph graph;
     TextMeshProUGUI obsSub, summary;
+    // Play / Pause and speed for the run behind the journal (it opens paused, so the graph would never move).
+    SimulationSpeedController liveSpeed;
+    Image playBg;
+    TextMeshProUGUI playLabel, speedLabel;
 
     /// <summary>A Free Exploration run is open behind the journal, so locked cases can still be found in it.</summary>
     static bool InFreeRun => FieldJournalObservations.IsLive && !FieldJournalObservations.WasGuided;
@@ -360,11 +364,52 @@ public class FieldJournalScreen : MonoBehaviour
 
         var side = Box(p, "SummaryCard", new Vector2(720f, -60f), new Vector2(440f, 880f), Card);
         summary = Text(side, "", 32f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
-        Place(summary.rectTransform, new Vector2(36f, -36f), new Vector2(368f, 808f));
+
+        // Inside a run: let the player run it from here and watch the lines move, at any speed.
+        liveSpeed = FieldJournalObservations.IsLive ? FindFirstObjectByType<SimulationSpeedController>() : null;
+        Place(summary.rectTransform, new Vector2(36f, -36f), new Vector2(368f, liveSpeed != null ? 680f : 808f));
+        if (liveSpeed != null)
+        {
+            playBg = RunButton(side, "GraphPlayBtn", 36f, Green, () =>
+            {
+                if (liveSpeed.IsRunning) liveSpeed.Pause(); else liveSpeed.Play();
+                RefreshRunControls();
+            }, out playLabel).GetComponent<Image>();
+            RunButton(side, "GraphSpeedBtn", 228f, Blue, () => { liveSpeed.CycleSpeed(); RefreshRunControls(); }, out speedLabel);
+            RefreshRunControls();
+        }
 
         // The run going on now, or the last one (kept after leaving it).
         graph.Redrawn += RefreshSummary;
         graph.Bind(FieldJournalObservations.History, FieldJournalObservations.Series, FieldJournalObservations.Days);
+    }
+
+    RectTransform RunButton(Transform card, string name, float x, Color color, UnityAction onClick, out TextMeshProUGUI label)
+    {
+        var b = Box(card, name, Vector2.zero, new Vector2(176f, 96f), color);
+        b.anchorMin = b.anchorMax = b.pivot = Vector2.zero;
+        b.anchoredPosition = new Vector2(x, 36f);
+        b.gameObject.AddComponent<Button>().onClick.AddListener(onClick);
+        label = Text(b, "", 34f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center);
+        Fill(label.rectTransform);
+        return b;
+    }
+
+    // Also run every frame: the run can stop or change speed elsewhere (the Leave box, a Guided popup...).
+    void RefreshRunControls()
+    {
+        if (liveSpeed == null || playLabel == null) return;
+        bool running = liveSpeed.IsRunning;
+        string play = running ? "Pause" : "Play";
+        if (playLabel.text != play) playLabel.text = play;
+        playBg.color = running ? Orange : Green;
+        string speed = $"Speed {liveSpeed.CurrentSpeed:0}x";
+        if (speedLabel.text != speed) speedLabel.text = speed;
+    }
+
+    void Update()
+    {
+        if (current == Page.Observations) RefreshRunControls();
     }
 
     void RefreshSummary()
@@ -384,6 +429,8 @@ public class FieldJournalScreen : MonoBehaviour
         obsSub.text = (live ? $"This {mode} run so far." : $"Your last {mode} run, up to {day}.")
                       + " Tap a name to show or hide its line.";
 
+        // A long or fast run fills the history and its oldest days are dropped: compare with the first day still kept.
+        string since = h.Count >= h.Capacity ? $"since {graph.TimeLabel(first.Tick)}" : "since the start";
         var sb = new StringBuilder();
         sb.Append("<b>").Append(live ? "Right now" : "At the end").Append(" · ").Append(day).Append("</b>\n");
         foreach (var s in graph.Series)
@@ -392,8 +439,8 @@ public class FieldJournalScreen : MonoBehaviour
             float now = last.Get(s.Key), start = first.Get(s.Key), hi = float.MinValue, lo = float.MaxValue;
             for (int i = 0; i < h.Count; i++) { float v = h[i].Get(s.Key); hi = Mathf.Max(hi, v); lo = Mathf.Min(lo, v); }
             float change = now - start;
-            string trend = Mathf.Abs(change) < 0.5f ? "the same as at the start"
-                : change > 0 ? $"up {change:0} since the start" : $"down {-change:0} since the start";
+            string trend = Mathf.Abs(change) < 0.5f ? $"no change {since}"
+                : change > 0 ? $"up {change:0} {since}" : $"down {-change:0} {since}";
             sb.Append("\n<color=#").Append(ColorUtility.ToHtmlStringRGB(s.Color)).Append("><b>").Append(s.Label).Append("</b></color>\n")
               .Append("<size=120%><b>").Append(now.ToString("0")).Append("</b></size>  ").Append(trend).Append('\n')
               .Append("<color=#73808A>Highest ").Append(hi.ToString("0")).Append(" · Lowest ").Append(lo.ToString("0")).Append("</color>\n");
