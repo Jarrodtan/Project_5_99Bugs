@@ -239,7 +239,7 @@ public static class ScreenFlow
         var dim = Rect(canvasGo.transform, "Dim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
         dim.AddComponent<Button>().onClick.AddListener(() => Object.Destroy(canvasGo));   // tap outside to close
         var card = Rect(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
-        card.AddComponent<Button>().transition = Selectable.Transition.None;   // taps on the card don't close it
+        card.AddComponent<Button>().transition = UnityEngine.UI.Selectable.Transition.None;   // taps on the card don't close it
         Text(card.transform, "Sound volume", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 130f), new Vector2(820f, 80f));
 
         var slider = DefaultControls.CreateSlider(new DefaultControls.Resources());
