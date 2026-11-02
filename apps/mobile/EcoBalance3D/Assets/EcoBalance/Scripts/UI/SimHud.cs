@@ -177,6 +177,19 @@ public class SimHud : MonoBehaviour
                     rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
                     rt.anchoredPosition = new Vector2(48f, -185f);   // clear of the title box
                     txt.alignment = TextAlignmentOptions.TopLeft;
+
+                    // White text was lost on the snowy peaks: the same dark pill as the day panel behind it.
+                    var bg = new GameObject("Weather Bg", typeof(RectTransform), typeof(Image));
+                    bg.transform.SetParent(rt.parent, false);
+                    bg.transform.SetSiblingIndex(rt.GetSiblingIndex());   // drawn just before (under) the text
+                    var brt = (RectTransform)bg.transform;
+                    brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0f, 1f);
+                    Vector2 size = txt.GetPreferredValues(txt.text);
+                    brt.anchoredPosition = rt.anchoredPosition + new Vector2(-14f, 8f);
+                    brt.sizeDelta = size + new Vector2(28f, 16f);
+                    var img = bg.GetComponent<Image>();
+                    img.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+                    img.raycastTarget = false;
                 }
                 if (withHud && t is RectTransform r2 && movedWeather.Contains(r2)) moved = true;
             }
