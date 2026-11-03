@@ -29,7 +29,7 @@ using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 [DefaultExecutionOrder(1000)]
 public class TerrainEditTool : MonoBehaviour
 {
-    public enum Tool { Look, Raise, Lower, Flatten, Smooth, AddGrass, RemoveGrass }
+    public enum Tool { Look, Raise, Lower, Flatten, Smooth, AddGrass, RemoveGrass, AddPond, RemovePond }
 
     [Tooltip("Brush radius range, world units.")]
     public Vector2 brushSizeRange = new Vector2(3f, 60f);
@@ -298,6 +298,12 @@ public class TerrainEditTool : MonoBehaviour
             case Tool.RemoveGrass:
                 RemoveGrass(centre);
                 break;
+            case Tool.AddPond:
+                AddPond(centre, dt);
+                break;
+            case Tool.RemovePond:
+                RemovePonds(centre);
+                break;
         }
     }
 
@@ -393,6 +399,58 @@ public class TerrainEditTool : MonoBehaviour
             if (patch == null || patch.Resource != grass) continue;
             var d = patch.transform.position - centre; d.y = 0f;
             if (d.sqrMagnitude <= r2) doomed.Add(patch);
+        }
+        foreach (var patch in doomed) Destroy(patch.gameObject);   // animals heading there null-check and pick another
+    }
+
+    // ---------- Ponds (water the animals can drink) ----------
+
+    float pondTimer;
+
+    // One pond per tap (holding the finger down adds another every half second, spaced apart).
+    void AddPond(Vector3 centre, float dt)
+    {
+        if (resourcePlacer == null) return;
+        pondTimer -= dt;
+        if (pondTimer > 0f) return;
+        pondTimer = 0.5f;
+
+        var uv = terrainBuilder.WorldToUV(centre);
+        if (uv.x < 0f || uv.x > 1f || uv.y < 0f || uv.y > 1f) return;
+        if (terrainBuilder.SlopeDegrees(uv.x, uv.y) > resourcePlacer.MaxPondSlope) { SetStatus("Too steep for a pond: Flatten here first."); return; }
+        if (HimalayaRiver.Exists && HimalayaRiver.DistanceTo(centre) < resourcePlacer.RiverClearance) { SetStatus("That's already the river."); return; }
+        foreach (var patch in ResourcePatch.All)
+        {
+            if (patch == null || !patch.name.StartsWith(HimalayaResourcePlacer.PondName)) continue;
+            var d = patch.transform.position - centre; d.y = 0f;
+            if (d.sqrMagnitude < 4f * HimalayaResourcePlacer.PondRadius * HimalayaResourcePlacer.PondRadius) return;   // keep ponds apart
+        }
+
+        // Grass doesn't grow in water: clear any clumps under the new pond.
+        var grass = resourcePlacer.GrassResource;
+        var wet = new List<ResourcePatch>();
+        foreach (var patch in ResourcePatch.All)
+        {
+            if (patch == null || patch.Resource != grass) continue;
+            var d = patch.transform.position - centre; d.y = 0f;
+            if (d.sqrMagnitude <= HimalayaResourcePlacer.PondRadius * HimalayaResourcePlacer.PondRadius) wet.Add(patch);
+        }
+        foreach (var patch in wet) Destroy(patch.gameObject);
+
+        resourcePlacer.SpawnPondAt(terrainBuilder.WorldPosition(uv.x, uv.y));
+        SetStatus("Pond added: thirsty animals will come to drink.");
+    }
+
+    // Only ponds painted with Add Pond; the river and the map's lakes stay.
+    void RemovePonds(Vector3 centre)
+    {
+        float r = brushSize + HimalayaResourcePlacer.PondRadius;
+        var doomed = new List<ResourcePatch>();
+        foreach (var patch in ResourcePatch.All)
+        {
+            if (patch == null || !patch.name.StartsWith(HimalayaResourcePlacer.PondName)) continue;
+            var d = patch.transform.position - centre; d.y = 0f;
+            if (d.sqrMagnitude <= r * r) doomed.Add(patch);
         }
         foreach (var patch in doomed) Destroy(patch.gameObject);   // animals heading there null-check and pick another
     }
@@ -563,7 +621,7 @@ public class TerrainEditTool : MonoBehaviour
         ring.enabled = dot.enabled = show;
         if (!show) return;
 
-        var c = tool == Tool.RemoveGrass || tool == Tool.Lower ? new Color(1f, 0.4f, 0.3f) : new Color(1f, 1f, 1f);
+        var c = tool == Tool.RemoveGrass || tool == Tool.RemovePond || tool == Tool.Lower ? new Color(1f, 0.4f, 0.3f) : new Color(1f, 1f, 1f);
         ring.material.color = c;
         ring.startColor = ring.endColor = c;
         dot.startColor = dot.endColor = c;
@@ -639,7 +697,7 @@ public class TerrainEditTool : MonoBehaviour
         g.spacing = new Vector2(8f, 8f);
         g.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         g.constraintCount = 2;
-        grid.gameObject.AddComponent<LayoutElement>().preferredHeight = 4 * 48f + 3 * 8f;
+        grid.gameObject.AddComponent<LayoutElement>().preferredHeight = 5 * 48f + 4 * 8f;
 
         AddToolButton(grid, Tool.Look, "Look");
         AddToolButton(grid, Tool.Smooth, "Smooth");
@@ -648,6 +706,8 @@ public class TerrainEditTool : MonoBehaviour
         AddToolButton(grid, Tool.Flatten, "Flatten");
         AddToolButton(grid, Tool.RemoveGrass, "Remove Grass");
         AddToolButton(grid, Tool.AddGrass, "Add Grass");
+        AddToolButton(grid, Tool.RemovePond, "Remove Pond");
+        AddToolButton(grid, Tool.AddPond, "Add Pond");
 
         MakeSlider(panel, "Brush Size", brushSizeRange.x, brushSizeRange.y, brushSize, v => brushSize = v, v => $"{v:0}");
         MakeSlider(panel, "Strength", 0.05f, 1f, strength, v => strength = v, v => $"{v * 100f:0}%");

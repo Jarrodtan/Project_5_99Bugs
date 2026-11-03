@@ -60,6 +60,66 @@ public class HimalayaResourcePlacer : MonoBehaviour
     /// <summary>Grass is kept at least this far from the river centre line.</summary>
     public float RiverClearance => riverMouthWidth;
 
+    /// <summary>Radius of a pond painted with Edit Terrain's Add Pond brush.</summary>
+    public const float PondRadius = 4f;
+    /// <summary>Name prefix of painted ponds; Remove Pond only removes these, never the river or lakes.</summary>
+    public const string PondName = "Pond (painted)";
+    /// <summary>Steepest ground a pond can sit on (the surface is flat).</summary>
+    public float MaxPondSlope => maxPatchSlope;
+    Material pondMaterial;
+    Mesh pondMesh;
+    int ponds;
+
+    /// <summary>
+    /// Adds a small still pond at a world point: a flat water disc plus a drinking spot that refills
+    /// like the river. Used by TerrainEditTool's Add Pond brush.
+    /// </summary>
+    public ResourcePatch SpawnPondAt(Vector3 position)
+    {
+        if (water == null) return null;
+        if (pondMaterial == null)
+        {
+            var shader = Shader.Find("EcoBalance/WaterFlow");
+            pondMaterial = shader != null ? new Material(shader) { name = "Pond (still)" } : MakeMaterial(waterColor);
+            if (shader != null) { pondMaterial.SetFloat("_FlowSpeed", 0.08f); pondMaterial.SetFloat("_RippleScale", 0.3f); }
+        }
+        if (pondMesh == null) pondMesh = DiscMesh(PondRadius, 24);
+
+        var go = new GameObject($"{PondName} {++ponds}");
+        go.transform.SetParent(transform, true);
+        go.transform.position = position + Vector3.up * 0.12f;   // just above the ground so it doesn't flicker
+        go.AddComponent<MeshFilter>().sharedMesh = pondMesh;
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.sharedMaterial = pondMaterial;
+        mr.shadowCastingMode = ShadowCastingMode.Off;
+        var patch = go.AddComponent<ResourcePatch>();
+        patch.Configure(water);
+        patch.RegrowPerSecond = riverRefillPerSecond;
+        spawned.Add(go);
+        return patch;
+    }
+
+    static Mesh DiscMesh(float radius, int segments)
+    {
+        var verts = new Vector3[segments + 1];
+        var uvs = new Vector2[segments + 1];
+        var tris = new int[segments * 3];
+        uvs[0] = new Vector2(0.5f, 0.5f);
+        for (int i = 0; i < segments; i++)
+        {
+            float a = i * Mathf.PI * 2f / segments;
+            verts[i + 1] = new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius);
+            uvs[i + 1] = new Vector2(0.5f + Mathf.Cos(a) * 0.5f, 0.5f + Mathf.Sin(a) * 0.5f);
+            tris[i * 3] = 0;
+            tris[i * 3 + 1] = i == segments - 1 ? 1 : i + 2;
+            tris[i * 3 + 2] = i + 1;
+        }
+        var mesh = new Mesh { name = "Pond", vertices = verts, uv = uvs, triangles = tris };
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
     /// <summary>
     /// Adds one grass patch at a world point, same look and regrowth as the generated meadows.
     /// Used by TerrainEditTool's Add Grass brush.
