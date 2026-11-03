@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 4044817424565879165}
   - component: {fileID: 926905095560895190}
   - component: {fileID: -6979119130552828020}
+  - component: {fileID: 9121377746885948906}
   m_Layer: 0
   m_Name: snow leopard
   m_TagString: Untagged
@@ -373,6 +374,25 @@ MonoBehaviour:
   volumeRange: {x: 0.8, y: 1}
   pitchRange: {x: 0.85, y: 1.15}
   muffleWithDistance: 0
+--- !u!114 &9121377746885948906
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9037334413921091483}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85f865a1c25e9204d8c597a0acfe2a3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalPerception
+  visionRange: 20
+  visionAngle: 120
+  scanInterval: 0.2
+  eyeHeight: 1.5
+  targetHeight: 1.2
+  showVisionGizmo: 1
+  showDetectionLines: 1
 --- !u!1001 &753629060257976942
 PrefabInstance:
   m_ObjectHideFlags: 0
