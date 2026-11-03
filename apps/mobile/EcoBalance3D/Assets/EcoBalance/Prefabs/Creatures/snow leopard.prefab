@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 4044817424565879165}
   - component: {fileID: 926905095560895190}
   - component: {fileID: -6979119130552828020}
+  - component: {fileID: 9121377746885948906}
   m_Layer: 0
   m_Name: snow leopard
   m_TagString: Untagged
@@ -104,9 +105,39 @@ MonoBehaviour:
   eatDuration: 2
   chaseSpeedMultiplier: 1.9
   fleeSpeedMultiplier: 1.25
+  huntBelowHunger: 60
+  stalkSpeedMultiplier: 0.45
+  pounceDistance: 8
+  sprintSpeedMultiplier: 2.2
+  maxSprintSeconds: 6
+  huntSuccessRate: 0.7
+  huntCooldownSeconds: 120
+  giveUpRestSeconds: 20
+  senseAnywayDistance: 10
+  spotStalkerDistance: 9
+  visibilityOnGrass: 1.4
+  visibilityOnRock: 0.75
+  visibilityOnSnow: 0.45
+  snowPreference: 2
+  grazingAlertness: 0.6
+  alarmFleeSeconds: 2.5
+  dangerMemorySeconds: 60
+  dangerRadius: 25
+  dangerDetour: 60
+  dangerAppetiteCut: 0.6
+  alarmRadius: 15
+  maxDangerSpots: 4
   preyStarveAfterSeconds: 180
   predatorStarveAfterSeconds: 300
   dehydrateAfterSeconds: 90
+  predatorDehydrateAfterSeconds: 1000
+  seekFoodBelow: 50
+  seekWaterBelow: 50
+  maxHealth: 100
+  emptyNeedDamagePerDay: 20
+  healPerDay: 10
+  huntFill: 80
+  curr_health: 100
   desperateNeed: 0.6
   predatorRoamHunger: 0.35
   desperateSearchMultiplier: 2
@@ -120,6 +151,7 @@ MonoBehaviour:
   mateDistance: 2
   reproduceMinWellFed: 60
   reproduceCooldownSeconds: 30
+  predatorReproduceCooldownSeconds: 1440
   reproduceHungerCost: 25
   mateDuration: 2
   fleeWeight: 1.5
@@ -134,6 +166,12 @@ MonoBehaviour:
   growUpSeconds: 60
   babyScale: 0.45
   followMotherDistance: 2.5
+  showSightLines: 1
+  predatorTerritoryScale: 3
+  patrolMinDistance: 25
+  patrolMaxDistance: 60
+  patrolPauseSeconds: {x: 1.5, y: 4}
+  patrolMemory: 6
 --- !u!114 &-1853422331891634858
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -336,6 +374,25 @@ MonoBehaviour:
   volumeRange: {x: 0.8, y: 1}
   pitchRange: {x: 0.85, y: 1.15}
   muffleWithDistance: 1
+--- !u!114 &9121377746885948906
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9037334413921091483}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85f865a1c25e9204d8c597a0acfe2a3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalPerception
+  visionRange: 20
+  visionAngle: 120
+  scanInterval: 0.2
+  eyeHeight: 1.5
+  targetHeight: 1.2
+  showVisionGizmo: 1
+  showDetectionLines: 1
 --- !u!1001 &753629060257976942
 PrefabInstance:
   m_ObjectHideFlags: 0

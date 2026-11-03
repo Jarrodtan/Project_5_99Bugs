@@ -58,13 +58,9 @@ public class AnimalBrain : MonoBehaviour
     private SimulationSpeedController simulationController;
 
     // Predator / prey
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5, claude-opus-5-5): how far animals notice each other is set
+    // only on AnimalPerception now (vision range, angle, hearing, stalker spotting).
     [Header("Predator / Prey")]
-    [Tooltip("Predators notice prey within this distance.")]
-    public float huntRadius = 35f;
-
-    [Tooltip("Prey notices predators within this distance.")]
-    public float fleeRadius = 20f;
-
     [Tooltip("Distance at which a predator catches its prey.")]
     public float catchDistance = 1.5f;
 
@@ -78,7 +74,7 @@ public class AnimalBrain : MonoBehaviour
     public float fleeSpeedMultiplier = 1.25f;
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-    // Kept from WeiLeong on top of Yusuf's stalk/sprint: research hunt rules, Guided hunt bonus, perception distances.
+    // Kept from WeiLeong on top of Yusuf's stalk/sprint: research hunt rules, Guided hunt bonus.
     // Real snow leopard hunts: only when hungry, creep up low and slow using the slope for cover,
     // then a short fast sprint. Prey only flee from a predator they can actually see.
     [Header("Stalk and pounce")]
@@ -98,10 +94,6 @@ public class AnimalBrain : MonoBehaviour
     public float huntCooldownSeconds = 120f;
     [Tooltip("Rest after a failed hunt (seconds at 1x).")]
     public float giveUpRestSeconds = 20f;
-    [Tooltip("Prey always notice a predator this close (hearing, smell), hill or no hill.")]
-    public float senseAnywayDistance = 10f;
-    [Tooltip("A crouching, stalking predator is only spotted this close.")]
-    public float spotStalkerDistance = 9f;
 
     public bool IsStalking { get; private set; }
     public bool IsFleeing => CurrentAction == AnimalAction.Fleeing;
@@ -109,9 +101,33 @@ public class AnimalBrain : MonoBehaviour
     // [AI-GENERATED END]
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // Losing sight of the prey is a normal part of a real snow leopard's stalk: it creeps in behind ridges
+    // and rocks so the prey can't see it either. Like other cats, it remembers where the prey went out of
+    // sight and keeps going there, low and slow. If nothing is there when it arrives, or it has waited too
+    // long, it gives up and rests instead of searching or chasing far.
+    [Tooltip("Seconds (at 1x) a hunting predator remembers where it last saw its prey and keeps creeping " +
+             "towards that spot. 0 = gives up the moment it loses sight.")]
+    [Min(0f)] public float preyMemorySeconds = 15f;
+
+    Vector3 last_prey_position;
+    float prey_memory_timer;
+    AnimalBrain remembered_prey;
+
+    // Still hunting a prey it can't see right now, from memory.
+    bool SearchingForPrey =>
+        prey == null && prey_memory_timer > 0f && remembered_prey != null && !remembered_prey.IsCaught;
+
+    void ForgetPrey()
+    {
+        prey_memory_timer = 0f;
+        remembered_prey = null;
+    }
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
     // Camouflage: a pale, spotted snow leopard blends into snow and grey rock but stands out on green grass.
     // Prey see it from this many times their normal distance, by the ground it is standing on
-    // (a mix of ground types blends the values). Hearing / smell up close (senseAnywayDistance) isn't affected.
+    // (a mix of ground types blends the values). Hearing / smell up close (AnimalPerception) isn't affected.
     [Header("Camouflage (predators)")]
     [Tooltip("Spotted from this many times the normal distance when standing on grass (stands out).")]
     [Range(0.1f, 2f)] public float visibilityOnGrass = 1.4f;
@@ -148,8 +164,6 @@ public class AnimalBrain : MonoBehaviour
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
     [Header("Herd alarm (prey)")]
-    [Tooltip("While eating or drinking (head down), prey spot a stalker at only this fraction of the usual distance.")]
-    [Range(0.1f, 1f)] public float grazingAlertness = 0.6f;
     [Tooltip("Seconds (at 1x) a herd mate runs after hearing an alarm call, even without seeing the predator.")]
     public float alarmFleeSeconds = 2.5f;
 
@@ -332,7 +346,7 @@ public class AnimalBrain : MonoBehaviour
 
     // Utility AI
     [Header("Utility AI")]
-    [Tooltip("How much escaping predators matters. A predator anywhere in fleeRadius scores at least half this.")]
+    [Tooltip("How much escaping predators matters. Any predator in sight scores at least this, up to double when close.")]
     public float fleeWeight = 1.5f;
 
     [Tooltip("How much chasing prey matters when hungry.")]
@@ -391,9 +405,20 @@ public class AnimalBrain : MonoBehaviour
 
     private EcosystemSimulator simulator;
 
-    // Optional field-of-view perception component. When present, its raycast/FOV
-    // results are used for predator and prey detection instead of registry-only scans.
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5, claude-opus-5-5): the only way this animal finds predators
+    // and prey. Added at Start if the prefab doesn't have one.
     private AnimalPerception perception;
+
+    /// <summary>This animal's vision (what predators and prey it can see).</summary>
+    public AnimalPerception Perception => perception;
+
+    /// <summary>Eating or drinking with its head down, so slower to spot a stalking predator.</summary>
+    public bool IsHeadDown =>
+        busy_timer > 0f &&
+        (CurrentAction == AnimalAction.EatingGrass || CurrentAction == AnimalAction.DrinkingWater);
+
+    // How far this animal sees (0 before Start).
+    float VisionRange => perception != null ? perception.visionRange : 0f;
 
     bool EventsMode =>
         simulator != null &&
@@ -545,6 +570,8 @@ public class AnimalBrain : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         perception = GetComponent<AnimalPerception>();
+        if (perception == null)
+            perception = gameObject.AddComponent<AnimalPerception>();   // [AI-GENERATED] Claude Code (Claude Opus 5.5): default vision
 
         if (agent != null)
         {
@@ -688,6 +715,7 @@ public class AnimalBrain : MonoBehaviour
 
         // ...but move / catch / eat every frame.
         if (huntRestTimer > 0f) huntRestTimer -= dt;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+        if (prey_memory_timer > 0f) prey_memory_timer -= dt;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
         if (CurrentAction != AnimalAction.Hunting && (IsStalking || sprintTimer > 0f)) { sprintTimer = 0f; SetCrouch(false); }
 
         if (busy_timer > 0f)
@@ -914,15 +942,19 @@ public class AnimalBrain : MonoBehaviour
         // A herd mate's alarm call (no predator seen yet) scores like a predator at the edge of the flee radius.
         scores[(int)AnimalAction.Fleeing] =
             HasThreat
-                ? fleeWeight * (1f + (predator != null ? Closeness(predator.position, fleeRadius) : 0f))
+                ? fleeWeight * (1f + (predator != null ? Closeness(predator.position, VisionRange) : 0f))
                 : 0f;
 
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): a leopard that is even a little hungry and sees prey goes for it
         // (before, it waited until starving, so hunts were rare). A full leopard (just ate) still rests,
         // and so does one catching its breath after a failed sprint.
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a hunt already under way carries on from memory when the
+        // prey goes out of sight (it only ever starts on a prey the predator can see).
+        bool huntFromMemory = SearchingForPrey && CurrentAction == AnimalAction.Hunting;
         scores[(int)AnimalAction.Hunting] =
-            prey != null && curr_hunger < huntBelowHunger && huntRestTimer <= 0f
-                ? huntWeight * (0.4f + HungerNeed) * DistanceFactor(prey.position, huntRadius)
+            (prey != null || huntFromMemory) && curr_hunger < huntBelowHunger && huntRestTimer <= 0f
+                ? huntWeight * (0.4f + HungerNeed) *
+                  DistanceFactor(prey != null ? prey.position : last_prey_position, VisionRange)
                 : 0f;
 
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): AppetiteNear makes a patch where a predator was seen
@@ -1013,89 +1045,37 @@ public class AnimalBrain : MonoBehaviour
 
         Vector3 pos = transform.position;
 
-        // If AnimalPerception is attached, only react to animals inside the
-        // configured field of view with a clear raycast line of sight.
-        // Keep the registry-based search as a fallback for older prefabs.
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+        // Predators and prey come only from what this animal can see (AnimalPerception): inside its vision
+        // cone and range, not behind a hill, camouflage and stalking taken into account, or close enough to
+        // hear / smell. Scanned here, once per decision, so it runs in simulation time.
         if (perception != null)
         {
+            perception.Scan();
+
             AnimalBrain seenPredator = perception.NearestPredator;
-            if (seenPredator != null && !seenPredator.IsCaught)
-            {
-                // [AI-GENERATED] Claude Code (Claude Opus 5.5): camouflage: a leopard on grass is noticed further
-                // out than one on snow (hearing / smell up close works anywhere).
-                float distance = Vector3.Distance(pos, seenPredator.transform.position);
-                if (distance <= Mathf.Max(fleeRadius * seenPredator.Visibility, senseAnywayDistance))
-                    predator = seenPredator.transform;
-            }
+            if (seenPredator != null)
+                predator = seenPredator.transform;
 
-            if (IsPredator)
+            if (IsPredator && perception.NearestPrey != null)
             {
-                AnimalBrain seenPrey = perception.NearestPrey;
-                if (seenPrey != null && !seenPrey.IsCaught)
-                {
-                    float hungryHuntRadius =
-                        huntRadius * Mathf.Lerp(1f, 4f, HungerNeed);
-
-                    float distance = Vector3.Distance(pos, seenPrey.transform.position);
-                    if (distance <= hungryHuntRadius)
-                    {
-                        prey = seenPrey.transform;
-                        prey_brain = seenPrey;
-                    }
-                }
+                prey_brain = perception.NearestPrey;
+                prey = prey_brain.transform;
             }
         }
-        else
+
+        // Remember where the prey was last seen, for when it goes out of sight.
+        if (prey_brain != null)
         {
-            predator = EcoRegistry.NearestPredator(
-                species_data,
-                pos,
-                fleeRadius * MaxVisibility);
-
-            // A caught or starved predator is no threat.
-            if (predator != null &&
-                predator.TryGetComponent(out AnimalBrain predatorBrain) &&
-                predatorBrain.IsCaught)
-            {
-                predator = null;
-            }
-
-            // Existing terrain/stalking/camouflage visibility check for older prefabs.
-            if (predator != null && !CanSee(predator)) predator = null;
-
-            if (IsPredator)
-            {
-                prey = EcoRegistry.NearestPrey(
-                    species_data,
-                    pos,
-                    huntRadius * Mathf.Lerp(1f, 4f, HungerNeed));
-
-                if (prey != null)
-                {
-                    prey.TryGetComponent(out prey_brain);
-
-                    if (prey_brain != null && prey_brain.IsCaught)
-                    {
-                        prey = null;
-                        prey_brain = null;
-                    }
-                }
-            }
+            remembered_prey = prey_brain;
+            last_prey_position = prey.position;
+            prey_memory_timer = preyMemorySeconds;
         }
-
-        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a stalking leopard keeps low and is only noticed up close
-        // (closer still on snow, where it blends in), and even closer by a sheep with its head down eating or
-        // drinking. Alert sheep spot it in time to get away; busy ones are the ones that get caught.
-        float headDown = busy_timer > 0f &&
-                         (CurrentAction == AnimalAction.EatingGrass || CurrentAction == AnimalAction.DrinkingWater)
-            ? grazingAlertness : 1f;
-        if (predator != null &&
-            predator.TryGetComponent(out AnimalBrain stalker) &&
-            stalker.IsStalking &&
-            (predator.position - pos).sqrMagnitude > Sqr(spotStalkerDistance * stalker.Visibility * headDown))
+        else if (remembered_prey != null && remembered_prey.IsCaught)
         {
-            predator = null;
+            ForgetPrey();   // caught by another predator, or starved
         }
+        // [AI-GENERATED END]
 
         if (predator != null)
             RememberPredator(predator.position, decisionInterval);   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
@@ -1141,7 +1121,6 @@ public class AnimalBrain : MonoBehaviour
     float SearchRadius(float need) =>
         need >= desperateNeed ? forageRadius * desperateSearchMultiplier : forageRadius;
 
-    static float Sqr(float v) => v * v;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
     // 0 at the edge of the radius, 1 right next to the target.
     float Closeness(Vector3 target, float radius) =>
@@ -1173,7 +1152,12 @@ public class AnimalBrain : MonoBehaviour
             case AnimalAction.Hunting:
                 if (prey_brain != null && prey_brain.species_data != null)
                     return prey_brain.species_data.speciesName;
-                return prey != null ? prey.name : "";
+                if (prey != null)
+                    return prey.name;
+                // [AI-GENERATED] Claude Code (Claude Opus 5.5): out of sight, still hunting it from memory
+                return remembered_prey != null && remembered_prey.species_data != null
+                    ? remembered_prey.species_data.speciesName
+                    : "";
 
             case AnimalAction.EatingGrass:
                 return food_patch != null && food_patch.Resource != null
@@ -1385,7 +1369,7 @@ public class AnimalBrain : MonoBehaviour
     bool Hunt(float speed)
     {
         if (prey == null)
-            return false;
+            return SearchingForPrey && GoToLastSeen(speed);   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
         // Another predator got it first.
         if (prey_brain != null &&
@@ -1490,40 +1474,53 @@ public class AnimalBrain : MonoBehaviour
         return true;
     }
 
-    // Eye-level raycast: is the line between us blocked by the ground? Stalkers also need to be close.
-    bool CanSee(Transform other)
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // The prey is out of sight: head for where it was last seen. A sprint already under way finishes its dash
+    // (still limited by maxSprintSeconds); otherwise it creeps there low and slow, out of the prey's view too.
+    // The next decision picks the hunt straight back up if the prey comes into view. Returns false when it
+    // gives up (arrived and found nothing, or out of breath), and it then rests before hunting again.
+    bool GoToLastSeen(float speed)
     {
-        Vector3 d = other.position - transform.position; d.y = 0f;
-        float flat = d.magnitude;
-        // Close by, a sheep hears or smells a leopard even without seeing it.
-        if (other.TryGetComponent(out AnimalBrain b) && b.IsStalking && flat > spotStalkerDistance * b.Visibility) return false;
-        if (flat <= senseAnywayDistance) { DebugSight(other, Color.yellow); return true; }
-        // [AI-GENERATED] Claude Code (Claude Opus 5.5): camouflage: seen from further on grass, closer on snow.
-        if (b != null && flat > fleeRadius * b.Visibility) return false;
+        Vector3 gap = last_prey_position - transform.position;
+        gap.y = 0f;
 
-        // Head height to head height; small bumps right at either end don't count, only a real hill between.
-        Vector3 eye = transform.position + Vector3.up * 1.5f;
-        Vector3 target = other.position + Vector3.up * 1.2f;
-        float len = Vector3.Distance(eye, target);
-        foreach (var hit in Physics.RaycastAll(eye, (target - eye) / len, len, ~0, QueryTriggerInteraction.Ignore))
-            if (hit.collider is TerrainCollider && hit.distance > 2f && hit.distance < len - 2f)
+        if (gap.magnitude <= catchDistance + BodyRadius)
+        {
+            GiveUpHunt();   // it's not here any more
+            return false;
+        }
+
+        bool sprinting = sprintTimer > 0f;
+        if (sprinting)
+        {
+            sprintTimer += Time.deltaTime * speed;
+            if (sprintTimer > maxSprintSeconds)
             {
-                DebugSight(other, Color.red, eye + (target - eye) / len * hit.distance);
+                DramaDirector.Report(DramaDirector.Moment.Catch, transform,
+                    $"The {SpeciesLabel(remembered_prey != null ? remembered_prey.species_data : null)} got away! The {SpeciesLabel(species_data)} is out of breath.");
+                GiveUpHunt();
                 return false;
             }
-        DebugSight(other, Color.green);
+        }
+        else
+        {
+            SetCrouch(true);
+        }
+
+        agent.speed = base_speed * (sprinting ? sprintSpeedMultiplier : stalkSpeedMultiplier) * speed;
+        SetDestinationIfMoved(last_prey_position, 1f);
         return true;
     }
 
-    [Tooltip("Draw sight lines in the Scene view (Game view with Gizmos on): green = sees, red = hill blocks (stops at the hill), yellow = close enough to hear/smell.")]
-    public bool showSightLines = true;
-
-    void DebugSight(Transform other, Color c, Vector3? stopAt = null)
+    void GiveUpHunt()
     {
-        if (!showSightLines) return;
-        Vector3 eye = transform.position + Vector3.up * 1.5f;
-        Debug.DrawLine(eye, stopAt ?? other.position + Vector3.up * 1.2f, c, decisionInterval);
+        sprintTimer = 0f;
+        SetCrouch(false);
+        huntRestTimer = giveUpRestSeconds;
+        ForgetPrey();
+        agent.ResetPath();
     }
+    // [AI-GENERATED END]
 
     // Stalking flag: the procedural animator shows the low, creeping Stalk pose (AnimalMotionBridge).
     void SetCrouch(bool on) => IsStalking = on;

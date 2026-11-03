@@ -14,19 +14,12 @@ public class AnimalMotionBridge : MonoBehaviour
     [Tooltip("Below this ground speed (m/s) the animal counts as standing.")]
     public float standingSpeed = 0.15f;
 
-    [Tooltip("Alert / stalk when a predator / prey is within this many times the flee / hunt radius.")]
-    public float awarenessMultiplier = 1.5f;
-
-    [Tooltip("Seconds between predator/prey proximity checks (EcoRegistry lookups).")]
-    public float awarenessInterval = 0.25f;
-
     AnimalBrain brain;
     ProcAnimator animator;
     bool wasStanding = true;
     Transform nearPredator, nearPrey;
     bool predatorNear => nearPredator != null;
     bool preyNear => nearPrey != null;
-    float nextAwarenessCheck;
 
     public ProcAnimator Animator => animator;
 
@@ -49,11 +42,7 @@ public class AnimalMotionBridge : MonoBehaviour
 
     void Update()
     {
-        if (Time.time >= nextAwarenessCheck)
-        {
-            nextAwarenessCheck = Time.time + awarenessInterval;
-            UpdateAwareness();
-        }
+        UpdateAwareness();
         var state = Pick();
         animator.SetState(state);
         // Alert prey watch the nearest predator; predators watch their prey (when hunting or stalking).
@@ -105,13 +94,15 @@ public class AnimalMotionBridge : MonoBehaviour
         }
     }
 
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5, claude-opus-5-5): only react to animals this one can actually
+    // see (AnimalPerception), so a leopard no longer crouches at a sheep on the other side of a hill.
     void UpdateAwareness()
     {
-        var species = brain.species_data;
-        if (species == null) { nearPredator = nearPrey = null; return; }
-        Vector3 at = transform.position;
-        nearPredator = EcoRegistry.NearestPredator(species, at, brain.fleeRadius * awarenessMultiplier);
-        nearPrey = EcoRegistry.NearestPrey(species, at, brain.huntRadius * awarenessMultiplier);
+        var perception = brain.Perception;
+        var predator = perception != null ? perception.NearestPredator : null;
+        var prey = perception != null ? perception.NearestPrey : null;
+        nearPredator = predator != null && !predator.IsCaught ? predator.transform : null;
+        nearPrey = prey != null && !prey.IsCaught ? prey.transform : null;
     }
 }
 // [AI-GENERATED END]
