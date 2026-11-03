@@ -83,6 +83,8 @@ public class MotionProfile : ScriptableObject
     public StateMotion eat = new StateMotion { pitch = 8f, cycleHz = 1f, pitchWave = 3f, frontLegAngle = 12f, backLegAngle = -6f, headPitch = 30f, headPitchWave = 10f, tailWag = 10f };
     public StateMotion drink = new StateMotion { height = -0.03f, pitch = 12f, cycleHz = 0.8f, pitchWave = 3f, frontLegAngle = 18f, backLegAngle = -8f, headPitch = 40f, headPitchWave = 4f, tailWag = 5f };
     public StateMotion alert = new StateMotion { height = 0.04f, pitch = -3f, cycleHz = 2.5f, rollWave = 1f, frontLegAngle = -6f, backLegAngle = 4f, headPitch = -20f };
+    [Tooltip("Crossing water: sunk to the shoulders, nose up, quick short paddling strokes.")]
+    public StateMotion swim = new StateMotion { height = -0.35f, pitch = -8f, stepsPerMetre = 0.9f, maxCycleHz = 1.8f, bobHeight = 0.03f, rollWave = 3f, legSwing = 30f, headPitch = -15f, tailWag = 2f };
 
     [Header("Blending")]
     [Tooltip("Seconds to cross-fade from one state to the next.")]
@@ -149,6 +151,7 @@ public class MotionProfile : ScriptableObject
         MotionState.Eat => eat,
         MotionState.Drink => drink,
         MotionState.Alert => alert,
+        MotionState.Swim => swim,
         _ => idle,
     };
 }
