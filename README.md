@@ -110,7 +110,7 @@ The built app starts from the first scene in Build Settings (HomeScreen).
 ## Build
 
 - **Editor:** **File → Build Profiles → Android → Build**.
-- **Command line** (Editor closed): `tools/unity.sh build android` or `tools\unity.bat build android`
+- **Command line** (Editor closed): `tools/unity.sh build android` or `tools\unity.bat build android` (release; `android-dev` for a development APK with the debug overlay, saved as `EcoBalance3D-dev.apk`)
   (also `windows`, and `macos` / `linux` with `unity.sh`). Output: `apps/mobile/EcoBalance3D/Build/<Platform>/`.
 - **CI:** the Android APK is built for every `v*` tag and on demand via **Actions → Unity CI → Run workflow** (choose `release` or `development`; development includes the debug overlay).
   APKs are stored on the team Gitea, not GitHub: **Gitea → team21-admin → Packages → `ecobalance-apk`** (newest 10 `build-*` versions kept; `v*` tags kept).
@@ -125,11 +125,11 @@ CI uses about 600 of the 3,000 student-Pro minutes per month (tests ~12 min, an 
 
 ## Clean
 
-`tools/unity.sh clean` or `tools\unity.bat clean` (menu option 5) deletes the Unity cache (`Library`, `Temp`, `Logs`, `obj`, `Build`)
+`tools/unity.sh clean` or `tools\unity.bat clean` (menu option 6) deletes the Unity cache (`Library`, `Temp`, `Logs`, `obj`, `Build`)
 and every other Git-ignored file (`UserSettings`, `.vs`, `.vscode`, `*.csproj`, `*.slnx`), leaving the folder like a fresh clone.
 Committed files, new uncommitted work and `.git` are kept. The next open re-imports everything and resets your Unity layout.
 
-**Submission zip:** `tools\unity.bat zip` (or menu option 6) or `tools/unity.sh zip` packs only the committed files (about 80 MB) into `EcoBalance_TechFiles.zip` next to the repo folder. You do not need to run Clean first.
+**Submission zip:** `tools\unity.bat zip` (or menu option 7) or `tools/unity.sh zip` packs only the committed files (about 80 MB) into `EcoBalance_TechFiles.zip` next to the repo folder. You do not need to run Clean first.
 
 Generated files, IDE folders, build output, logs and secrets are excluded by `.gitignore`; never commit them.
 

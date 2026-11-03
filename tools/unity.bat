@@ -1,7 +1,7 @@
 @echo off
 rem [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
 rem EcoBalance3D helper for Windows 11 (same commands as tools/unity.sh):
-rem   tools\unity.bat open | test | build [android^|windows] | clean | zip [name]
+rem   tools\unity.bat open | test | build [android^|android-dev^|windows] | clean | zip [name]
 rem Double-click it for a menu instead.
 rem Unity is found in the default Unity Hub folder; override with: set UNITY=C:\path\to\Unity.exe
 rem Close the Editor before test/build/clean.
@@ -25,21 +25,23 @@ echo  EcoBalance3D - Unity %VERSION%
 echo  ------------------------------
 echo   1. Open project in Unity
 echo   2. Run EditMode tests
-echo   3. Build Android APK
-echo   4. Build Windows EXE
-echo   5. Clean (Unity cache + all Git-ignored files: UserSettings, .vs, *.csproj...)
-echo   6. Make submission zip (committed files only)
-echo   7. Exit
+echo   3. Build Android APK (release)
+echo   4. Build Android APK (development: debug overlay, error log on screen)
+echo   5. Build Windows EXE
+echo   6. Clean (Unity cache + all Git-ignored files: UserSettings, .vs, *.csproj...)
+echo   7. Make submission zip (committed files only)
+echo   8. Exit
 echo.
 set "CHOICE="
-set /p "CHOICE=Choose 1-7: "
+set /p "CHOICE=Choose 1-8: "
 if "%CHOICE%"=="1" set "CMD=open"
 if "%CHOICE%"=="2" set "CMD=test"
 if "%CHOICE%"=="3" (set "CMD=build" & set "PLATFORM=android")
-if "%CHOICE%"=="4" (set "CMD=build" & set "PLATFORM=windows")
-if "%CHOICE%"=="5" set "CMD=clean"
-if "%CHOICE%"=="6" set "CMD=zip"
-if "%CHOICE%"=="7" exit /b 0
+if "%CHOICE%"=="4" (set "CMD=build" & set "PLATFORM=android-dev")
+if "%CHOICE%"=="5" (set "CMD=build" & set "PLATFORM=windows")
+if "%CHOICE%"=="6" set "CMD=clean"
+if "%CHOICE%"=="7" set "CMD=zip"
+if "%CHOICE%"=="8" exit /b 0
 if "%CMD%"=="" (
   echo Invalid choice.
   goto menu
@@ -57,7 +59,7 @@ if /i "%CMD%"=="zip" goto zip
 if /i "%CMD%"=="open" goto check
 if /i "%CMD%"=="test" goto check
 if /i "%CMD%"=="build" goto check
-echo Usage: tools\unity.bat open ^| test ^| build [android^|windows] ^| clean ^| zip [name]
+echo Usage: tools\unity.bat open ^| test ^| build [android^|android-dev^|windows] ^| clean ^| zip [name]
 echo (or double-click it for a menu)
 set "RC=0"
 goto end
@@ -90,6 +92,12 @@ goto end
 :build
 if "%PLATFORM%"=="" set "PLATFORM=android"
 set "METHOD="
+set "EXTRA="
+if /i "%PLATFORM%"=="android-dev" (
+  set "METHOD=EcoBalanceCIBuild.BuildAndroidDevelopment"
+  set "TARGET=Android"
+  set "EXTRA=-customBuildPath Build/Android/EcoBalance3D-dev.apk"
+)
 if /i "%PLATFORM%"=="android" (
   set "METHOD=BuildScript.BuildAndroid"
   set "TARGET=Android"
@@ -99,12 +107,12 @@ if /i "%PLATFORM%"=="windows" (
   set "TARGET=Win64"
 )
 if not defined METHOD (
-  echo Unknown platform %PLATFORM% - use android or windows
+  echo Unknown platform %PLATFORM% - use android, android-dev or windows
   set "RC=1"
   goto end
 )
 echo Building %PLATFORM% (Unity must be closed, takes a while)...
-"%UNITY%" -batchmode -nographics -quit -projectPath "%PROJECT%" -buildTarget %TARGET% -executeMethod %METHOD% -logFile -
+"%UNITY%" -batchmode -nographics -quit -projectPath "%PROJECT%" -buildTarget %TARGET% -executeMethod %METHOD% %EXTRA% -logFile -
 set "RC=%ERRORLEVEL%"
 if "%RC%"=="0" (echo BUILD OK - output in %PROJECT%\Build\) else (echo BUILD FAILED)
 goto end
