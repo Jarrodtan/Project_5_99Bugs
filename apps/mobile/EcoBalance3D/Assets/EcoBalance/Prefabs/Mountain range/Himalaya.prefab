@@ -55,8 +55,8 @@ MonoBehaviour:
   terrain: {fileID: 0}
   bootstrapLayers:
   - {fileID: 8574412962073106934, guid: a5109ee5eb8e5c444a2c190e80ef1829, type: 2}
-  - {fileID: 8574412962073106934, guid: e3ab767927a9dc94491bf9cbb3327306, type: 2}
   - {fileID: 8574412962073106934, guid: d1184f80bf1644f4a996231c3bd62530, type: 2}
+  - {fileID: 8574412962073106934, guid: e3ab767927a9dc94491bf9cbb3327306, type: 2}
   terrainMaterialTemplate: {fileID: 2100000, guid: 594ea882c5a793440b60ff72d896021e, type: 2}
 --- !u!114 &4087891693667200797
 MonoBehaviour:
