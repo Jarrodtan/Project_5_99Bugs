@@ -516,6 +516,23 @@ public class AnimalBrain : MonoBehaviour
     }
     void OnDisable() { all.Remove(this); }
 
+    // A pure coin flip gave the 2 starting leopards the same sex 1 time in 2, so they could never breed.
+    // Once the species is known, take whichever sex this species has fewer of (coin flip on a tie), so
+    // the starting animals are always split as evenly as possible. Babies get the same rule.
+    bool sexBalanced;
+    void BalanceSex()
+    {
+        if (sexBalanced || species_data == null) return;
+        sexBalanced = true;
+        int males = 0, females = 0;
+        foreach (var other in all)
+        {
+            if (other == this || other == null || other.IsCaught || !other.sexBalanced || other.species_data != species_data) continue;
+            if (other.AnimalSex == Sex.Male) males++; else females++;
+        }
+        if (males != females) AnimalSex = males < females ? Sex.Male : Sex.Female;
+    }
+
     /// <summary>Living animals right now (for Guided Exploration counts, events and endings).</summary>
     public static IReadOnlyList<AnimalBrain> All => all;
     public bool IsPredatorSpecies => IsPredator;
@@ -610,6 +627,8 @@ public class AnimalBrain : MonoBehaviour
             water_resources.AddRange(
                 species_data.GetResourceTargets(RelationshipType.Needs));
         }
+
+        BalanceSex();
 
         CurrentAction = AnimalAction.Roaming;
         CurrentTargetName = "";
