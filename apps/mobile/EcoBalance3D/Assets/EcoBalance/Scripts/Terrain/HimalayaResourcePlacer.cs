@@ -156,7 +156,12 @@ public class HimalayaResourcePlacer : MonoBehaviour
         var mat = shader != null ? new Material(shader) { name = "River (flowing)" } : MakeMaterial(waterColor);
 
         var system = new GameObject("River System");
-        system.transform.SetParent(transform, true);
+        // Terrain-local, not world-locked. The FAB fade scales the island; a mesh parked at the
+        // world origin keeps the half-scaled position after the island grows back.
+        system.transform.SetParent(tb.Terrain.transform, false);
+        system.transform.localPosition = Vector3.zero;
+        system.transform.localRotation = Quaternion.identity;
+        system.transform.localScale = Vector3.one;
         spawned.Add(system);
         RiverRoot = system.transform;
 
@@ -267,7 +272,10 @@ public class HimalayaResourcePlacer : MonoBehaviour
             if (mesh == null) continue;
 
             var go = new GameObject(f.IsArea ? $"Lake {lakes + 1}" : $"Stream {streams + 1}");
-            go.transform.SetParent(transform, true);   // keeps it at the world origin: the mesh is in world space
+            go.transform.SetParent(tb.Terrain.transform, false);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = Vector3.one;
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var mr = go.AddComponent<MeshRenderer>();
             mr.sharedMaterial = f.IsArea ? still : flowing;
