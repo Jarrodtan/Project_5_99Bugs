@@ -147,6 +147,7 @@ public static class GuidedScreens
                 OnClick(card, null, () => ShowDetail(s));
             }
             OnClick(overview, "BackBtn", CloseOrLeave);
+            SetUpScroll(overview);
         }
         if (detail != null)
         {
@@ -155,6 +156,43 @@ public static class GuidedScreens
             OnClick(detail, "RArrowBtn", () => ShowDetail(shown + 1));
         }
         ShowOverview();
+    }
+
+    // The overview fits 3 whole cards on a 16:10 tablet (the 4th was cut off, the 5th off-screen). Show 3 at a
+    // time in the first three cards' places; the arrows move the window one card, and the scroll dots
+    // light up the cards in view.
+    const int VisibleCards = 3;
+
+    static void SetUpScroll(Transform overview)
+    {
+        var cards = new List<RectTransform>();
+        for (int n = 1; n <= GalleryOrder.Length; n++)
+            if (Find(overview, $"EndingCard0{n}") is RectTransform rt) cards.Add(rt);
+        if (cards.Count <= VisibleCards) return;
+
+        var places = new Vector2[VisibleCards];
+        for (int n = 0; n < VisibleCards; n++) places[n] = cards[n].anchoredPosition;
+        var dots = new List<Image>();
+        for (int n = 1; n <= cards.Count; n++)
+            if (Find(overview, $"ScrollBall0{n}") is Transform d && d.TryGetComponent(out Image img)) dots.Add(img);
+
+        int first = 0;
+        void Show()
+        {
+            for (int n = 0; n < cards.Count; n++)
+            {
+                int place = n - first;
+                bool inView = place >= 0 && place < VisibleCards;
+                cards[n].gameObject.SetActive(inView);
+                if (inView) cards[n].anchoredPosition = places[place];
+            }
+            for (int n = 0; n < dots.Count; n++)
+                dots[n].color = n >= first && n < first + VisibleCards ? new Color(0.3f, 0.62f, 0.38f) : Color.white;
+        }
+        int last = cards.Count - VisibleCards;
+        OnClick(overview, "LArrowBtn", () => { first = Mathf.Max(0, first - 1); Show(); });
+        OnClick(overview, "RArrowBtn", () => { first = Mathf.Min(last, first + 1); Show(); });
+        Show();
     }
 
     static void CloseOrLeave()
