@@ -159,9 +159,24 @@ public static class GuidedScreens
     }
 
     // The overview fits 3 whole cards on a 16:10 tablet (the 4th was cut off, the 5th off-screen). Show 3 at a
-    // time in the first three cards' places; the arrows move the window one card, and the scroll dots
-    // light up the cards in view.
+    // time in the first three cards' places; a swipe or the arrows move the window one card, and one dot per
+    // scroll position (3 for 5 cards) shows where you are.
     const int VisibleCards = 3;
+    const float SwipeDistance = 60f;   // screen pixels a finger must travel sideways to count as a swipe
+
+    // Sideways swipe anywhere on the overview (cards are buttons, so their drags bubble up to here).
+    class Swipe : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+    {
+        public System.Action<int> onSwipe;   // +1 = next cards (finger moved left), -1 = previous
+        Vector2 start;
+        public void OnBeginDrag(PointerEventData e) => start = e.position;
+        public void OnDrag(PointerEventData e) { }
+        public void OnEndDrag(PointerEventData e)
+        {
+            var d = e.position - start;
+            if (Mathf.Abs(d.x) >= SwipeDistance && Mathf.Abs(d.x) > Mathf.Abs(d.y)) onSwipe?.Invoke(d.x < 0f ? 1 : -1);
+        }
+    }
 
     static void SetUpScroll(Transform overview)
     {
@@ -172,9 +187,15 @@ public static class GuidedScreens
 
         var places = new Vector2[VisibleCards];
         for (int n = 0; n < VisibleCards; n++) places[n] = cards[n].anchoredPosition;
+        int last = cards.Count - VisibleCards;
         var dots = new List<Image>();
-        for (int n = 1; n <= cards.Count; n++)
-            if (Find(overview, $"ScrollBall0{n}") is Transform d && d.TryGetComponent(out Image img)) dots.Add(img);
+        for (int n = 1; n <= 9; n++)
+        {
+            if (!(Find(overview, $"ScrollBall0{n}") is Transform d)) continue;
+            bool used = n - 1 <= last;          // 5 cards, 3 in view: positions 1-3, 2-4, 3-5 = 3 dots
+            d.gameObject.SetActive(used);
+            if (used && d.TryGetComponent(out Image img)) dots.Add(img);
+        }
 
         int first = 0;
         void Show()
@@ -187,11 +208,16 @@ public static class GuidedScreens
                 if (inView) cards[n].anchoredPosition = places[place];
             }
             for (int n = 0; n < dots.Count; n++)
-                dots[n].color = n >= first && n < first + VisibleCards ? new Color(0.3f, 0.62f, 0.38f) : Color.white;
+                dots[n].color = n == first ? new Color(0.3f, 0.62f, 0.38f) : Color.white;
         }
-        int last = cards.Count - VisibleCards;
-        OnClick(overview, "LArrowBtn", () => { first = Mathf.Max(0, first - 1); Show(); });
-        OnClick(overview, "RArrowBtn", () => { first = Mathf.Min(last, first + 1); Show(); });
+        void Move(int step) { first = Mathf.Clamp(first + step, 0, last); Show(); }
+        OnClick(overview, "LArrowBtn", () => Move(-1));
+        OnClick(overview, "RArrowBtn", () => Move(1));
+
+        // Swiping needs something on the panel the touch can land on; a clear image if the mock-up has none.
+        if (!overview.TryGetComponent(out Graphic bg)) { bg = overview.gameObject.AddComponent<Image>(); bg.color = Color.clear; }
+        bg.raycastTarget = true;
+        overview.gameObject.AddComponent<Swipe>().onSwipe = Move;
         Show();
     }
 
