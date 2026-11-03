@@ -76,6 +76,9 @@ public class HimalayaSplatPainter : MonoBehaviour
             else if (c == HimalayaLandCover.Bare) steep = Mathf.Max(steep, 0.8f);
         }
 
+        if (profile != null && profile.suppressSnow)
+            snow = 0f;
+
         rock = (1f - snow) * steep;
         grass = (1f - snow) * (1f - steep);
     }
