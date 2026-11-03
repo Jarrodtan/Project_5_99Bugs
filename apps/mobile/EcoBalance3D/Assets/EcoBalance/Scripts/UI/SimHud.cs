@@ -66,6 +66,8 @@ public class SimHud : MonoBehaviour
 
     GameObject inspection, expanded, overview;
     AnimalBrain shown;
+    AnimalBrain factAnimal;   // the animal the current fun fact was picked for
+    string fact;
     float nextRefresh;
     bool weatherMoved;
 
@@ -358,9 +360,8 @@ public class SimHud : MonoBehaviour
 
         SetText("ActionTxt", ActionWords(a), p);
         SetText("DescriptionTxt", Describe(a), p);
-        SetText("DYKTxt", a.IsPredatorSpecies
-            ? "Snow Leopards use their long, fluffy tails to balance on rocky mountains!"
-            : "Blue Sheep are excellent climbers and can move across steep, rocky mountain slopes.", Find("DYKPanel", p));
+        if (factAnimal != a) { factAnimal = a; fact = FieldJournalScreen.NextFactFor(a.IsPredatorSpecies); }   // new fact per tap, steady while open
+        SetText("DYKTxt", fact, Find("DYKPanel", p));
     }
 
     static string ActionWords(AnimalBrain a) => a.CurrentAction switch
