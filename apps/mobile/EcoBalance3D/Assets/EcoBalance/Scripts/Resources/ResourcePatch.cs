@@ -50,6 +50,8 @@ public class ResourcePatch : MonoBehaviour
     // Sets the resource for a patch created from code (see ResourcePatchSpawner) and refills it.
     /// <summary>Amount regrown per second, for patches created from code.</summary>
     public float RegrowPerSecond { get => regrowPerSecond; set => regrowPerSecond = Mathf.Max(0f, value); }   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+    /// <summary>Below this amount animals ignore the patch, for patches created from code.</summary>
+    public float MinEdibleAmount { get => minEdibleAmount; set => minEdibleAmount = Mathf.Max(0f, value); }   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
     public void Configure(ResourceDefinition value)
     {
@@ -73,7 +75,7 @@ public class ResourcePatch : MonoBehaviour
     void Update()
     {
         if (amount >= MaxAmount) return;
-        float mult = IsWater ? WaterGrowthMultiplier : PlantGrowthMultiplier;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+        float mult = IsWater ? WaterGrowthMultiplier : PlantGrowthMultiplier * GuidedEffects.PlantRegen;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
         amount = Mathf.Min(MaxAmount, amount + regrowPerSecond * mult * Time.deltaTime);
         UpdateVisual();
     }
@@ -87,6 +89,25 @@ public class ResourcePatch : MonoBehaviour
         return taken;
     }
 
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): Guided "help the grass recover" (+points of the patch's max), capped at full.
+    public void Restore(float pointsOfHundred)
+    {
+        amount = Mathf.Min(MaxAmount, amount + MaxAmount * pointsOfHundred / 100f);
+        UpdateVisual();
+    }
+
+    /// <summary>Average fullness of every grass (non-water) patch, 0-100. The "Vegetation %" the research uses.</summary>
+    public static float VegetationPercent()
+    {
+        float sum = 0f; int n = 0;
+        foreach (var p in All)
+        {
+            if (p == null || p.IsWater || p.resource == null) continue;
+            sum += p.MaxAmount > 0f ? p.amount / p.MaxAmount : 0f; n++;
+        }
+        return n > 0 ? sum / n * 100f : 0f;
+    }
+
     void UpdateVisual()
     {
         float fill = MaxAmount > 0f ? amount / MaxAmount : 0f;
@@ -94,14 +115,14 @@ public class ResourcePatch : MonoBehaviour
     }
 
     // Nearest edible patch of one of the wanted resources within radius (radius <= 0 = unlimited).
-    public static ResourcePatch FindNearest(Vector3 from, IList<ResourceDefinition> wanted, float radius)
+    public static ResourcePatch FindNearest(Vector3 from, IList<ResourceDefinition> wanted, float radius, System.Func<ResourcePatch, bool> skip = null)  // [AI-GENERATED] Claude Code (Claude Opus 5.5): skip = e.g. unreachable
     {
         ResourcePatch best = null;
         float bestSqr = radius > 0f ? radius * radius : float.PositiveInfinity;
 
         foreach (var patch in All)
         {
-            if (patch == null || !patch.IsEdible || !wanted.Contains(patch.resource)) continue;
+            if (patch == null || !patch.IsEdible || !wanted.Contains(patch.resource) || (skip != null && skip(patch))) continue;
 
             float sqr = (patch.transform.position - from).sqrMagnitude;
             if (sqr < bestSqr)
@@ -112,6 +133,36 @@ public class ResourcePatch : MonoBehaviour
         }
         return best;
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // Like FindNearest, but each patch's distance gets extraCost(patch position) added, so an animal can
+    // prefer a farther patch over a near one it thinks is dangerous. The radius still uses the real distance.
+    public static ResourcePatch FindBest(Vector3 from, IList<ResourceDefinition> wanted, float radius, System.Func<Vector3, float> extraCost, System.Func<ResourcePatch, bool> skip = null)
+    {
+        if (extraCost == null) return FindNearest(from, wanted, radius, skip);
+
+        ResourcePatch best = null;
+        float bestCost = float.PositiveInfinity;
+        float radiusSqr = radius > 0f ? radius * radius : float.PositiveInfinity;
+
+        foreach (var patch in All)
+        {
+            if (patch == null || !patch.IsEdible || !wanted.Contains(patch.resource) || (skip != null && skip(patch))) continue;
+
+            Vector3 p = patch.transform.position;
+            float sqr = (p - from).sqrMagnitude;
+            if (sqr > radiusSqr) continue;
+
+            float cost = Mathf.Sqrt(sqr) + extraCost(p);
+            if (cost < bestCost)
+            {
+                bestCost = cost;
+                best = patch;
+            }
+        }
+        return best;
+    }
+    // [AI-GENERATED END]
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() => All.Clear();

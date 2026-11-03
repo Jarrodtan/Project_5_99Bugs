@@ -2,15 +2,18 @@
 
 **Team:** 99 Bugs · CSD3401 / UXG3400, Fall 2026
 
-EcoBalance is an interactive, educational 3D ecosystem simulation. Players set up a small ecosystem
-(grass → blue sheep → snow leopard), run it, and watch how populations and resources change each other over time.
+EcoBalance is an interactive, educational 3D ecosystem simulation for children aged 6–9, set in the
+Himalayan Highlands (grass → blue sheep → snow leopard). Two modes:
+
+- **Free Exploration:** choose the starting blue sheep and snow leopards, run the ecosystem, observe, and discover investigations in the Field Journal.
+- **Guided Exploration:** a 20-day survival challenge. Events pause the game and ask for a choice; the ecosystem's real state decides one of 5 endings, kept in an Ending Gallery.
 
 ## Documentation
 
 | Document | Contents |
 |---|---|
 | [`docs/proposal.md`](docs/proposal.md) | Concept, problem, target users, player experience |
-| [`docs/design/product-design.md`](docs/design/product-design.md) | Team, user journey, MVP, M1 feature plan |
+| [`docs/design/product-design.md`](docs/design/product-design.md) | Team, user journey, MVP, M1 feature plan, Milestone 2 status |
 | [`docs/design/ui-ux/`](docs/design/ui-ux/) | Wireframes, user flows, mockups |
 | [`docs/architecture.md`](docs/architecture.md) | System architecture, diagram, components/owners, repo & module structure |
 | [`docs/deliverables.md`](docs/deliverables.md) | Technical deliverables, ownership, M1/M2/M3 targets |
@@ -82,8 +85,15 @@ Supported development environments: **Windows 11, macOS Tahoe, Ubuntu 24.04**.
 
 ## Run
 
-Open `Assets/Scenes/HomeScreen` and press **Play**. From the home screen go to the configuration screen, set the starting numbers of blue sheep and snow leopards, and press **Start**.
-Use **Play / Pause / Reset** and **x1 / x2 / x4 / x8** to control the simulation.
+Open `Assets/Scenes/HomeScreen` and press **Play** (always start from HomeScreen: it sets up the mode).
+**Start → Explore (Himalayan Highlands) →** then either:
+
+- **Start Guided:** the 20-day challenge begins at once (10 blue sheep, 2 snow leopards).
+- **Start Free:** set the starting numbers (default 10 / 2, up to 20 / 5) and press **Start**.
+
+In the simulation: **Play/Pause**, the **speed** button (1x → 2x → 4x → 8x) and **Reset** at the bottom left; tap an animal to inspect it;
+**View Details** expands the ecosystem overview; **Field Journal** opens over the paused run; **Back** asks before leaving.
+Drag to spin the camera, two fingers to move, pinch to zoom. One game day is 2 real minutes at 1x, so test at 8x.
 
 The built app starts from the first scene in Build Settings (HomeScreen).
 
@@ -95,12 +105,12 @@ The built app starts from the first scene in Build Settings (HomeScreen).
   - Windows: `tools\unity.bat test`
 
   Results are written to `test-results.xml`.
-- **CI:** every pull request runs the repo checks (`python tools/ci/repo-checks.py`, also runnable locally). The EditMode tests (including scene smoke tests and performance tests) run **nightly** on `main` (02:00 SGT, only if `main` changed) to save Actions minutes, so run them in the Unity Test Runner before opening a PR. Failures are printed in the job log.
+- **CI:** every pull request into `main` runs the repo checks (`python tools/ci/repo-checks.py`, also runnable locally) **and** the EditMode tests (including scene smoke tests and performance tests). There is no nightly run: everything reaches `main` through a PR, which runs the same tests. Each PR run also adds a row to the performance history on Gitea. Failures are printed in the job log.
 
 ## Build
 
 - **Editor:** **File → Build Profiles → Android → Build**.
-- **Command line** (Editor closed): `tools/unity.sh build android` or `tools\unity.bat build android`
+- **Command line** (Editor closed): `tools/unity.sh build android` or `tools\unity.bat build android` (release; `android-dev` for a development APK with the debug overlay, saved as `EcoBalance3D-dev.apk`)
   (also `windows`, and `macos` / `linux` with `unity.sh`). Output: `apps/mobile/EcoBalance3D/Build/<Platform>/`.
 - **CI:** the Android APK is built for every `v*` tag and on demand via **Actions → Unity CI → Run workflow** (choose `release` or `development`; development includes the debug overlay).
   APKs are stored on the team Gitea, not GitHub: **Gitea → team21-admin → Packages → `ecobalance-apk`** (newest 10 `build-*` versions kept; `v*` tags kept).
@@ -111,24 +121,25 @@ CI needs these repository secrets: `UNITY_SERIAL`, `UNITY_EMAIL`, `UNITY_PASSWOR
 `GITEA_LFS_TOKEN` (LFS pull) and `GITEA_PACKAGE_TOKEN` (APK upload; Gitea token with package read/write).
 On `v*` tags (and on demand with `headless` ticked) CI also builds a **Linux headless** version that the team VM soak-tests (`tools/vm/soak.sh`, results on Gitea → Packages → `ecobalance-soak`).
 APKs and performance history go to Gitea, so GitHub artifact storage stays at 0 (it filled up in October 2026 and locked Actions).
-CI uses about 1,400 of the 3,000 student-Pro minutes per month; an Actions budget with "stop usage" makes it pause rather than charge.
+CI uses about 600 of the 3,000 student-Pro minutes per month (tests ~12 min, an APK build ~50 min); an Actions budget with "stop usage" makes it pause rather than charge.
 
 ## Clean
 
-`tools/unity.sh clean` or `tools\unity.bat clean` (menu option 5) deletes the Unity cache (`Library`, `Temp`, `Logs`, `obj`, `Build`)
+`tools/unity.sh clean` or `tools\unity.bat clean` (menu option 6) deletes the Unity cache (`Library`, `Temp`, `Logs`, `obj`, `Build`)
 and every other Git-ignored file (`UserSettings`, `.vs`, `.vscode`, `*.csproj`, `*.slnx`), leaving the folder like a fresh clone.
 Committed files, new uncommitted work and `.git` are kept. The next open re-imports everything and resets your Unity layout.
 
-**Submission zip:** `tools\unity.bat zip` (or menu option 6) or `tools/unity.sh zip` packs only the committed files (about 80 MB) into `EcoBalance_TechFiles.zip` next to the repo folder. You do not need to run Clean first.
+**Submission zip:** `tools\unity.bat zip` (or menu option 7) or `tools/unity.sh zip` packs only the committed files (about 80 MB) into `EcoBalance_TechFiles.zip` next to the repo folder. You do not need to run Clean first.
 
 Generated files, IDE folders, build output, logs and secrets are excluded by `.gitignore`; never commit them.
 
 ## Workflow
 
-- Work on your personal branch, merge `main` into it often, and open a **pull request into `main`**.
+- Work on your personal branch. During a milestone, merge it into the **integration branch** (`M2-Integration` for M2), not `main`. Pull the integration branch before you start, and write real commit messages.
+- At the milestone the integration branch goes into `main` through one **pull request**.
 - `main` is protected: merge only after the **EditMode tests** check passes. Never push directly to `main`.
 - Rename or move Unity files **inside the Unity Editor** so their `.meta` files move with them.
 - Jira tracks the work; this repository holds the implementation and evidence.
 - **Access:** all 9 team members and the instructor are collaborators on the GitHub repository.
-- **Code freeze:** before each milestone, `main` is frozen (M1: Sat 3 Oct 2026, 5pm). After the freeze, only bug fixes go in, through a reviewed pull request with passing tests.
+- **Code freeze:** before each milestone, `main` is frozen (M1: Sat 3 Oct 2026, 5pm; M2: announced in the team chat). After the freeze, only bug fixes go in, through a reviewed pull request with passing tests. The submitted state is kept on a `M<n>-Submission` branch and a `v0.<n>-m<n>` tag.
 - **Submission build:** the milestone zip is made from frozen `main` with `tools\unity.bat zip` / `tools/unity.sh zip`, so it matches exactly what was reviewed.

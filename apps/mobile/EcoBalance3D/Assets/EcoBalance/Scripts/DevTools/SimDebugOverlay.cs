@@ -1,5 +1,4 @@
 // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -19,6 +18,7 @@ public class SimDebugOverlay : MonoBehaviour
     EcosystemSimulator sim;
     PopulationHistoryRecorder recorder;
     CaseDetector detector;
+    ClockService clock;
     // Hidden by default so demos and recordings show the real UI; ` opens it.
     bool visible;
     string banner;
@@ -37,6 +37,7 @@ public class SimDebugOverlay : MonoBehaviour
 
     static void TryInstall()
     {
+        if (!Debug.isDebugBuild) return;
         if (FindAnyObjectByType<SimDebugOverlay>() != null) return;
         var sim = FindAnyObjectByType<EcosystemSimulator>();
         if (sim == null) return;
@@ -55,7 +56,8 @@ public class SimDebugOverlay : MonoBehaviour
             detector = sim.gameObject.AddComponent<CaseDetector>();
             detector.cases = Resources.LoadAll<InvestigationCase>("Cases").OrderBy(c => c.name).ToList();
         }
-        detector.CaseUnlocked += c => { banner = $"New case discovered: {c.title}"; bannerUntil = Time.unscaledTime + 4f; };
+        detector.CaseUnlocked += c => { if (CaseDiscoveryToast.Active) return; banner = $"New case discovered: {c.title}"; bannerUntil = Time.unscaledTime + 4f; };
+        clock = FindAnyObjectByType<ClockService>();
     }
 
     void Update()
@@ -86,7 +88,8 @@ public class SimDebugOverlay : MonoBehaviour
         if (GUI.Button(new Rect(Screen.width - w - 10, 10, 90, 24), "Hide debug")) visible = false;
 
         var lines = new List<(string text, GUIStyle style)>();
-        lines.Add(($"Day {sim.TickCount}  ·  mode {sim.mode}", title));
+        var day = clock != null ? clock.Day : sim.TickCount;
+        lines.Add(($"Day {day}  ·  mode {sim.mode}", title));
         foreach (var kv in sim.populations)
             if (kv.Key != null) lines.Add(($"{kv.Key.name}: {kv.Value:0}", label));
         if (sim.resources != null)
@@ -116,5 +119,4 @@ public class SimDebugOverlay : MonoBehaviour
             detector.Journal.ResetAll();
     }
 }
-#endif
 // [AI-GENERATED END]

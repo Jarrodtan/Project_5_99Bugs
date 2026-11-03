@@ -160,7 +160,7 @@ public class SeasonWeather : MonoBehaviour
         return Weather.Clear;
     }
 
-    static string Describe(Weather w) => w switch
+    public static string Describe(Weather w) => w switch
     {
         Weather.Rain => "Rain", Weather.Snow => "Snow", Weather.Drought => "Drought", _ => "Clear",
     };

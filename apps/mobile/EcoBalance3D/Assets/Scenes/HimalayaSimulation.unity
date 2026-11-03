@@ -1586,12 +1586,12 @@ MonoBehaviour:
   minHeightAboveGround: 2
   edgeMargin: 35
   minDistance: 3
-  maxDistance: 110
+  maxDistance: 80
   startDistance: 45
   wheelZoomStep: 0.12
-  minPitch: 5
+  minPitch: 15
   maxPitch: 70
-  startPitch: 15
+  startPitch: 35
   startYaw: 0
   rotateSpeed: 0.25
   smoothTime: 0.12
@@ -2806,11 +2806,13 @@ MonoBehaviour:
   maxElevationFraction: 0.49
   maxSpawnSlope: 40
   minElevationFraction: 0.26
+  minElevationMeters: 4200
+  maxElevationMeters: 5500
   nearResource: {fileID: 0}
   nearResourceDistance: 12
-  groups: 2
-  groupRadius: 30
-  minGroupSeparation: 90
+  groups: 7
+  groupRadius: 7
+  minGroupSeparation: 28
   minSpacing: 20
   populationPerVisual: 1
 --- !u!4 &502627226
@@ -3263,7 +3265,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &781650672
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3603,11 +3605,13 @@ MonoBehaviour:
   maxElevationFraction: 0.18
   maxSpawnSlope: 35
   minElevationFraction: 0
+  minElevationMeters: 4000
+  maxElevationMeters: 5200
   nearResource: {fileID: 11400000, guid: 76da2c5da0148784389995384801e63e, type: 2}
   nearResourceDistance: 12
-  groups: 2
-  groupRadius: 18
-  minGroupSeparation: 60
+  groups: 5
+  groupRadius: 14
+  minGroupSeparation: 35
   minSpacing: 3
   populationPerVisual: 1
 --- !u!4 &977121266
@@ -5260,8 +5264,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1500000002}
   - component: {fileID: 1500000003}
-  - component: {fileID: 1500000004}
-  - component: {fileID: 1500000005}
   - component: {fileID: 1500000006}
   m_Layer: 0
   m_Name: Selection
@@ -5300,34 +5302,6 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: c1000000000000000000000000000003, type: 2}
   context: {fileID: 11400000, guid: c1000000000000000000000000000004, type: 2}
   cameraOverride: {fileID: 0}
---- !u!114 &1500000004
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1500000001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a1000000000000000000000000000010, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SelectionDemoRig
-  demoConfig: {fileID: 11400000, guid: c1000000000000000000000000000007, type: 2}
-  simulationQuery: {fileID: 933990898}
---- !u!114 &1500000005
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1500000001}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d1000000000000000000000000000007, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InspectableDebugLogger
-  selectionContext: {fileID: 11400000, guid: c1000000000000000000000000000004, type: 2}
-  inspectionConfig: {fileID: 11400000, guid: e1000000000000000000000000000003, type: 2}
 --- !u!114 &1500000006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5887,7 +5861,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1900000001}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 188f1090d05042fc811ddc2233e7769a, type: 3}
   m_Name: 
@@ -5906,7 +5880,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1900000001}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 188f1090d05042fc811ddc2233e7769a, type: 3}
   m_Name: 

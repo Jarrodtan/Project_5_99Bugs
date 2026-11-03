@@ -34,6 +34,14 @@ public class DataLogging : MonoBehaviour
         temp.Add(new Data {check = curr, blue_sheep = sheep, snow_leopard = leopard, trees = tree_num});
     }
 
+    // The run ends when the scene unloads (Back, Reset, stopping play, closing the app): save then,
+    // so no End button is needed. Quiet if nothing was recorded.
+    void OnDestroy()
+    {
+        if (recording && temp.Count > 0)
+            ExportCSV();
+    }
+
     public void ExportCSV()
     {
         if (!recording)
@@ -55,7 +63,10 @@ public class DataLogging : MonoBehaviour
             csv.AppendLine($"{data.check},{data.blue_sheep},{data.snow_leopard},{data.trees}");
         }
 
-        string folder = Path.Combine(Application.dataPath, "EcoBalance/Data/DataLogging");
+        // The Assets folder is read-only on a built app, so the tablet saves to its app data folder.
+        string folder = Application.isEditor
+            ? Path.Combine(Application.dataPath, "EcoBalance/Data/DataLogging")
+            : Path.Combine(Application.persistentDataPath, "DataLogging");
 
         if (!Directory.Exists(folder))
         {

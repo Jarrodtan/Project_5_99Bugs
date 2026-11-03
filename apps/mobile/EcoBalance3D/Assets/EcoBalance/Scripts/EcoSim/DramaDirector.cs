@@ -60,6 +60,14 @@ public class DramaDirector : MonoBehaviour
         if (instance == null) instance = new GameObject("[DramaDirector]").AddComponent<DramaDirector>();
         if (instance.banner == null) instance.BuildUI();
         instance.status.text = text;
+        UpdateStatusVisibility();
+    }
+
+    /// <summary>With Shumin's HUD, her day panel shows the season and weather instead (one day count, not two).</summary>
+    public static void UpdateStatusVisibility()
+    {
+        if (instance == null || instance.status == null) return;
+        instance.status.transform.parent.gameObject.SetActive(!SimHud.Active);
     }
 
     void Offer(Moment moment, Transform target, string text)
@@ -160,7 +168,10 @@ public class DramaDirector : MonoBehaviour
         prt.anchoredPosition = new Vector2(-40f, -170f);   // below the Play/Pause/Reset row, so narrow tablets don't overlap
         prt.sizeDelta = new Vector2(620f, 84f);
         pill.GetComponent<Image>().color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+        // display only; on 4:3 tablets the pill overlaps the HUD's Field Journal button and swallowed its taps
+        pill.GetComponent<Image>().raycastTarget = false;
         status = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+        status.raycastTarget = false;
         status.transform.SetParent(pill.transform, false);
         var srt = status.rectTransform;
         srt.anchorMin = Vector2.zero; srt.anchorMax = Vector2.one; srt.offsetMin = srt.offsetMax = Vector2.zero;
