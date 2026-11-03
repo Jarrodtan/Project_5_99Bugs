@@ -31,9 +31,6 @@ public class TerrainEditTool : MonoBehaviour
 {
     public enum Tool { Look, Raise, Lower, Flatten, Smooth, AddGrass, RemoveGrass }
 
-    /// <summary>Off for M2: no Edit Terrain button anywhere (Editor, dev and release builds).</summary>
-    public const bool Enabled = false;
-
     [Tooltip("Brush radius range, world units.")]
     public Vector2 brushSizeRange = new Vector2(3f, 60f);
     [Tooltip("Raise/Lower speed at full strength, in fractions of the map's total height per second.")]
@@ -590,9 +587,8 @@ public class TerrainEditTool : MonoBehaviour
 
     void BuildUi()
     {
-        // [AI-GENERATED] Claude Code (Claude Opus 5.5): switched off on 3 Nov, the team does not need it in M2
-        // (and editing made the pink terrain worse). Set Enabled = true to bring the Edit Terrain button back.
-        if (!Enabled) return;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): in every build since 3 Nov (was Editor / development
+        // only): players can reshape the land and watch how the animals respond.
 
         if (EventSystem.current == null)
         {
