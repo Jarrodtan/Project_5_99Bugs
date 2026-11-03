@@ -51,11 +51,17 @@ public class ClockService : MonoBehaviour, IClockProvider
     /// <inheritdoc />
     public event Action<int> OnDayChanged;
 
+    /// <summary>Real seconds in one game day at 1x (ClockConfig.dayLengthSeconds); animal timings scale with it.</summary>
+    public static float DaySeconds { get; private set; } = 60f;
+
     void Awake()
     {
         _pauseGate = pauseGateBehaviour as ISimulationPauseGate;
         if (config != null)
+        {
             config.EnsureDefaults();
+            DaySeconds = config.dayLengthSeconds;
+        }
         ApplyStartState();
     }
 

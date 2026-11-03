@@ -93,7 +93,7 @@ Open `Assets/Scenes/HomeScreen` and press **Play** (always start from HomeScreen
 
 In the simulation: **Play/Pause**, the **speed** button (1x → 2x → 4x → 8x) and **Reset** at the bottom left; tap an animal to inspect it;
 **View Details** expands the ecosystem overview; **Field Journal** opens over the paused run; **Back** asks before leaving.
-Drag to spin the camera, two fingers to move, pinch to zoom. One game day is 2 real minutes at 1x, so test at 8x.
+Drag to spin the camera, two fingers to move, pinch to zoom. One game day is 1 real minute at 1x (a 20-day Guided run is 20 minutes, 2.5 at 8x).
 
 The built app starts from the first scene in Build Settings (HomeScreen).
 

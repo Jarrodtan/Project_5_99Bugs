@@ -236,7 +236,7 @@ public class AnimalBrain : MonoBehaviour
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
     // Shumin's research (Simulation Logic): Fullness and Hydration drop by a fixed amount per simulated day,
     // animals look for food / water at 50% or less, and health (HP) only falls once one of them is empty.
-    // Timings are in real seconds at 1x (1 game day = 120 s).
+    // Timings are in real seconds at 1x for a 120 s game day; they are scaled to the clock's day length (DayScale).
     [Tooltip("Fullness 100 -> 0 in this many seconds for plant-eaters (research: -20 per day = 600 s).")]
     public float preyStarveAfterSeconds = 600f;
 
@@ -265,9 +265,13 @@ public class AnimalBrain : MonoBehaviour
     [Tooltip("Food a successful hunt gives a predator (research: +80).")]
     public float huntFill = 80f;
 
-    const float DaySeconds = 120f;   // 1 simulated day at 1x (ClockConfig)
+    // The second-based timings above and below were written for 120-second days. They are scaled by the
+    // clock's real day length, so "5 days to starve" stays 5 game days whatever ClockConfig says (60 s since 3 Nov).
+    const float AuthoredDaySeconds = 120f;
+    static float DaySeconds => ClockService.DaySeconds;
+    static float DayScale => DaySeconds / AuthoredDaySeconds;
     public float curr_health = 100f;
-    float DehydrateAfter => IsPredator ? predatorDehydrateAfterSeconds : dehydrateAfterSeconds;
+    float DehydrateAfter => (IsPredator ? predatorDehydrateAfterSeconds : dehydrateAfterSeconds) * DayScale;
 
     /// <summary>Guided events: change health directly (illness -20, help +15), capped at max.</summary>
     public void ChangeHealth(float amount) => curr_health = Mathf.Clamp(curr_health + amount, 0f, maxHealth);
@@ -305,7 +309,7 @@ public class AnimalBrain : MonoBehaviour
     // [AI-GENERATED] Claude Code (Claude Opus 5.5): snow leopards live alone and far apart and find mates
     // by scent marks and calls, so a herd-sized radius meant they almost never met one.
     [Tooltip("Mate search distance for predators, which live alone and far apart.")]
-    public float predatorMateRadius = 90f;
+    public float predatorMateRadius = 1000f;   // the whole valley: a ready pair seeks each other out
 
     float MateRadius => IsPredator ? predatorMateRadius : mateRadius;
 
@@ -322,7 +326,7 @@ public class AnimalBrain : MonoBehaviour
     // [AI-GENERATED] Claude Code (Claude Opus 5.5): research - snow leopards breed far less often than blue sheep.
     [Tooltip("Same for predators (research: every 12 days = 1440 s).")]
     public float predatorReproduceCooldownSeconds = 1440f;
-    float ReproduceCooldown => IsPredator ? predatorReproduceCooldownSeconds : reproduceCooldownSeconds;
+    float ReproduceCooldown => (IsPredator ? predatorReproduceCooldownSeconds : reproduceCooldownSeconds) * DayScale;
 
     [Tooltip("Hunger used up by each parent when reproducing.")]
     public float reproduceHungerCost = 25f;
@@ -407,7 +411,7 @@ public class AnimalBrain : MonoBehaviour
     public bool HasThirst => water_resources.Count > 0;
 
     float StarveAfter =>
-        IsPredator ? predatorStarveAfterSeconds : preyStarveAfterSeconds;
+        (IsPredator ? predatorStarveAfterSeconds : preyStarveAfterSeconds) * DayScale;
 
     // 0 = full, 1 = starving / dehydrated.
     float HungerNeed => 1f - curr_hunger / 100f;
@@ -431,7 +435,7 @@ public class AnimalBrain : MonoBehaviour
     public float followMotherDistance = 2.5f;
 
     public AnimalBrain Mother { get; private set; }
-    public bool IsYoung => age < growUpSeconds;
+    public bool IsYoung => age < growUpSeconds * DayScale;
     float age = float.MaxValue;   // spawned animals are adults
     Vector3 adultScale;
 
@@ -448,7 +452,7 @@ public class AnimalBrain : MonoBehaviour
     {
         if (!IsYoung) return;
         age += dt;
-        float t = Mathf.Clamp01(age / growUpSeconds);
+        float t = Mathf.Clamp01(age / (growUpSeconds * DayScale));
         transform.localScale = adultScale * Mathf.Lerp(babyScale, 1f, t);
         if (!IsYoung) Mother = null;   // grown up: independent
     }
@@ -638,8 +642,10 @@ public class AnimalBrain : MonoBehaviour
         // Spread decisions out so every animal doesn't think on the same frame.
         decision_timer = Random.Range(0f, decisionInterval);
 
-        // New animals wait before mating, and not all at the same moment.
-        reproduce_cooldown = ReproduceCooldown * Random.Range(0.5f, 1f);
+        // New animals wait before mating, and not all at the same moment. Starting animals are adults, so
+        // only a short wait (leopards about 2-4 days instead of 6-12, which left at most one try in a
+        // 20-day Guided run); babies are kept from mating by IsYoung until they grow up.
+        reproduce_cooldown = ReproduceCooldown * Random.Range(0.15f, 0.35f);
 
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): procedural animation (ProcAnim module) for every animal.
         if (!TryGetComponent(out AnimalMotionBridge _))
@@ -1420,7 +1426,7 @@ public class AnimalBrain : MonoBehaviour
             if (Random.value > Mathf.Clamp01(huntSuccessRate + GuidedEffects.HuntSuccessBonus))
             {
                 sprintTimer = 0f; SetCrouch(false);
-                huntRestTimer = huntCooldownSeconds;
+                huntRestTimer = huntCooldownSeconds * DayScale;
                 agent.ResetPath();
                 return false;
             }
