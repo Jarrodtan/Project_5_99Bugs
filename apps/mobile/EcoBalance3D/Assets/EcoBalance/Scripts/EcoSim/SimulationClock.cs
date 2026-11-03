@@ -1,0 +1,234 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+/// <summary>
+/// Ticks an <see cref="EcosystemSimulator"/> every <see cref="secondsPerTick"/> (scaled by the sim speed) and
+/// refreshes its spawner / display after each tick. Several clocks can share one simulator (AnimalCreator gives
+/// every species spawner its own clock): only one of them ticks it, the others just refresh on its ticks.
+/// </summary>
+public class SimulationClock : MonoBehaviour
+{
+    public EcosystemSimulator simulator;
+    public PopulationDisplay display;
+    public CreatureSpawner spawner;
+    public DataLogging dataLogging;
+
+    public float secondsPerTick = 2f;
+
+    [Tooltip("Optional. When assigned and ShouldPause is true, ticks are skipped.")]
+    [SerializeField]
+    MonoBehaviour pauseGateBehaviour;
+
+    [Tooltip("Optional. When set, one ecosystem day passes each time this clock's day changes, instead of every secondsPerTick.")]
+    [SerializeField]
+    MonoBehaviour clockBehaviour;
+
+    ISimulationPauseGate _pauseGate;
+    IClockProvider _clock;
+    float timer;
+    private float simulationSpeed = 1f;
+    private bool isRunning = true;
+    private int check = 0;
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // The clock that ticks each simulator. HimalayaSimulation has one clock per species spawner, and each
+    // used to tick the simulator itself: two ticks every 2 s, so the history, the graph and the case
+    // windows ran at double rate.
+    static readonly Dictionary<EcosystemSimulator, SimulationClock> drivers = new();
+    EcosystemSimulator listening;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetDrivers() => drivers.Clear();   // domain reload is off in this project
+
+    /// <summary>This clock is the one ticking its simulator (the first enabled clock for it).</summary>
+    public bool DrivesSimulator
+    {
+        get
+        {
+            if (simulator == null || !isActiveAndEnabled) return false;
+            if (!drivers.TryGetValue(simulator, out var d) || d == null || !d.isActiveAndEnabled)
+                drivers[simulator] = d = this;
+            return d == this;
+        }
+    }
+
+    // Merge of Dillon (single Ticked refresh) and Yan De (clock-day ticks): one OnEnable / OnDisable does both.
+    void StopListening()
+    {
+        // ReferenceEquals: on scene unload the simulator can be destroyed first, and Unity's == null would
+        // then skip the clean-up (the handler and this dictionary entry would outlive the scene).
+        if (!ReferenceEquals(listening, null))
+        {
+            listening.Ticked -= OnTicked;
+            if (drivers.TryGetValue(listening, out var d) && d == this) drivers.Remove(listening);
+        }
+        listening = null;
+    }
+
+    // Every clock on the simulator refreshes its own spawner / display after each tick, whoever ticked.
+    void Listen()
+    {
+        if (listening == simulator) return;
+        StopListening();
+        if (simulator == null) return;
+        listening = simulator;
+        listening.Ticked += OnTicked;
+    }
+
+    void OnTicked()
+    {
+        if (display != null)
+            display.Refresh();
+        if (spawner != null)
+            spawner.RefreshVisuals();
+        LogTick();
+    }
+    // [AI-GENERATED END]
+
+    // Li-Juan: CSV data logging, one row per simulation tick.
+    void LogTick()
+    {
+        if (dataLogging == null)
+            return;
+
+        check++;
+        int sheepCount = 0;
+        int leopardCount = 0;
+        int treeCount = 0;
+
+        if (Terrain.activeTerrain != null && Terrain.activeTerrain.terrainData != null)
+        {
+            treeCount += Terrain.activeTerrain.terrainData.treeInstanceCount;
+        }
+
+        GameObject[] allObjects = FindObjectsByType<GameObject>(FindObjectsInactive.Exclude);
+        foreach (GameObject obj in allObjects)
+        {
+            if (obj.name.Contains("BlueSheep")) sheepCount++;
+            else if (obj.name.Contains("SnowLeopard")) leopardCount++;
+            else if (obj.name.Contains("Tree") || obj.name.Contains("Pinus")) treeCount++;
+        }
+
+        dataLogging.RecordTick(check, sheepCount, leopardCount, treeCount);
+    }
+
+    void Awake()
+    {
+        _pauseGate = pauseGateBehaviour as ISimulationPauseGate;
+    }
+
+    void OnEnable()
+    {
+        _clock = clockBehaviour as IClockProvider;
+        if (clockBehaviour != null && _clock == null)
+            Debug.LogError($"{nameof(SimulationClock)} clock must implement {nameof(IClockProvider)}.", this);
+
+        if (_clock != null)
+            _clock.OnDayChanged += OnClockDay;
+
+        Listen();
+    }
+
+    void OnDisable()
+    {
+        if (_clock != null)
+            _clock.OnDayChanged -= OnClockDay;
+
+        StopListening();
+    }
+
+    void OnClockDay(int _) => Step();
+
+    void Update()
+    {
+        if (_clock != null)
+            return;
+
+        if (!isRunning)
+            return;
+
+        if (_pauseGate != null && _pauseGate.ShouldPause)
+            return;
+
+        if (simulator == null)
+            return;
+
+        Listen();   // in case the simulator was assigned after OnEnable
+        if (!DrivesSimulator)
+            return;
+
+        timer += Time.deltaTime * simulationSpeed;
+
+        if (timer >= secondsPerTick)
+        {
+            timer -= secondsPerTick;
+            Step();
+        }
+    }
+
+    void Step()
+    {
+        if (!isRunning)
+            return;
+
+        if (_pauseGate != null && _pauseGate.ShouldPause)
+            return;
+
+        if (simulator == null)
+            return;
+
+        // Displays and spawners refresh once, from the simulator's Ticked event (OnTicked).
+        simulator.Tick();
+    }
+
+    public void SetSpeed(float speed)
+    {
+        simulationSpeed = speed;
+    }
+
+    public void SetSpeed1x()
+    {
+        simulationSpeed = 1f;
+    }
+
+    public void SetSpeed2x()
+    {
+        simulationSpeed = 2f;
+    }
+
+    public void SetSpeed4x()
+    {
+        simulationSpeed = 4f;
+    }
+
+    public void SetSpeed8x()
+    {
+        simulationSpeed = 8f;
+    }
+
+    public void Play()
+    {
+        isRunning = true;
+    }
+
+    public void Pause()
+    {
+        isRunning = false;
+    }
+
+    public void Reset()
+    {
+        timer = 0f;
+        simulationSpeed = 1f;
+        isRunning = true;
+        check = 0;
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): null-safe so Reset works with any slot left empty.
+        if (simulator != null)
+            simulator.ResetSimulation();
+        if (display != null)
+            display.Refresh();
+        if (spawner != null)
+            spawner.ResetVisuals();
+    }
+}

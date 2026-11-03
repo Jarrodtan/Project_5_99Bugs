@@ -1109,7 +1109,7 @@ MonoBehaviour:
   counters:
   - {fileID: 1629121588}
   - {fileID: 1230681128}
-  simulationSceneName: SampleScene
+  simulationSceneName: HimalayaSimulation
   configurationUI: {fileID: 1040150958}
 --- !u!1 &371288485
 GameObject:
@@ -2985,6 +2985,7 @@ MonoBehaviour:
   spawn_rivers: 0
   spawn_hills: 0
   spawn_mud: 0
+  wikidataId: Q513
 --- !u!1 &1047648194
 GameObject:
   m_ObjectHideFlags: 0
@@ -3758,9 +3759,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesCounter
   species: {fileID: 11400000, guid: 2829b3f512f18b14d931a7a5801afa6d, type: 2}
   countInput: {fileID: 1305611112}
-  startCount: 0
+  startCount: 2
   minCount: 0
-  maxCount: 100
+  maxCount: 5
 --- !u!1 &1231667971
 GameObject:
   m_ObjectHideFlags: 0
@@ -4725,9 +4726,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpeciesCounter
   species: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
   countInput: {fileID: 1141289237}
-  startCount: 0
+  startCount: 10
   minCount: 0
-  maxCount: 500
+  maxCount: 20
 --- !u!1 &1675345348
 GameObject:
   m_ObjectHideFlags: 0
@@ -5675,6 +5676,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3078265897409347826, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
+      propertyPath: m_Resource
+      value: 
+      objectReference: {fileID: 8300000, guid: 496e339755c2d0b499feddb2240e2f1d, type: 3}
     - target: {fileID: 3572933053264363125, guid: fbb2e4796c35de944ae5c48a60dd39f4, type: 3}
       propertyPath: m_Name
       value: SFX

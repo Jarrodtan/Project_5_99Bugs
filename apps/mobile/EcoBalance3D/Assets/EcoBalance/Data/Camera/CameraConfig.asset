@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6000000000000000000000000000012, type: 3}
+  m_Name: CameraConfig
+  m_EditorClassIdentifier: Assembly-CSharp::CameraConfig
+  dragAction: {fileID: 11400000, guid: a6000000000000000000000000000001, type: 2}
+  dragDeltaAction: {fileID: 11400000, guid: a6000000000000000000000000000002, type: 2}
+  zoomAction: {fileID: 11400000, guid: a6000000000000000000000000000003, type: 2}
+  panAction: {fileID: 11400000, guid: b3f4509e9d67e794fb45ef32ba37425c, type: 2}
+  rotationSpeed: 0.2
+  minPitch: 10
+  maxPitch: 80
+  zoomNotchFactor: 0.85
+  minDistance: 20
+  maxDistance: 400
+  panSpeed: 40
+  panSpeedReferenceDistance: 180
+  maxPanRadius: 100
+  panDamping: 0.08
+  rotationDamping: 0.08
+  zoomDamping: 0.1
+  pivotRecenterDamping: 0.2
+  defaultYaw: 0
+  defaultPitch: 40
+  defaultDistance: 180
+  ignorePointerOverUI: 1
