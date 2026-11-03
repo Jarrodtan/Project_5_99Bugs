@@ -139,6 +139,16 @@ public class SimHud : MonoBehaviour
 
     // The mock-up has a full-screen background that hid the whole world and blocked taps: make any
     // full-screen image clear and click-through. Also let every text shrink to fit its box.
+    // Icon spots in the mock-up (ValueImage, AnimalImage, GrassImage, FeedbackImage, ...) are plain white or
+    // green squares until the icons are drawn. Kids read them as buttons and tap them, so hide any that has no
+    // picture yet; once Shu Min / Nomitha drop a sprite in, it shows again by itself.
+    static bool IsIconPlaceholder(Image img)
+    {
+        string n = img.name.Trim().Trim('\'').Trim();
+        return img.sprite == null && (n.EndsWith("Image") || n.EndsWith("Img") || n == "Image")
+               && img.GetComponentInChildren<TMP_Text>(true) == null;   // a box holding text is a panel, not an icon
+    }
+
     void SeeThrough()
     {
         foreach (var img in GetComponentsInChildren<Image>(true))
@@ -146,9 +156,13 @@ public class SimHud : MonoBehaviour
             var rt = img.rectTransform;
             // Only the screen-sized background, not the cards (which also stretch, but inset from the edges).
             bool fullScreen = rt.anchorMin == Vector2.zero && rt.anchorMax == Vector2.one && rt.sizeDelta.x > -60f && rt.sizeDelta.y > -60f;
-            if (!fullScreen || img.GetComponent<Button>() != null) continue;
-            var c = img.color; c.a = 0f; img.color = c;
-            img.raycastTarget = false;
+            if (img.GetComponent<Button>() != null) continue;
+            if (fullScreen)
+            {
+                var c = img.color; c.a = 0f; img.color = c;
+                img.raycastTarget = false;
+            }
+            else if (IsIconPlaceholder(img)) img.enabled = false;
         }
         foreach (var t in GetComponentsInChildren<TextMeshProUGUI>(true))
         {
