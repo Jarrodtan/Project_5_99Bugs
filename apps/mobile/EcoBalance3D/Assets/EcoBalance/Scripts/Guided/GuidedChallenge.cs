@@ -137,6 +137,9 @@ public class GuidedChallenge : MonoBehaviour
     SimulationSpeedController speed;
     int lastDay = -1;
     bool started, finished, showing;
+
+    /// <summary>The challenge card or an event card is open (the mascot's hints and Help wait).</summary>
+    public static bool PopupOpen { get; private set; }
     float quietUntil;
 
     int Day => clock != null ? clock.Day : 1;
@@ -174,6 +177,7 @@ public class GuidedChallenge : MonoBehaviour
 
     void Awake()
     {
+        PopupOpen = false;   // statics survive Play without a domain reload
         // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
         var sim = FindFirstObjectByType<EcosystemSimulator>();
         if (sim != null) sim.mode = EcosystemSimulator.SimulationMode.Events;
@@ -217,6 +221,8 @@ public class GuidedChallenge : MonoBehaviour
     void Show(GuidedEvent e)
     {
         showing = true;
+        PopupOpen = true;
+        Mascot.GuidedEvent(false);   // GE-M05
         if (speed != null) speed.Pause();
         if (FindShuminUI()) { ShowShumin(e); return; }
         popupTitle.text = e.title;
@@ -241,6 +247,8 @@ public class GuidedChallenge : MonoBehaviour
         resolved.Add(e.id);
         if (popup != null) popup.SetActive(false);
         showing = false;
+        PopupOpen = false;
+        Mascot.GuidedEvent(true);    // GE-M06
         quietUntil = Time.unscaledTime + QuietSecondsBetweenEvents;
         if (speed != null) speed.Play();
         DramaDirector.Announce(c.feedback);
@@ -394,10 +402,13 @@ public class GuidedChallenge : MonoBehaviour
             if (t.name.StartsWith("AnimalCard")) SetText(t, "AmountTxt", $"x{(card++ == 0 ? Sheep : Leopards)}");
         SetText(Find(introPanel, "GrassCard"), "ValueTxt", $"{Vegetation:0}%");
         introPanel.gameObject.SetActive(true);
+        PopupOpen = true;
         OnClick(introPanel, "StartBtn", () =>
         {
             introPanel.gameObject.SetActive(false);
             introDone = true;
+            PopupOpen = false;
+            Mascot.PlayGuidedIntro();   // GE-M01..03
             quietUntil = Time.unscaledTime + QuietSecondsBetweenEvents;
             if (speed != null) speed.Play();
         });

@@ -79,10 +79,14 @@ public static class ScreenFlow
                 On("FieldJournalBtn", OpenJournal);
                 break;
             case Modes:
+                Mascot.SetMenuLine(scene, Mascot.ModeSelectLine);
                 On("BackBtn", () => Load(Ecosystems));
                 On("StartGuidedBtn", () => StartSimulation(true));
                 On("StartFreeBtn", () => StartSimulation(false));
                 On("FieldJournalBtn", OpenJournal);
+                break;
+            case Configuration:
+                Mascot.SetMenuLine(scene, Mascot.ConfigureLine);
                 break;
             case Journal:
                 if (mode == LoadSceneMode.Additive) { SetUpJournalOverlay(scene); On("BackBtn", CloseJournalOverlay); }
@@ -90,6 +94,7 @@ public static class ScreenFlow
                 FieldJournalScreen.Attach(scene);   // tabs, Investigations and Observations pages
                 break;
             case Simulation:
+                HideActionMenu(scene);
                 FieldJournalInstaller.InstallInSimulation(scene);   // history graph + "New case discovered" popup
                 if (mode == LoadSceneMode.Single) SimHud.Enter();   // Shumin's HUD on top; not when Configuration loads it behind itself
                 else SimHud.HideOldHud(false);                    // Free: hide the old buttons while choosing animals
@@ -105,6 +110,23 @@ public static class ScreenFlow
         if (buttons.TryGetValue("SettingBtn", out var settings))
             foreach (var b in settings) ButtonCaption.Ensure(b, "Sound", 20f);
         AudioListener.volume = Volume;
+    }
+
+    // Yande's FAB (add animals, island swap, season / weather / hazard) is a prototype: the design says
+    // children can't add animals during a run (Shu Min, 4 Nov) and three of its menus do nothing yet.
+    // Kept in the scene and kept running (its island handlers build the map), only made invisible and
+    // untouchable here in both modes. Switching the objects off left the world empty.
+    static void HideActionMenu(Scene scene)
+    {
+        foreach (var root in scene.GetRootGameObjects())
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name != "FAB") continue;
+                if (!t.TryGetComponent(out CanvasGroup g)) g = t.gameObject.AddComponent<CanvasGroup>();
+                g.alpha = 0f;
+                g.interactable = false;
+                g.blocksRaycasts = false;
+            }
     }
 
     // Back button on the simulation (both modes), bottom-left above the weather text. Asks first, so a
@@ -196,6 +218,7 @@ public static class ScreenFlow
     public static void OpenJournalOverlay()
     {
         if (SceneManager.GetSceneByName(Journal).isLoaded) return;
+        Mascot.NoteJournalOpened();
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         journalWasRunning = speed != null && speed.IsRunning;
         if (speed != null) speed.Pause();

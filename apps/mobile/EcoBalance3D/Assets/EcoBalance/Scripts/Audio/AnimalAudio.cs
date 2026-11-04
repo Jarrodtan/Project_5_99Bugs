@@ -112,6 +112,26 @@ public class AnimalAudio : MonoBehaviour
         Debug.Log($"[AUDIO AUDIT] {playing} of {all.Length} AudioSources are playing right now");
     }
 
+    // TEST HELPER: right-click the "Animal Audio" header on a specific animal (e.g. a snow leopard) while the game is running.
+    // It makes THAT animal call right now and reports its distance to your AudioListener.
+    [ContextMenu("Test: make THIS animal call now")]
+    void TestThisCall()
+    {
+        Transform l = GetListener();
+        float d = l != null ? Vector3.Distance(l.position, transform.position) : -1f;
+        int clips = idle != null ? idle.Length : 0;
+
+        string verdict = clips == 0 ? "NO CLIPS in the Idle array." :
+                         d < 0f ? "No AudioListener found." :
+                         d <= maxDistance ? "In range, you should hear it." :
+                         "TOO FAR (beyond Max Distance), you will hear nothing.";
+
+        Debug.Log($"[ANIMAL AUDIO TEST] '{name}' (Herd Id '{herdId}') is {d:F1} units from the listener. Max Distance {maxDistance}. Clips: {clips}. {verdict}", gameObject);
+
+        if (clips > 0)
+            StartCoroutine(PlayOnce());
+    }
+
     // TEST HELPER: right-click the "Animal Audio" header on any animal while the game is running.
     // It finds the animal closest to your AudioListener, tells you how far away it is, and makes it call right now.
     [ContextMenu("Test: make the nearest animal call now")]

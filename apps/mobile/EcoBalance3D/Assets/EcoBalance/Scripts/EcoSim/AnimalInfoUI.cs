@@ -25,6 +25,8 @@ public class AnimalInfoUI : MonoBehaviour
 
     private AnimalBrain selectedAnimal;
     public AnimalBrain SelectedAnimal => selectedAnimal;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): read by SimHud
+    AnimalBrain factAnimal;   // new fun fact each time a different animal is tapped
+    string fact;
     public TMP_Text factText;   // wired by IslandPlatformHud / LayoutCard
 
     private void Awake()
@@ -210,7 +212,11 @@ public class AnimalInfoUI : MonoBehaviour
         }
 
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): a fun fact that matches the animal
-        if (factText != null) factText.text = "Did you know?\n" + FactFor(selectedAnimal);
+        if (factText != null)
+        {
+            if (factAnimal != selectedAnimal) { factAnimal = selectedAnimal; fact = FieldJournalScreen.NextFactFor(selectedAnimal.IsPredatorSpecies); }
+            factText.text = "Did you know?\n" + fact;
+        }
 
         // Hunger
         if (hungerText != null)
@@ -251,17 +257,6 @@ public class AnimalInfoUI : MonoBehaviour
         }
     }
 
-    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
-    static string FactFor(AnimalBrain a)
-    {
-        string n = a.species_data != null ? a.species_data.speciesName.ToLowerInvariant() : "";
-        if (n.Contains("leopard"))
-            return "Snow leopards live alone. Their long, thick tail keeps them warm and helps them balance on rocky cliffs.";
-        if (n.Contains("sheep"))
-            return "Blue sheep live in herds and run up steep cliffs to escape snow leopards. They are an important food for them.";
-        return "Every animal here needs food and water to stay healthy.";
-    }
-    // [AI-GENERATED END]
 
     private string GetActionText(
         AnimalBrain.AnimalAction action)

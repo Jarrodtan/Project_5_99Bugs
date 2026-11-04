@@ -13,6 +13,16 @@ using UnityEngine;
 /// into two sides; <see cref="Side"/> tells which side a point is on, so each side can have its own
 /// herd and territory.
 /// </summary>
+/// <summary>
+/// One stream (a glacier stream from the map, or one drawn with Edit Terrain): its centre line counts as
+/// water while the object exists. Removing the object removes the stream (mesh, no-walk blockers).
+/// </summary>
+public class WaterLine : MonoBehaviour
+{
+    public List<Vector3> line;
+    void OnDestroy() { if (line != null) HimalayaRiver.Tributaries.Remove(line); }
+}
+
 public static class HimalayaRiver
 {
     /// <summary>The river centre line in world space, source first. Empty until <see cref="Build"/>.</summary>
@@ -226,12 +236,15 @@ public static class HimalayaRiver
             var path = new List<Vector3>();
             foreach (var p in uv) path.Add(tb.WorldPosition(p.x, p.y));
             Tributaries.Add(path);
+            var root = new GameObject($"Glacier stream {Tributaries.Count}");
+            root.transform.SetParent(parent, true);
+            root.AddComponent<WaterLine>().line = path;
 
             var mesh = WaterMeshBuilder.Stream(tb, uv, StreamSourceWidth, StreamMouthWidth);
             if (mesh != null)
             {
-                var go = new GameObject($"Glacier stream {Tributaries.Count}");
-                go.transform.SetParent(parent, true);
+                var go = new GameObject("Water");
+                go.transform.SetParent(root.transform, true);
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var mr = go.AddComponent<MeshRenderer>();
                 mr.sharedMaterial = water;
@@ -239,8 +252,8 @@ public static class HimalayaRiver
             }
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): animals don't walk in the stream, only cross at
             // shallow fords (a gap in the blocker every FordEvery metres), like real meltwater streams.
-            var noWalk = new GameObject($"Glacier stream {Tributaries.Count} (no walking)");
-            noWalk.transform.SetParent(parent, true);
+            var noWalk = new GameObject("No walking");
+            noWalk.transform.SetParent(root.transform, true);
             int notWalkableArea = UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
             float run = 0f;
             for (int i = 0; i < path.Count - 1; i++)

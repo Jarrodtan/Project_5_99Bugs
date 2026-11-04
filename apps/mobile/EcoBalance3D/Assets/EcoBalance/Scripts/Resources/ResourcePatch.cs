@@ -76,7 +76,8 @@ public class ResourcePatch : MonoBehaviour
     {
         if (amount >= MaxAmount) return;
         float mult = IsWater ? WaterGrowthMultiplier : PlantGrowthMultiplier * GuidedEffects.PlantRegen;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
-        amount = Mathf.Min(MaxAmount, amount + regrowPerSecond * mult * Time.deltaTime);
+        // Rates were tuned for 120 s game days: keep the same regrowth per game day at any day length.
+        amount = Mathf.Min(MaxAmount, amount + regrowPerSecond * mult * (120f / ClockService.DaySeconds) * Time.deltaTime);
         UpdateVisual();
     }
 
