@@ -5,6 +5,7 @@
 #   tools/unity.sh open            open the project in the Unity Editor
 #   tools/unity.sh test            run all EditMode tests headless -> test-results.xml
 #   tools/unity.sh build android   build APK   -> apps/mobile/EcoBalance3D/Build/Android/
+#   tools/unity.sh build android-dev   development APK -> .../Build/Android/EcoBalance3D-dev.apk
 #   tools/unity.sh build windows   build EXE   -> .../Build/Windows/   (also: macos, linux)
 #   tools/unity.sh clean           delete the Unity cache and all Git-ignored files (UserSettings, .vs, *.csproj...)
 #   tools/unity.sh zip [name]      submission zip of committed files -> ../<name>.zip
@@ -50,13 +51,15 @@ case "${1:-help}" in
     need_unity
     case "${2:-android}" in
       android) METHOD=BuildScript.BuildAndroid; TARGET=Android ;;
+      android-dev) METHOD=EcoBalanceCIBuild.BuildAndroidDevelopment; TARGET=Android
+                   EXTRA="-customBuildPath Build/Android/EcoBalance3D-dev.apk" ;;
       windows) METHOD=BuildScript.BuildWindows; TARGET=Win64 ;;
       macos)   METHOD=BuildScript.BuildMacOS;   TARGET=OSXUniversal ;;
       linux)   METHOD=BuildScript.BuildLinux;   TARGET=Linux64 ;;
-      *) echo "Unknown platform '$2' (android|windows|macos|linux)" >&2; exit 1 ;;
+      *) echo "Unknown platform '$2' (android|android-dev|windows|macos|linux)" >&2; exit 1 ;;
     esac
     "$UNITY_BIN" -batchmode -nographics -quit -projectPath "$PROJECT" \
-      -buildTarget "$TARGET" -executeMethod "$METHOD" -logFile -
+      -buildTarget "$TARGET" -executeMethod "$METHOD" ${EXTRA:-} -logFile -
     ;;
   clean)
     for d in Library Temp Logs obj Build; do
