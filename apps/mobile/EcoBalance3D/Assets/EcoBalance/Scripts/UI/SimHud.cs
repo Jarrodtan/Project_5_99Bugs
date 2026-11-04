@@ -273,7 +273,7 @@ public class SimHud : MonoBehaviour
         if (selected != shown)
         {
             shown = selected;
-            if (shown != null) Mascot.NoteInspected();
+            if (shown != null) Mascot.NoteInspected(shown);
             if (inspection != null) inspection.SetActive(shown != null);
         }
 
