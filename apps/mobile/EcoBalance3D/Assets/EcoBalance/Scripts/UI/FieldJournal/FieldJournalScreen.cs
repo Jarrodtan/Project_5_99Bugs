@@ -86,6 +86,19 @@ public class FieldJournalScreen : MonoBehaviour
         }),
     };
 
+    // The animal card's "Did you know?" line: the next fact for that species each time an animal is
+    // tapped, so tapping sheep after sheep (or leopard after leopard) shows different facts.
+    static readonly Dictionary<bool, int> nextFact = new();
+
+    /// <summary>Next fun fact for this species (cycles through its Did You Know? card).</summary>
+    public static string NextFactFor(bool predator)
+    {
+        var facts = FactCards[predator ? 0 : 1].facts;
+        nextFact.TryGetValue(predator, out int i);
+        nextFact[predator] = (i + 1) % facts.Length;
+        return facts[i % facts.Length];
+    }
+
     readonly Dictionary<string, Transform> byName = new();
     RectTransform panel;
     TextMeshProUGUI headerTemplate, subTemplate;

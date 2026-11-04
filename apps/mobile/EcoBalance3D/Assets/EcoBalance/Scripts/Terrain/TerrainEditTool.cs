@@ -29,7 +29,7 @@ using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 [DefaultExecutionOrder(1000)]
 public class TerrainEditTool : MonoBehaviour
 {
-    public enum Tool { Look, Raise, Lower, Flatten, Smooth, AddGrass, RemoveGrass }
+    public enum Tool { Look, Raise, Lower, Flatten, Smooth, AddGrass, RemoveGrass, DrawStream, RemoveStream }
 
     [Tooltip("Brush radius range, world units.")]
     public Vector2 brushSizeRange = new Vector2(3f, 60f);
@@ -181,6 +181,7 @@ public class TerrainEditTool : MonoBehaviour
             }
         }
         if (!down && wasStroking) SetStatus(tool == Tool.Look ? "" : $"{tool}: drag on the ground to paint");
+        if (!down && wasStroking && tool == Tool.DrawStream) FinishStream();
         wasStroking = stroking;
 
         UpdateRing(editing && onGround && !(overUi && !stroking), hitPoint);
@@ -298,6 +299,12 @@ public class TerrainEditTool : MonoBehaviour
             case Tool.RemoveGrass:
                 RemoveGrass(centre);
                 break;
+            case Tool.DrawStream:
+                AddStreamPoint(centre);
+                break;
+            case Tool.RemoveStream:
+                RemoveStreams(centre);
+                break;
         }
     }
 
@@ -395,6 +402,95 @@ public class TerrainEditTool : MonoBehaviour
             if (d.sqrMagnitude <= r2) doomed.Add(patch);
         }
         foreach (var patch in doomed) Destroy(patch.gameObject);   // animals heading there null-check and pick another
+    }
+
+    // ---------- Streams (drawn by dragging a line) ----------
+
+    const float StreamPointSpacing = 2f;   // metres between points of a drawn line
+    readonly List<Vector2> streamUVs = new List<Vector2>();
+    Vector3 lastStreamPoint;
+    LineRenderer streamPreview;
+
+    void AddStreamPoint(Vector3 p)
+    {
+        if (streamUVs.Count > 0 && Vector3.Distance(p, lastStreamPoint) < StreamPointSpacing) return;
+        var uv = terrainBuilder.WorldToUV(p);
+        if (uv.x < 0f || uv.x > 1f || uv.y < 0f || uv.y > 1f) return;
+        streamUVs.Add(uv);
+        lastStreamPoint = p;
+
+        // Show the line being drawn until the finger lifts.
+        if (streamPreview == null)
+        {
+            streamPreview = new GameObject("Stream preview").AddComponent<LineRenderer>();
+            streamPreview.material = new Material(Shader.Find("Sprites/Default"));
+            streamPreview.startColor = streamPreview.endColor = new Color(0.3f, 0.65f, 1f, 0.9f);
+            streamPreview.widthMultiplier = 1.2f;
+        }
+        streamPreview.positionCount = streamUVs.Count;
+        streamPreview.SetPosition(streamUVs.Count - 1, p + Vector3.up * 0.4f);
+        SetStatus($"Drawing a stream: {streamUVs.Count * StreamPointSpacing:0} m. Lift your finger to fill it with water.");
+    }
+
+    void FinishStream()
+    {
+        if (streamPreview != null) { Destroy(streamPreview.gameObject); streamPreview = null; }
+        if (streamUVs.Count < 3 || resourcePlacer == null) { streamUVs.Clear(); SetStatus("Drag a longer line to draw a stream."); return; }
+
+        var stream = resourcePlacer.SpawnStreamAlong(terrainBuilder, new List<Vector2>(streamUVs));
+        streamUVs.Clear();
+        if (stream == null) return;
+
+        // Grass doesn't grow in the water: clear clumps on the new stream.
+        var grass = resourcePlacer.GrassResource;
+        var line = stream.GetComponent<WaterLine>().line;
+        var wet = new List<ResourcePatch>();
+        foreach (var patch in ResourcePatch.All)
+        {
+            if (patch == null || patch.Resource != grass) continue;
+            foreach (var q in line)
+            {
+                var d = patch.transform.position - q; d.y = 0f;
+                if (d.sqrMagnitude < 2.5f * 2.5f) { wet.Add(patch); break; }
+            }
+        }
+        foreach (var patch in wet) Destroy(patch.gameObject);
+        SetStatus("Stream added: animals drink from it and swim across.");
+    }
+
+    // Any stream the brush touches: drawn ones and the map's glacier streams (like Remove Grass, which takes
+    // any grass). The main river is not a WaterLine, so it always stays and the animals always have water.
+    void RemoveStreams(Vector3 centre)
+    {
+        float r2 = brushSize * brushSize;
+        var doomed = new List<WaterLine>();
+        foreach (var s in FindObjectsByType<WaterLine>())
+            foreach (var q in s.line)
+            {
+                var d = q - centre; d.y = 0f;
+                if (d.sqrMagnitude <= r2) { doomed.Add(s); break; }
+            }
+        if (doomed.Count == 0) return;
+
+        // A glacier stream's drinking spots sit on its banks (not inside its object): remove those too,
+        // unless they also belong to the main river.
+        var spots = new List<ResourcePatch>();
+        foreach (var patch in ResourcePatch.All)
+        {
+            if (patch == null || patch.Resource == resourcePlacer?.GrassResource) continue;
+            var p = patch.transform.position;
+            if (HimalayaRiver.Exists && HimalayaRiver.DistanceTo(p) < resourcePlacer.RiverClearance) continue;
+            foreach (var s in doomed)
+            {
+                bool near = false;
+                foreach (var q in s.line) { var d = p - q; d.y = 0f; if (d.sqrMagnitude < 4.5f * 4.5f) { near = true; break; } }
+                if (near) { spots.Add(patch); break; }
+            }
+        }
+        foreach (var patch in spots) Destroy(patch.gameObject);
+        foreach (var s in doomed) Destroy(s.gameObject);   // mesh and no-walk blockers are children
+        MarkDirty();   // re-bake walking: where the stream was is now dry ground
+        SetStatus($"Removed {doomed.Count} stream(s). The main river always stays.");
     }
 
     bool GrassNear(Vector3 p, float spacing)
@@ -563,7 +659,7 @@ public class TerrainEditTool : MonoBehaviour
         ring.enabled = dot.enabled = show;
         if (!show) return;
 
-        var c = tool == Tool.RemoveGrass || tool == Tool.Lower ? new Color(1f, 0.4f, 0.3f) : new Color(1f, 1f, 1f);
+        var c = tool == Tool.RemoveGrass || tool == Tool.RemoveStream || tool == Tool.Lower ? new Color(1f, 0.4f, 0.3f) : new Color(1f, 1f, 1f);
         ring.material.color = c;
         ring.startColor = ring.endColor = c;
         dot.startColor = dot.endColor = c;
@@ -639,7 +735,7 @@ public class TerrainEditTool : MonoBehaviour
         g.spacing = new Vector2(8f, 8f);
         g.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         g.constraintCount = 2;
-        grid.gameObject.AddComponent<LayoutElement>().preferredHeight = 4 * 48f + 3 * 8f;
+        grid.gameObject.AddComponent<LayoutElement>().preferredHeight = 5 * 48f + 4 * 8f;
 
         AddToolButton(grid, Tool.Look, "Look");
         AddToolButton(grid, Tool.Smooth, "Smooth");
@@ -648,6 +744,8 @@ public class TerrainEditTool : MonoBehaviour
         AddToolButton(grid, Tool.Flatten, "Flatten");
         AddToolButton(grid, Tool.RemoveGrass, "Remove Grass");
         AddToolButton(grid, Tool.AddGrass, "Add Grass");
+        AddToolButton(grid, Tool.RemoveStream, "Remove Stream");
+        AddToolButton(grid, Tool.DrawStream, "Draw Stream");
 
         MakeSlider(panel, "Brush Size", brushSizeRange.x, brushSizeRange.y, brushSize, v => brushSize = v, v => $"{v:0}");
         MakeSlider(panel, "Strength", 0.05f, 1f, strength, v => strength = v, v => $"{v * 100f:0}%");
@@ -667,6 +765,7 @@ public class TerrainEditTool : MonoBehaviour
     {
         bool open = !panel.gameObject.activeSelf;
         panel.gameObject.SetActive(open);
+        if (open) Mascot.NoteTerrainEditor();   // FE-M09
         toggleLabel.text = open ? "Close Editor" : "Edit Terrain";
         if (!open) SelectTool(Tool.Look);
 

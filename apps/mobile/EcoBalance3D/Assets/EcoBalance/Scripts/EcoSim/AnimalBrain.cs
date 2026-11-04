@@ -250,7 +250,7 @@ public class AnimalBrain : MonoBehaviour
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
     // Shumin's research (Simulation Logic): Fullness and Hydration drop by a fixed amount per simulated day,
     // animals look for food / water at 50% or less, and health (HP) only falls once one of them is empty.
-    // Timings are in real seconds at 1x (1 game day = 120 s).
+    // Timings are in real seconds at 1x for a 120 s game day; they are scaled to the clock's day length (DayScale).
     [Tooltip("Fullness 100 -> 0 in this many seconds for plant-eaters (research: -20 per day = 600 s).")]
     public float preyStarveAfterSeconds = 600f;
 
@@ -279,9 +279,13 @@ public class AnimalBrain : MonoBehaviour
     [Tooltip("Food a successful hunt gives a predator (research: +80).")]
     public float huntFill = 80f;
 
-    const float DaySeconds = 120f;   // 1 simulated day at 1x (ClockConfig)
+    // The second-based timings above and below were written for 120-second days. They are scaled by the
+    // clock's real day length, so "5 days to starve" stays 5 game days whatever ClockConfig says (60 s since 3 Nov).
+    const float AuthoredDaySeconds = 120f;
+    static float DaySeconds => ClockService.DaySeconds;
+    static float DayScale => DaySeconds / AuthoredDaySeconds;
     public float curr_health = 100f;
-    float DehydrateAfter => IsPredator ? predatorDehydrateAfterSeconds : dehydrateAfterSeconds;
+    float DehydrateAfter => (IsPredator ? predatorDehydrateAfterSeconds : dehydrateAfterSeconds) * DayScale;
 
     /// <summary>Guided events: change health directly (illness -20, help +15), capped at max.</summary>
     public void ChangeHealth(float amount) => curr_health = Mathf.Clamp(curr_health + amount, 0f, maxHealth);
@@ -319,7 +323,7 @@ public class AnimalBrain : MonoBehaviour
     // [AI-GENERATED] Claude Code (Claude Opus 5.5): snow leopards live alone and far apart and find mates
     // by scent marks and calls, so a herd-sized radius meant they almost never met one.
     [Tooltip("Mate search distance for predators, which live alone and far apart.")]
-    public float predatorMateRadius = 90f;
+    public float predatorMateRadius = 1000f;   // the whole valley: a ready pair seeks each other out
 
     float MateRadius => IsPredator ? predatorMateRadius : mateRadius;
 
@@ -336,7 +340,7 @@ public class AnimalBrain : MonoBehaviour
     // [AI-GENERATED] Claude Code (Claude Opus 5.5): research - snow leopards breed far less often than blue sheep.
     [Tooltip("Same for predators (research: every 12 days = 1440 s).")]
     public float predatorReproduceCooldownSeconds = 1440f;
-    float ReproduceCooldown => IsPredator ? predatorReproduceCooldownSeconds : reproduceCooldownSeconds;
+    float ReproduceCooldown => (IsPredator ? predatorReproduceCooldownSeconds : reproduceCooldownSeconds) * DayScale;
 
     [Tooltip("Hunger used up by each parent when reproducing.")]
     public float reproduceHungerCost = 25f;
@@ -432,7 +436,7 @@ public class AnimalBrain : MonoBehaviour
     public bool HasThirst => water_resources.Count > 0;
 
     float StarveAfter =>
-        IsPredator ? predatorStarveAfterSeconds : preyStarveAfterSeconds;
+        (IsPredator ? predatorStarveAfterSeconds : preyStarveAfterSeconds) * DayScale;
 
     // 0 = full, 1 = starving / dehydrated.
     float HungerNeed => 1f - curr_hunger / 100f;
@@ -456,7 +460,7 @@ public class AnimalBrain : MonoBehaviour
     public float followMotherDistance = 2.5f;
 
     public AnimalBrain Mother { get; private set; }
-    public bool IsYoung => age < growUpSeconds;
+    public bool IsYoung => age < growUpSeconds * DayScale;
     float age = float.MaxValue;   // spawned animals are adults
     Vector3 adultScale;
 
@@ -473,7 +477,7 @@ public class AnimalBrain : MonoBehaviour
     {
         if (!IsYoung) return;
         age += dt;
-        float t = Mathf.Clamp01(age / growUpSeconds);
+        float t = Mathf.Clamp01(age / (growUpSeconds * DayScale));
         transform.localScale = adultScale * Mathf.Lerp(babyScale, 1f, t);
         if (!IsYoung) Mother = null;   // grown up: independent
     }
@@ -502,6 +506,14 @@ public class AnimalBrain : MonoBehaviour
     /// <summary>Dead (Events mode) and the lie-down time is over: ready for the spawner to remove.</summary>
     public bool DeathFinished => EventsMode && IsCaught && caught_timer <= DeadHoldTimer;
     // [AI-GENERATED END]
+
+    /// <summary>An animal died because Fullness or Hydration stayed empty (contextual questions, mascot).</summary>
+    public static event System.Action<AnimalBrain> Starved;
+    /// <summary>A predator caught its prey (predator, prey).</summary>
+    public static event System.Action<AnimalBrain, AnimalBrain> Caught;
+    /// <summary>A baby was born (raised by the spawner once the baby is placed).</summary>
+    public static event System.Action<AnimalBrain> Born;
+    public static void RaiseBorn(AnimalBrain baby) => Born?.Invoke(baby);
 
     public void MarkCaught()
     {
@@ -540,6 +552,23 @@ public class AnimalBrain : MonoBehaviour
         all.Add(this);
     }
     void OnDisable() { all.Remove(this); }
+
+    // A pure coin flip gave the 2 starting leopards the same sex 1 time in 2, so they could never breed.
+    // Once the species is known, take whichever sex this species has fewer of (coin flip on a tie), so
+    // the starting animals are always split as evenly as possible. Babies get the same rule.
+    bool sexBalanced;
+    void BalanceSex()
+    {
+        if (sexBalanced || species_data == null) return;
+        sexBalanced = true;
+        int males = 0, females = 0;
+        foreach (var other in all)
+        {
+            if (other == this || other == null || other.IsCaught || !other.sexBalanced || other.species_data != species_data) continue;
+            if (other.AnimalSex == Sex.Male) males++; else females++;
+        }
+        if (males != females) AnimalSex = males < females ? Sex.Male : Sex.Female;
+    }
 
     /// <summary>Living animals right now (for Guided Exploration counts, events and endings).</summary>
     public static IReadOnlyList<AnimalBrain> All => all;
@@ -638,6 +667,8 @@ public class AnimalBrain : MonoBehaviour
                 species_data.GetResourceTargets(RelationshipType.Needs));
         }
 
+        BalanceSex();
+
         CurrentAction = AnimalAction.Roaming;
         CurrentTargetName = "";
 
@@ -646,8 +677,10 @@ public class AnimalBrain : MonoBehaviour
         // Spread decisions out so every animal doesn't think on the same frame.
         decision_timer = Random.Range(0f, decisionInterval);
 
-        // New animals wait before mating, and not all at the same moment.
-        reproduce_cooldown = ReproduceCooldown * Random.Range(0.5f, 1f);
+        // New animals wait before mating, and not all at the same moment. Starting animals are adults, so
+        // only a short wait (leopards about 2-4 days instead of 6-12, which left at most one try in a
+        // 20-day Guided run); babies are kept from mating by IsYoung until they grow up.
+        reproduce_cooldown = ReproduceCooldown * Random.Range(0.15f, 0.35f);
 
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): procedural animation (ProcAnim module) for every animal.
         if (!TryGetComponent(out AnimalMotionBridge _))
@@ -912,6 +945,7 @@ public class AnimalBrain : MonoBehaviour
         }
 
         simulator.RecordStarvation(species_data);
+        Starved?.Invoke(this);
 
         MarkCaught();
 
@@ -1385,7 +1419,7 @@ public class AnimalBrain : MonoBehaviour
             if (Random.value > Mathf.Clamp01(huntSuccessRate + GuidedEffects.HuntSuccessBonus))
             {
                 sprintTimer = 0f; SetCrouch(false);
-                huntRestTimer = huntCooldownSeconds;
+                huntRestTimer = huntCooldownSeconds * DayScale;
                 agent.ResetPath();
                 return false;
             }
@@ -1393,6 +1427,7 @@ public class AnimalBrain : MonoBehaviour
             if (prey_brain != null)
             {
                 prey_brain.MarkCaught();
+                Caught?.Invoke(this, prey_brain);
                 DramaDirector.Report(DramaDirector.Moment.Catch, transform,   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
                     $"The {SpeciesLabel(species_data)} caught a {SpeciesLabel(prey_brain.species_data)}. Hunting is how it feeds its family.");
 

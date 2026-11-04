@@ -47,6 +47,17 @@ public class CreatureSpawner : MonoBehaviour {
     readonly List<Vector3> groupCentres = new List<Vector3>();
     int nextGroup;
 
+    // Room for the herd: with Free mode's up to 100 animals, 20 leopards or so per group were packed into a
+    // 15 m circle and jammed each other (some never moved). The group area grows with the number of animals
+    // in it, so each still has about minSpacing of space; small groups keep groupRadius.
+    float roomRadius;
+    float GroupRadius => Mathf.Max(groupRadius, roomRadius);
+    void SizeGroupsFor(int animals)
+    {
+        int perGroup = groups > 0 ? Mathf.CeilToInt(animals / (float)groups) : animals;
+        roomRadius = minSpacing * Mathf.Sqrt(perGroup) * 1.2f;
+    }
+
     // Picks group centres once (in the habitat, far apart), then a spot near the next group's centre.
     bool TryGetGroupPoint(out Vector3 point, out Vector3 centre)
     {
@@ -57,7 +68,7 @@ public class CreatureSpawner : MonoBehaviour {
             // With a river, alternate sides: group 1 on one bank, group 2 on the other.
             int wantSide = groupCentres.Count % 2 == 0 ? 1 : -1;
             if (HimalayaRiver.Exists && tries < 50 &&
-                (HimalayaRiver.Side(c) != wantSide || HimalayaRiver.DistanceTo(c) < groupRadius)) continue;
+                (HimalayaRiver.Side(c) != wantSide || HimalayaRiver.DistanceTo(c) < GroupRadius)) continue;
             bool farEnough = true;
             foreach (var g in groupCentres) if ((g - c).sqrMagnitude < minGroupSeparation * minGroupSeparation) { farEnough = false; break; }
             if (farEnough || tries > 50) groupCentres.Add(c);   // give up on spacing rather than have fewer groups
@@ -69,7 +80,7 @@ public class CreatureSpawner : MonoBehaviour {
         float bestGap = -1f;
         for (int i = 0; i < 30; i++)
         {
-            Vector2 r = Random.insideUnitCircle * groupRadius;
+            Vector2 r = Random.insideUnitCircle * GroupRadius;
             if (!NavMesh.SamplePosition(centre + new Vector3(r.x, 0f, r.y), out var hit, 6f, NavMesh.AllAreas)) continue;
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): the whole herd on the same bank as its centre, never split by the river.
             if (HimalayaRiver.Exists && HimalayaRiver.Side(hit.position) != HimalayaRiver.Side(centre)) continue;
@@ -225,6 +236,7 @@ public class CreatureSpawner : MonoBehaviour {
         }
         // [AI-GENERATED END]
 
+        SizeGroupsFor(targetCount);
         while (spawned.Count < targetCount)
         {
             // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
@@ -242,6 +254,7 @@ public class CreatureSpawner : MonoBehaviour {
                 babyEntity.SetDefinition(species);
                 if (baby.TryGetComponent(out AnimalBrain babyBrain)) { babyBrain.MakeBaby(mother); babyBrain.SetHabitat(minElevationFraction, maxElevationFraction); babyBrain.CopyHome(mother); }
                 spawned.Add(baby);
+                if (babyBrain != null) AnimalBrain.RaiseBorn(babyBrain);
                 DramaDirector.Report(DramaDirector.Moment.Birth, baby.transform,   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
                     $"A baby {AnimalBrain.SpeciesLabel(species)} is born! Watch it follow its mum.");
                 Debug.Log($"[Birth] {species.name} baby placed beside its mother at {nearMum.position} (brain {(babyBrain != null ? "yes" : "MISSING")}).", baby);
@@ -275,7 +288,7 @@ public class CreatureSpawner : MonoBehaviour {
             if (go.TryGetComponent(out AnimalBrain brain))   // [AI-GENERATED] Claude Code (Claude Opus 5.5): wander stays in this band / group
             {
                 brain.SetHabitat(minElevationFraction, maxElevationFraction);
-                if (groups > 0) brain.SetHome(home, groupRadius);
+                if (groups > 0) brain.SetHome(home, GroupRadius);
             }
 
             spawned.Add(go);

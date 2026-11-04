@@ -44,6 +44,7 @@ public class AnimalMotionBridge : MonoBehaviour
     {
         UpdateAwareness();
         var state = Pick();
+        if (InWater() && state != MotionState.Die && !wasStanding) state = MotionState.Swim;
         animator.SetState(state);
         // Alert prey watch the nearest predator; predators watch their prey (when hunting or stalking).
         // Not while fleeing: the predator is behind, past the head's turn limit.
@@ -62,6 +63,20 @@ public class AnimalMotionBridge : MonoBehaviour
         Vector3 size = t.terrainData.size;
         if (local.x < 0f || local.z < 0f || local.x > size.x || local.z > size.z) return Vector3.up;
         return t.terrainData.GetInterpolatedNormal(local.x / size.x, local.z / size.z);
+    }
+
+    // Crossing a river or stream (the fords): swim instead of walking on the water. Checked a few times
+    // a second, not every frame, since it walks the river line.
+    const float SwimWithin = 1.8f;   // metres from a water centre line
+    float waterCheckTimer;
+    bool inWater;
+    bool InWater()
+    {
+        waterCheckTimer -= Time.deltaTime;
+        if (waterCheckTimer > 0f) return inWater;
+        waterCheckTimer = 0.25f;
+        inWater = HimalayaRiver.Exists && HimalayaRiver.DistanceToAnyWater(transform.position) < SwimWithin;
+        return inWater;
     }
 
     MotionState Pick()

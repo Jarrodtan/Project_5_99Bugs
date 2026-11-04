@@ -105,7 +105,7 @@ MonoBehaviour:
   eatDuration: 2
   chaseSpeedMultiplier: 1.9
   fleeSpeedMultiplier: 1.25
-  huntBelowHunger: 60
+  huntBelowHunger: 50
   stalkSpeedMultiplier: 0.45
   pounceDistance: 8
   sprintSpeedMultiplier: 2.2
@@ -127,9 +127,9 @@ MonoBehaviour:
   dangerAppetiteCut: 0.6
   alarmRadius: 15
   maxDangerSpots: 4
-  preyStarveAfterSeconds: 180
-  predatorStarveAfterSeconds: 300
-  dehydrateAfterSeconds: 90
+  preyStarveAfterSeconds: 600
+  predatorStarveAfterSeconds: 1000
+  dehydrateAfterSeconds: 600
   predatorDehydrateAfterSeconds: 1000
   seekFoodBelow: 50
   seekWaterBelow: 50
@@ -141,16 +141,16 @@ MonoBehaviour:
   desperateNeed: 0.6
   predatorRoamHunger: 0.35
   desperateSearchMultiplier: 2
-  fullBiteFill: 50
+  fullBiteFill: 40
   fullDrinkFill: 60
   forageRadius: 60
   biteSize: 20
   caughtDuration: 5
   mateRadius: 10
-  predatorMateRadius: 90
+  predatorMateRadius: 1000
   mateDistance: 2
-  reproduceMinWellFed: 60
-  reproduceCooldownSeconds: 30
+  reproduceMinWellFed: 70
+  reproduceCooldownSeconds: 600
   predatorReproduceCooldownSeconds: 1440
   reproduceHungerCost: 25
   mateDuration: 2
@@ -222,7 +222,7 @@ AudioSource:
   Priority: 128
   DopplerLevel: 1
   MinDistance: 20
-  MaxDistance: 50
+  MaxDistance: 150
   Pan2D: 0
   rolloffMode: 0
   BypassEffects: 0
@@ -319,7 +319,7 @@ MonoBehaviour:
   playLength: {x: 2, y: 4}
   maxClipSeconds: 6
   debugLog: 1
-  maxDistance: 60
+  maxDistance: 150
   rolloff:
     serializedVersion: 2
     m_Curve:
@@ -334,7 +334,7 @@ MonoBehaviour:
       outWeight: 0
     - serializedVersion: 3
       time: 0.25
-      value: 0.65
+      value: 0.9
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -343,7 +343,7 @@ MonoBehaviour:
       outWeight: 0
     - serializedVersion: 3
       time: 0.5
-      value: 0.3
+      value: 0.65
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -352,7 +352,7 @@ MonoBehaviour:
       outWeight: 0
     - serializedVersion: 3
       time: 0.75
-      value: 0.1
+      value: 0.3
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -373,7 +373,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   volumeRange: {x: 0.8, y: 1}
   pitchRange: {x: 0.85, y: 1.15}
-  muffleWithDistance: 1
+  muffleWithDistance: 0
 --- !u!114 &9121377746885948906
 MonoBehaviour:
   m_ObjectHideFlags: 0
