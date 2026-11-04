@@ -16,8 +16,9 @@ public class FordAccess : MonoBehaviour
 
     AnimalBrain brain;
     NavMeshAgent agent;
-    float timer;
+    float timer, pocketUntil;
     int fordBit;
+    const float PocketSeconds = 15f;
 
     void Awake()
     {
@@ -28,8 +29,7 @@ public class FordAccess : MonoBehaviour
     void Start()
     {
         int area = HimalayaRiver.FordArea;
-        fordBit = area > 0 ? 1 << area : 0;   // no "Ford" area in the project: leave the mask alone
-        timer = Random.value * CheckEvery;    // spread the checks over frames
+        fordBit = area > 0 ? 1 << area : 0;   // no "Ford" area in the project: leave the mask alone        timer = Random.value * CheckEvery;    // spread the checks over frames
     }
 
     void Update()
@@ -40,8 +40,14 @@ public class FordAccess : MonoBehaviour
         if (timer > 0f) return;
         timer = CheckEvery;
 
+        // Shut in a pocket between a stream and the river (every place it picks is unreachable without a
+        // ford): it may use the fords for a while to get out, instead of pacing on the spot.
+        if (agent.hasPath && agent.pathStatus == NavMeshPathStatus.PathPartial && agent.remainingDistance < 1.5f)
+            pocketUntil = Time.time + PocketSeconds;
+
         bool allowed = brain.CurrentAction == AnimalBrain.AnimalAction.Fleeing
                     || brain.CurrentAction == AnimalBrain.AnimalAction.Hunting
+                    || Time.time < pocketUntil
                     || StandingOnFord();
         bool has = (agent.areaMask & fordBit) != 0;
         if (allowed == has) return;

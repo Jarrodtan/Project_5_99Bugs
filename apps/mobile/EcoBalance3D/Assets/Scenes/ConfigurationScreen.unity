@@ -4098,7 +4098,7 @@ MonoBehaviour:
   countInput: {fileID: 1305611112}
   startCount: 2
   minCount: 0
-  maxCount: 100
+  maxCount: 50
 --- !u!1 &1231667971
 GameObject:
   m_ObjectHideFlags: 0
@@ -5214,7 +5214,7 @@ MonoBehaviour:
   countInput: {fileID: 1141289237}
   startCount: 10
   minCount: 0
-  maxCount: 100
+  maxCount: 50
 --- !u!1 &1675345348
 GameObject:
   m_ObjectHideFlags: 0

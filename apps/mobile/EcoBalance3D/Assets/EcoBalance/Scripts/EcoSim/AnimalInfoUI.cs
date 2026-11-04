@@ -282,7 +282,7 @@ public class AnimalInfoUI : MonoBehaviour
 
             case AnimalBrain.AnimalAction.Roaming:
             default:
-                return "Roaming";
+                return selectedAnimal != null && selectedAnimal.IsLookingAround ? "Looking around" : "Roaming";
         }
     }
 }

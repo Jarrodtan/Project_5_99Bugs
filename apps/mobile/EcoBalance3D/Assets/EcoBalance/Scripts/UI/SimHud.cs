@@ -393,7 +393,7 @@ public class SimHud : MonoBehaviour
         AnimalBrain.AnimalAction.Hunting => a.IsStalking ? "Stalking" : "Hunting",
         AnimalBrain.AnimalAction.Fleeing => "Running away!",
         AnimalBrain.AnimalAction.Reproducing => "Looking for a mate",
-        _ => "Exploring",
+        _ => a.IsLookingAround ? "Looking around" : "Exploring",
     };
 
     static string Describe(AnimalBrain a)
@@ -413,7 +413,8 @@ public class SimHud : MonoBehaviour
             AnimalBrain.AnimalAction.Hunting => a.IsStalking ? $"{who} is creeping up quietly on the herd." : $"{who} is chasing a Blue Sheep!",
             AnimalBrain.AnimalAction.Fleeing => $"{who} spotted a Snow Leopard and is running to safety.",
             AnimalBrain.AnimalAction.Reproducing => $"{who} is well fed and looking for a partner.",
-            _ => $"{who} is wandering around its home.",
+            _ => a.IsLookingAround ? $"{who} stopped to look around before moving on."
+                                   : $"{who} is wandering around its home.",
         };
     }
 
