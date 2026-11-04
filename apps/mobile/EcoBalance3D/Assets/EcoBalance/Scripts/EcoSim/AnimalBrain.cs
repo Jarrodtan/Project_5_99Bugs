@@ -507,6 +507,14 @@ public class AnimalBrain : MonoBehaviour
     public bool DeathFinished => EventsMode && IsCaught && caught_timer <= DeadHoldTimer;
     // [AI-GENERATED END]
 
+    /// <summary>An animal died because Fullness or Hydration stayed empty (contextual questions, mascot).</summary>
+    public static event System.Action<AnimalBrain> Starved;
+    /// <summary>A predator caught its prey (predator, prey).</summary>
+    public static event System.Action<AnimalBrain, AnimalBrain> Caught;
+    /// <summary>A baby was born (raised by the spawner once the baby is placed).</summary>
+    public static event System.Action<AnimalBrain> Born;
+    public static void RaiseBorn(AnimalBrain baby) => Born?.Invoke(baby);
+
     public void MarkCaught()
     {
         CaughtTime = Time.time;
@@ -937,6 +945,7 @@ public class AnimalBrain : MonoBehaviour
         }
 
         simulator.RecordStarvation(species_data);
+        Starved?.Invoke(this);
 
         MarkCaught();
 
@@ -1418,6 +1427,7 @@ public class AnimalBrain : MonoBehaviour
             if (prey_brain != null)
             {
                 prey_brain.MarkCaught();
+                Caught?.Invoke(this, prey_brain);
                 DramaDirector.Report(DramaDirector.Moment.Catch, transform,   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
                     $"The {SpeciesLabel(species_data)} caught a {SpeciesLabel(prey_brain.species_data)}. Hunting is how it feeds its family.");
 

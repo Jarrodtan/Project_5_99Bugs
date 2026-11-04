@@ -141,6 +141,8 @@ public static class GuidedScreens
                 bool got = (mask & (1 << i)) != 0;
                 SetText(card, "EndingTitleTxt", got ? GuidedChallenge.Endings[i].title : "???");
                 SetText(card, "CardDescriptionTxt", got ? GuidedChallenge.Endings[i].lesson : "Not discovered yet");
+                FitOneLine(Find(card, "EndingTitleTxt"));   // "Ecosystem Collapse" wrapped onto the description
+                FitBox(Find(card, "CardDescriptionTxt"));    // long lessons were cut off
                 var unlocked = Find(card, "UnlockedStatus"); if (unlocked != null) unlocked.gameObject.SetActive(got);
                 var locked = Find(card, "LockedStatus"); if (locked != null) locked.gameObject.SetActive(!got);
                 int s = slot;
@@ -235,6 +237,26 @@ public static class GuidedScreens
     }
 
     // ---------- Helpers (names in the mock-ups sometimes carry quotes or trailing spaces) ----------
+
+    // Card text from the mock-up has fixed sizes for short placeholder words; shrink real text to fit.
+    static void FitOneLine(Transform t)
+    {
+        if (t == null || !t.TryGetComponent(out TextMeshProUGUI tmp)) return;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        if (!tmp.enableAutoSizing) tmp.fontSizeMax = tmp.fontSize;   // never bigger than the design
+        tmp.enableAutoSizing = true;
+        tmp.fontSizeMin = 14f;
+    }
+
+    static void FitBox(Transform t)
+    {
+        if (t == null || !t.TryGetComponent(out TextMeshProUGUI tmp)) return;
+        tmp.textWrappingMode = TextWrappingModes.Normal;
+        if (!tmp.enableAutoSizing) tmp.fontSizeMax = tmp.fontSize;   // never bigger than the design
+        tmp.enableAutoSizing = true;
+        tmp.fontSizeMin = 12f;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
+    }
 
     static Transform Find(Transform under, string name)
     {

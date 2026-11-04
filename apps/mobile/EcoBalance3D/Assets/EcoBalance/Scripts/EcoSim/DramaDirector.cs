@@ -75,6 +75,7 @@ public class DramaDirector : MonoBehaviour
         float now = Time.unscaledTime;
         bool announcing = showing && subject == null;
         if (!announcing && (showing ? moment <= current : now < quietUntil)) return;
+        if (Mascot.React(moment, target, text)) { quietUntil = now + QuietSeconds; return; }   // Free: the mascot says it
 
         if (banner == null) BuildUI();
         subject = target;

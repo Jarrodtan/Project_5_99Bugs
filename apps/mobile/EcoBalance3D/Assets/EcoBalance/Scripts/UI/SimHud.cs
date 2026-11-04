@@ -114,7 +114,9 @@ public class SimHud : MonoBehaviour
         if (inspection != null) inspection.SetActive(false);
         if (expanded != null) expanded.SetActive(false);
         var contextual = Find("ContextualPanel");
-        if (contextual != null) contextual.gameObject.SetActive(false);   // prediction questions come later (CQ01-05)
+        if (contextual != null) contextual.gameObject.SetActive(false);   // shown by ContextualQuestions when a question fires
+        Mascot.Attach(transform);
+        if (!ScreenFlow.GuidedMode) ContextualQuestions.Attach(transform);   // CQ01-05 are for Free Exploration
 
         Button("ResetBtn", () => { if (speed != null) speed.Reset(); });
         Button("Play/PauseBtn", TogglePlay);
@@ -186,7 +188,7 @@ public class SimHud : MonoBehaviour
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
             {
                 if (hide.Contains(t.name)) t.gameObject.SetActive(false);
-                else if (withHud && t.TryGetComponent(out TMP_Text txt) && txt.text != null && txt.text.StartsWith("Live Everest") && t is RectTransform rt && !movedWeather.Contains(rt))
+                else if (withHud && t.TryGetComponent(out TMP_Text txt) && txt.text != null && (txt.text.StartsWith("Live Everest") || txt.text.Contains("Temp:")) && t is RectTransform rt && !movedWeather.Contains(rt))
                 {
                     movedWeather.Add(rt);
                     // Top-left, under the "Himalayan Highlands" title box: the bottom-left is the control bar.
@@ -271,6 +273,7 @@ public class SimHud : MonoBehaviour
         if (selected != shown)
         {
             shown = selected;
+            if (shown != null) Mascot.NoteInspected();
             if (inspection != null) inspection.SetActive(shown != null);
         }
 

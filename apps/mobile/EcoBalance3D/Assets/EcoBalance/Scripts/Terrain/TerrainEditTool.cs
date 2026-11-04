@@ -765,6 +765,7 @@ public class TerrainEditTool : MonoBehaviour
     {
         bool open = !panel.gameObject.activeSelf;
         panel.gameObject.SetActive(open);
+        if (open) Mascot.NoteTerrainEditor();   // FE-M09
         toggleLabel.text = open ? "Close Editor" : "Edit Terrain";
         if (!open) SelectTool(Tool.Look);
 
