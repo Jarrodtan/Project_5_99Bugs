@@ -13,9 +13,6 @@ public class HimalayaBuildProfile : ScriptableObject
     [Tooltip("Paint grass-dominant splat instead of elevation/slope snow-rock-grass.")]
     public bool forceGrassSplat = true;
 
-    [Tooltip("Keep the mountain shape, but never paint the snow layer. Steep ground stays rock.")]
-    public bool suppressSnow;
-
     [Tooltip("Run the tree placer stage.")]
     public bool placeTrees = true;
 

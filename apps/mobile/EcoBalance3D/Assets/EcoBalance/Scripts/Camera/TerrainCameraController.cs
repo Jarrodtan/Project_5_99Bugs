@@ -99,16 +99,6 @@ public class TerrainCameraController : MonoBehaviour
 
     void Start() => ResetView();
 
-    /// <summary>Look at a different island's terrain. Does nothing when it is already the current one.</summary>
-    public void FocusTerrain(Terrain next)
-    {
-        if (next == null || next == terrain)
-            return;
-
-        terrain = next;
-        ResetView();
-    }
-
     public void ResetView()
     {
         followTarget = null;

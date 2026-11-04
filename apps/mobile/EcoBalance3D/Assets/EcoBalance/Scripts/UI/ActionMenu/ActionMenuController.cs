@@ -90,43 +90,8 @@ public class ActionMenuController : MonoBehaviour, ISimulationPauseGate
         ApplyLayout();
         WireFab();
         WireModalClose();
-        BringAboveHud();
         SetMenuOpen(false);
         SetModalOpen(false);
-    }
-
-    /// <summary>
-    /// The ecosystem overview is on a canvas loaded after this one, so it covers the button and
-    /// steals the click. Draw the button, the category stack and the settings above that HUD,
-    /// and under the journal and leave dialog.
-    /// </summary>
-    void BringAboveHud()
-    {
-        Raise(fabRect);
-        if (categoryStack != null)
-            Raise(categoryStack.transform);
-        if (modalRoot != null)
-            Raise(modalRoot.transform);
-    }
-
-    static void Raise(Transform target)
-    {
-        if (target == null)
-            return;
-
-        var canvas = target.GetComponent<Canvas>();
-        if (canvas == null)
-            canvas = target.gameObject.AddComponent<Canvas>();
-
-        var parent = target.parent != null ? target.parent.GetComponentInParent<Canvas>() : null;
-        if (parent != null)
-            canvas.additionalShaderChannels = parent.additionalShaderChannels;
-
-        canvas.overrideSorting = true;
-        canvas.sortingOrder = 40;
-
-        if (target.GetComponent<GraphicRaycaster>() == null)
-            target.gameObject.AddComponent<GraphicRaycaster>();
     }
 
     void OnDisable()
