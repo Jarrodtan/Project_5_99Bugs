@@ -884,6 +884,10 @@ public class AnimalBrain : MonoBehaviour
         }
 
         simulator.RecordStarvation(species_data);
+        DramaDirector.Report(
+            DramaDirector.Moment.Starvation,
+            transform,
+            $"A {SpeciesLabel(species_data)} has run out of energy. Keep an eye on the animals' food supply!");
 
         MarkCaught();
 
@@ -1418,6 +1422,7 @@ public class AnimalBrain : MonoBehaviour
                         species_data,
                         prey_brain.species_data);
                 }
+
             }
 
             // Predator has successfully eaten (research: +80 Fullness, capped).
@@ -1610,6 +1615,11 @@ public class AnimalBrain : MonoBehaviour
             CreatureSpawner.QueueBirth(this);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): baby appears beside this mother
             simulator.RecordBirth(
                 species_data);
+
+            DramaDirector.Report(
+                DramaDirector.Moment.Birth,
+                transform,
+                $"A new {SpeciesLabel(species_data)} is on the way! The population is growing.");
         }
     }
 

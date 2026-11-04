@@ -1,4 +1,5 @@
 // [AI-GENERATED] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,13 +15,16 @@ using UnityEngine.UI;
 /// </summary>
 public class DramaDirector : MonoBehaviour
 {
-    public enum Moment { Catch = 0, Mating = 1, Birth = 2, Hunt = 3 }   // higher = more exciting
+    public enum Moment { Starvation = 0, Catch = 1, Mating = 2, Birth = 3, Hunt = 4 }   // higher = more exciting
 
     const float ShowSeconds = 7f;     // banner stays this long (real time)
     const float QuietSeconds = 6f;    // gap after a banner before the next one
     const float WatchSeconds = 12f;   // after Watch, no new banners while the player is watching
 
     static DramaDirector instance;
+
+    // Raised only after an event passes the priority/quiet-gap checks and its banner is displayed.
+    public static event Action<Moment, string> MomentDisplayed;
 
     GameObject banner, watchButton;
     TextMeshProUGUI caption, status;
@@ -84,6 +88,9 @@ public class DramaDirector : MonoBehaviour
         banner.SetActive(true);
         showing = true;
         hideAt = now + ShowSeconds;
+
+        // The mascot listens here, so it only reacts to events the banner actually displays.
+        MomentDisplayed?.Invoke(moment, text);
     }
 
     void Update()
