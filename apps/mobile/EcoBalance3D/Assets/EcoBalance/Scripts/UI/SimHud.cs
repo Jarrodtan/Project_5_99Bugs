@@ -381,7 +381,12 @@ public class SimHud : MonoBehaviour
         SetText("DYKTxt", fact, Find("DYKPanel", p));
     }
 
-    static string ActionWords(AnimalBrain a) => a.CurrentAction switch
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): crossing the river or a stream at a ford (same check as the swim animation).
+    static bool Swimming(AnimalBrain a) => HimalayaRiver.InWater(a.transform.position, AnimalMotionBridge.SwimWithin);
+
+    static string ActionWords(AnimalBrain a) => Swimming(a)
+        ? (a.CurrentAction == AnimalBrain.AnimalAction.Fleeing ? "Swimming away!" : "Swimming")
+        : a.CurrentAction switch
     {
         AnimalBrain.AnimalAction.EatingGrass => "Grazing",
         AnimalBrain.AnimalAction.DrinkingWater => "Drinking",
@@ -394,6 +399,13 @@ public class SimHud : MonoBehaviour
     static string Describe(AnimalBrain a)
     {
         string who = a.IsPredatorSpecies ? "This Snow Leopard" : "This Blue Sheep";
+        if (Swimming(a))
+            return a.CurrentAction switch
+            {
+                AnimalBrain.AnimalAction.Fleeing => $"{who} is swimming across the water to get away!",
+                AnimalBrain.AnimalAction.Hunting => $"{who} is swimming across the water after a Blue Sheep!",
+                _ => $"{who} is swimming across at a shallow crossing.",
+            };
         return a.CurrentAction switch
         {
             AnimalBrain.AnimalAction.EatingGrass => $"{who} is eating grass to stay full.",

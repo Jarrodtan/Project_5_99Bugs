@@ -685,6 +685,9 @@ public class AnimalBrain : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): procedural animation (ProcAnim module) for every animal.
         if (!TryGetComponent(out AnimalMotionBridge _))
             gameObject.AddComponent<AnimalMotionBridge>();
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): river and stream fords only while fleeing or hunting.
+        if (!TryGetComponent(out FordAccess _))
+            gameObject.AddComponent<FordAccess>();
     }
 
     void Update()

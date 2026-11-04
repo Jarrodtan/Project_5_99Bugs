@@ -67,7 +67,7 @@ public class AnimalMotionBridge : MonoBehaviour
 
     // Crossing a river or stream (the fords): swim instead of walking on the water. Checked a few times
     // a second, not every frame, since it walks the river line.
-    const float SwimWithin = 1.8f;   // metres from a water centre line
+    public const float SwimWithin = 1.8f;   // metres from a water centre line
     float waterCheckTimer;
     bool inWater;
     bool InWater()
@@ -75,7 +75,7 @@ public class AnimalMotionBridge : MonoBehaviour
         waterCheckTimer -= Time.deltaTime;
         if (waterCheckTimer > 0f) return inWater;
         waterCheckTimer = 0.25f;
-        inWater = HimalayaRiver.Exists && HimalayaRiver.DistanceToAnyWater(transform.position) < SwimWithin;
+        inWater = HimalayaRiver.InWater(transform.position, SwimWithin);
         return inWater;
     }
 
