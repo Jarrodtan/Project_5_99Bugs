@@ -4,9 +4,10 @@ using Unity.AI.Navigation;
 using UnityEngine;
 
 /// <summary>
-/// One river down the main valley. The route still follows low ground from the high edge to the
-/// low edge, then the climb over a ridge is cut off. What remains runs downhill, source first,
-/// so the flow shader's ripples travel toward lower ground.
+/// One river across the map, the way meltwater really runs in the Himalaya: it starts high on a
+/// mountain at one edge and follows the valley floors down to the lowest ground at the far edge.
+/// The path is the cheapest route over the heightmap where low ground is cheap and climbing is
+/// expensive, so it naturally sits in the valleys.
 ///
 /// The river is cut out of the NavMesh (animals can't wade or swim across), so it divides the map
 /// into two sides; <see cref="Side"/> tells which side a point is on, so each side can have its own
@@ -30,34 +31,24 @@ public static class HimalayaRiver
     // [AI-GENERATED END]
 
     const int Grid = 96;   // heightmap cells per side used for the route search
-    const float ClimbSlackMeters = 30f;   // a bump this small stays in the river; a ridge does not
 
-    /// <summary>Finds the route, returns it as terrain UVs (high end first).</summary>
+    /// <summary>Finds the route, returns it as terrain UVs (source first).</summary>
     public static List<Vector2> Trace(HimalayaTerrainBuilder tb)
     {
-        var metres = new float[Grid, Grid];
+        // Elevation grid, 0..1.
+        var h = new float[Grid, Grid];
         float min = float.PositiveInfinity, max = float.NegativeInfinity;
         for (int x = 0; x < Grid; x++)
             for (int y = 0; y < Grid; y++)
             {
                 float e = tb.ElevationMeters(x / (Grid - 1f), y / (Grid - 1f));
-                metres[x, y] = e;
-                min = Mathf.Min(min, e);
-                max = Mathf.Max(max, e);
+                h[x, y] = e; min = Mathf.Min(min, e); max = Mathf.Max(max, e);
             }
-        // A flat island has no valley, so a fresh search draws the river somewhere else.
-        // Keep the course already traced on the mountain.
-        if (max - min < 50f && courseUv != null && courseUv.Count >= 2)
-            return new List<Vector2>(courseUv);
-
         float range = Mathf.Max(1f, max - min);
-        var h = new float[Grid, Grid];
-        for (int x = 0; x < Grid; x++)
-            for (int y = 0; y < Grid; y++)
-                h[x, y] = (metres[x, y] - min) / range;
+        for (int x = 0; x < Grid; x++) for (int y = 0; y < Grid; y++) h[x, y] = (h[x, y] - min) / range;
 
-        // High end on the north edge, low end on the south edge, so the river crosses the map.
-        // Low ground is cheap and climbing is expensive, which keeps the line in the valleys.
+        // Source: the highest point on the top edge. Mouth: the lowest point on the bottom edge.
+        // Both on the very edge, so the river cuts the map fully in two (no way round the ends).
         int band = Grid / 10;
         Vector2Int source = default, mouth = default;
         float hi = -1f, lo = 2f;
@@ -67,6 +58,7 @@ public static class HimalayaRiver
             if (h[x, 0] < lo) { lo = h[x, 0]; mouth = new Vector2Int(x, 0); }
         }
 
+        // Dijkstra on the grid: low ground is cheap, climbing is very expensive.
         var cost = new float[Grid, Grid];
         var from = new Vector2Int[Grid, Grid];
         for (int x = 0; x < Grid; x++) for (int y = 0; y < Grid; y++) cost[x, y] = float.PositiveInfinity;
@@ -104,67 +96,16 @@ public static class HimalayaRiver
             cells.Add(p);
             if (p == source || cells.Count > Grid * Grid) break;
         }
-        cells.Reverse();
-        cells = DownhillRun(cells, metres);
-        lastGrid = h;
-        lastCells = cells;
+        cells.Reverse();   // source first, so the water flows downhill along the ribbon
+        lastGrid = h; lastCells = cells;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): kept for the side streams
 
-        var uv = new List<Vector2>(cells.Count);
+        // Smooth the zig-zag of the grid into a natural bend.
+        var uv = new List<Vector2>();
         foreach (var c in cells) uv.Add(new Vector2(c.x / (Grid - 1f), c.y / (Grid - 1f)));
-        for (int pass = 0; pass < 8; pass++)
+        for (int pass = 0; pass < 8; pass++)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): more passes = natural curves, not grid zig-zags
             for (int i = 1; i < uv.Count - 1; i++)
                 uv[i] = (uv[i - 1] + uv[i] * 2f + uv[i + 1]) * 0.25f;
         return uv;
-    }
-
-    static List<Vector2> courseUv;
-
-    // Longest stretch that never rises more than a small bump above the lowest point so far.
-    // A ridge breaks the stretch. High end first, so the ripples run downhill.
-    static List<Vector2Int> DownhillRun(List<Vector2Int> cells, float[,] metres)
-    {
-        if (cells.Count < 2) return cells;
-
-        int bestStart = 0, bestLength = 1;
-        bool bestReachesValley = false;
-        for (int s = 0; s < cells.Count; s++)
-        {
-            float floor = metres[cells[s].x, cells[s].y];
-            float lowest = floor;
-            int end = s;
-            for (int i = s + 1; i < cells.Count; i++)
-            {
-                float height = metres[cells[i].x, cells[i].y];
-                if (height > floor + ClimbSlackMeters) break;
-                if (height < floor) floor = height;
-                if (height < lowest) lowest = height;
-                end = i;
-            }
-
-            int length = end - s + 1;
-            bool valley = lowest < RiverStartMeters;
-            bool better = valley != bestReachesValley ? valley : length > bestLength;
-            if (better)
-            {
-                bestStart = s;
-                bestLength = length;
-                bestReachesValley = valley;
-            }
-        }
-
-        // A short piece is what made the river vanish. Keep the whole valley line instead.
-        if (bestLength < Mathf.Max(8, cells.Count / 3)) return FaceDownhill(cells, metres);
-
-        var run = cells.GetRange(bestStart, bestLength);
-        return FaceDownhill(run, metres);
-    }
-
-    static List<Vector2Int> FaceDownhill(List<Vector2Int> cells, float[,] metres)
-    {
-        if (cells.Count >= 2
-            && metres[cells[cells.Count - 1].x, cells[cells.Count - 1].y] > metres[cells[0].x, cells[0].y])
-            cells.Reverse();
-        return cells;
     }
 
     /// <summary>
@@ -181,12 +122,8 @@ public static class HimalayaRiver
         // animals can walk over, so the long way round, high over the valley head, joins the two sides.
         int snout = 0;
         while (snout < uv.Count - 2 && tb.ElevationMeters(uv[snout].x, uv[snout].y) > RiverStartMeters) snout++;
-        // Leave the ice in place when cutting it would reduce the river to a stub.
-        if (uv.Count - snout < 8) snout = 0;
         if (snout > 0) { uv.RemoveRange(0, snout); if (lastCells != null && lastCells.Count > snout) lastCells.RemoveRange(0, snout); }   // streams join the real river only
         // [AI-GENERATED END]
-        if (uv.Count >= 2 && tb.MaxElevation - tb.MinElevation >= 50f)
-            courseUv = new List<Vector2>(uv);
         if (uv.Count < 2) return banks;
 
         foreach (var p in uv) Path.Add(tb.WorldPosition(p.x, p.y));
@@ -196,7 +133,7 @@ public static class HimalayaRiver
         if (mesh != null)
         {
             var go = new GameObject("River");
-            Stick(go, parent);
+            go.transform.SetParent(parent, true);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var mr = go.AddComponent<MeshRenderer>();
             mr.sharedMaterial = water;
@@ -205,7 +142,7 @@ public static class HimalayaRiver
 
         // Not-walkable boxes along the river, and drinking spots just outside each bank.
         var blockers = new GameObject("River (no walking)");
-        Stick(blockers, parent);
+        blockers.transform.SetParent(parent, true);
         int notWalkable = UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
         float sinceBank = 99f;
         for (int i = 0; i < Path.Count - 1; i++)
@@ -218,13 +155,8 @@ public static class HimalayaRiver
             float width = Mathf.Lerp(sourceWidth, mouthWidth, t);
 
             var seg = new GameObject("Segment");
-            seg.transform.SetParent(blockers.transform, false);
-            Vector3 la = tb.LocalPosition(uv[i].x, uv[i].y);
-            Vector3 lb = tb.LocalPosition(uv[Mathf.Min(i + 1, uv.Count - 1)].x, uv[Mathf.Min(i + 1, uv.Count - 1)].y);
-            Vector3 localFlat = lb - la; localFlat.y = 0f;
-            seg.transform.localScale = Vector3.one;
-            seg.transform.localRotation = Quaternion.LookRotation(localFlat.sqrMagnitude > 1e-6f ? localFlat : Vector3.forward);
-            seg.transform.localPosition = (la + lb) * 0.5f;
+            seg.transform.SetParent(blockers.transform, true);
+            seg.transform.SetPositionAndRotation((a + b) * 0.5f, Quaternion.LookRotation(flat));
             var vol = seg.AddComponent<NavMeshModifierVolume>();
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): overlap by a full river width, so the outside of a bend
             // has no wedge-shaped gap animals could walk through onto the water.
@@ -242,15 +174,6 @@ public static class HimalayaRiver
             }
         }
         return banks;
-    }
-
-    /// <summary>Parents a water object in terrain-local space so the island fade cannot leave it behind.</summary>
-    static void Stick(GameObject go, Transform parent)
-    {
-        go.transform.SetParent(parent, false);
-        go.transform.localPosition = Vector3.zero;
-        go.transform.localRotation = Quaternion.identity;
-        go.transform.localScale = Vector3.one;
     }
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
@@ -296,7 +219,7 @@ public static class HimalayaRiver
             wet.AddRange(cells);
             var uv = new List<Vector2>();
             foreach (var c in cells) uv.Add(new Vector2(c.x / (Grid - 1f), c.y / (Grid - 1f)));
-            for (int pass = 0; pass < 8; pass++)
+            for (int pass = 0; pass < 8; pass++)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): more passes = natural curves, not grid zig-zags
                 for (int i = 1; i < uv.Count - 1; i++)
                     uv[i] = (uv[i - 1] + uv[i] * 2f + uv[i + 1]) * 0.25f;
 
@@ -308,7 +231,7 @@ public static class HimalayaRiver
             if (mesh != null)
             {
                 var go = new GameObject($"Glacier stream {Tributaries.Count}");
-                Stick(go, parent);
+                go.transform.SetParent(parent, true);
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var mr = go.AddComponent<MeshRenderer>();
                 mr.sharedMaterial = water;
@@ -317,7 +240,7 @@ public static class HimalayaRiver
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): animals don't walk in the stream, only cross at
             // shallow fords (a gap in the blocker every FordEvery metres), like real meltwater streams.
             var noWalk = new GameObject($"Glacier stream {Tributaries.Count} (no walking)");
-            Stick(noWalk, parent);
+            noWalk.transform.SetParent(parent, true);
             int notWalkableArea = UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
             float run = 0f;
             for (int i = 0; i < path.Count - 1; i++)
@@ -330,13 +253,8 @@ public static class HimalayaRiver
                 if (run % FordEvery < FordWidth) continue;   // leave a ford here
                 float w = Mathf.Lerp(StreamSourceWidth, StreamMouthWidth, i / (float)(path.Count - 1));
                 var seg = new GameObject("Segment");
-                seg.transform.SetParent(noWalk.transform, false);
-                Vector3 la = tb.LocalPosition(uv[i].x, uv[i].y);
-                Vector3 lb = tb.LocalPosition(uv[Mathf.Min(i + 1, uv.Count - 1)].x, uv[Mathf.Min(i + 1, uv.Count - 1)].y);
-                Vector3 localFlat = lb - la; localFlat.y = 0f;
-                seg.transform.localScale = Vector3.one;
-                seg.transform.localRotation = Quaternion.LookRotation(localFlat.sqrMagnitude > 1e-6f ? localFlat : Vector3.forward);
-                seg.transform.localPosition = (la + lb) * 0.5f;
+                seg.transform.SetParent(noWalk.transform, true);
+                seg.transform.SetPositionAndRotation((a + b) * 0.5f, Quaternion.LookRotation(flat));
                 var vol = seg.AddComponent<Unity.AI.Navigation.NavMeshModifierVolume>();
                 vol.size = new Vector3(w + 0.6f, 40f, len + w * 0.5f);
                 vol.center = Vector3.zero;
@@ -362,7 +280,7 @@ public static class HimalayaRiver
         }
     }
 
-    // Cheapest route from a snout to the river. The caller drops a route that climbs more than 50 m.
+    // Cheapest downhill route from a cell to any cell of the target set (same costs as the main river).
     static List<Vector2Int> Route(float[,] h, Vector2Int start, HashSet<Vector2Int> targets)
     {
         var cost = new float[Grid, Grid];

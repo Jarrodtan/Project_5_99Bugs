@@ -576,19 +576,11 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
     bool TrySampleTerrainHeight(Vector3 position, out float height)
     {
         height = 0f;
-        var root = islandManager != null ? islandManager.IslandRoot : spawnRoot;
-        if (root != null && SampleHeightUnder(root.GetComponentsInChildren<Terrain>(true), position, out height))
-            return true;
-
-        return SampleHeightUnder(FindObjectsByType<Terrain>(FindObjectsInactive.Exclude), position, out height);
-    }
-
-    static bool SampleHeightUnder(Terrain[] terrains, Vector3 position, out float height)
-    {
-        height = 0f;
-        if (terrains == null)
+        var root = islandManager != null ? islandManager.IslandRoot : null;
+        if (root == null)
             return false;
 
+        var terrains = root.GetComponentsInChildren<Terrain>(true);
         for (var i = 0; i < terrains.Length; i++)
         {
             var terrain = terrains[i];
@@ -964,11 +956,8 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
 
     bool TryGetIslandFootprint(out Bounds footprint)
     {
-        var root = islandManager != null ? islandManager.IslandRoot : spawnRoot;
-        if (root != null && TryGetFootprint(root, out footprint))
-            return true;
-
-        return TryGetTerrainFootprint(FindObjectsByType<Terrain>(FindObjectsInactive.Exclude), out footprint);
+        var root = islandManager != null ? islandManager.IslandRoot : null;
+        return TryGetFootprint(root, out footprint);
     }
 
     static bool TryGetFootprint(Transform root, out Bounds footprint)
@@ -1005,18 +994,8 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
 
     static bool TryGetTerrainFootprint(Transform root, out Bounds footprint)
     {
-        if (root == null)
-        {
-            footprint = default;
-            return false;
-        }
-
-        return TryGetTerrainFootprint(root.GetComponentsInChildren<Terrain>(true), out footprint);
-    }
-
-    static bool TryGetTerrainFootprint(Terrain[] terrains, out Bounds footprint)
-    {
         footprint = default;
+        var terrains = root.GetComponentsInChildren<Terrain>(true);
         var found = false;
         for (var i = 0; i < terrains.Length; i++)
         {

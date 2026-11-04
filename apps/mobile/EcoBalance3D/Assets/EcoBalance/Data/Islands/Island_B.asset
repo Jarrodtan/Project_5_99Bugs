@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Island_B
   m_EditorClassIdentifier: Assembly-CSharp::IslandDefinition
   id: island_b
-  displayName: Himalaya (no snow)
+  displayName: Grass Island
   islandPrefab: {fileID: 4479243011467935674, guid: a6000000000000000000000000000033, type: 3}
   centerOffset: {x: 100, y: 0, z: 100}
   boundary:

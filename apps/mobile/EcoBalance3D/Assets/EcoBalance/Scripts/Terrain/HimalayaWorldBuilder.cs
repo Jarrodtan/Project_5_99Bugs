@@ -43,9 +43,6 @@ public class HimalayaWorldBuilder : MonoBehaviour
     public HimalayaSightings Sightings => sightings;
     public bool IsReady { get; private set; }
 
-    /// <summary>True while <see cref="Build"/> is running.</summary>
-    public bool IsBuilding => building;
-
     /// <summary>Raised when the terrain, grass and NavMesh are ready (online water/sightings may still be loading).</summary>
     public event Action Built;
 
