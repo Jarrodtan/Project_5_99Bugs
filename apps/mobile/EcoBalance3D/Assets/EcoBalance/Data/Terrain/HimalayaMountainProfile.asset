@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HimalayaBuildProfile
   flattenHeights: 0
   forceGrassSplat: 0
+  suppressSnow: 0
   placeTrees: 1
   placeWater: 1
   placeGrassPatches: 1
