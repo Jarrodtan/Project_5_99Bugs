@@ -9,7 +9,7 @@ knows about species, AI or the simulation.
 
 | File | What it does |
 |---|---|
-| `MotionPose.cs` | `MotionState` (Idle, Walk, Run, Flee, Stalk, Eat, Drink, Alert, Die) and `MotionPose` (lift, pitch, roll, scale) |
+| `MotionPose.cs` | `MotionState` (Idle, Walk, Run, Flee, Stalk, Eat, Drink, Alert, Die, Swim) and `MotionPose` (lift, pitch, roll, scale) |
 | `MotionProfile.cs` | Motion settings as an asset (Create > ProcAnim > Motion Profile): one looping `StateMotion` per state, plus blending, spring, death and spawn settings |
 | `MotionStateMachine.cs` | Our replacement for an Animator Controller: current/previous state, cycle phase, cross-fade; turn-lean, accel-pitch and spawn-pop overlays. Plain C#, so it is unit-tested |
 | `SpringFloat.cs` | Damped spring (mass-spring-damper, sub-stepped so it looks the same at 30 or 120 fps) for lean and settle |

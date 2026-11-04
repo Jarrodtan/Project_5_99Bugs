@@ -185,7 +185,7 @@ public static class PopulationGraphMath
 
 /// <summary>
 /// Remembers the HUD day (<see cref="ClockService.Day"/>) at each recorded tick, so the graph labels time
-/// in the same days the player sees (one simulator tick is 2 s, one HUD day is 120 s).
+/// in the same days the player sees (one simulator tick is 2 s, one HUD day is ClockConfig.dayLengthSeconds, 60 s).
 /// Added next to the <see cref="PopulationHistoryRecorder"/> by <see cref="FieldJournalInstaller"/>.
 /// </summary>
 public class PopulationHistoryDays : MonoBehaviour

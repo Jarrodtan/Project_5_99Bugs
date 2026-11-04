@@ -233,6 +233,10 @@ public class CreatureSpawner : MonoBehaviour {
             if (mother != null && NavMesh.SamplePosition(mother.transform.position - mother.transform.forward * 0.8f, out var nearMum, 2f, NavMesh.AllAreas))
             {
                 GameObject baby = Instantiate(species.visualPrefab, nearMum.position, mother.transform.rotation, transform);
+                // [AI-GENERATED] Claude Code (Claude Opus 5.5): switch the agent on like every other spawn. Without it
+                // AnimalBrain skips its whole update, so babies stood frozen: never moving, eating, ageing or growing up.
+                if (!EnableAgentOnNavMesh(baby, nearMum.position))
+                    Debug.LogWarning($"[Birth] {species.name} baby could not be placed on the NavMesh at {nearMum.position}; it won't move.", baby);
                 var babyEntity = baby.GetComponent<EcoEntity>();
                 if (babyEntity == null) babyEntity = baby.AddComponent<EcoEntity>();
                 babyEntity.SetDefinition(species);
@@ -262,16 +266,7 @@ public class CreatureSpawner : MonoBehaviour {
             // Random heading so idle animals don't all face the same way.
             var facing = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
             GameObject go = Instantiate(species.visualPrefab, spawnPos, facing, transform);
-            // (Yande, PR #51) Prefabs keep the agent off so Instantiate does not register it before a mesh exists.
-            var navAgent = go.GetComponent<NavMeshAgent>();
-            if (navAgent != null)
-            {
-                navAgent.enabled = false;
-                go.transform.position = spawnPos;
-                navAgent.enabled = true;
-                if (!navAgent.isOnNavMesh)
-                    navAgent.enabled = false;
-            }
+            EnableAgentOnNavMesh(go, spawnPos);
             // [AI-GENERATED END]
 
             var entity = go.GetComponent<EcoEntity>();
@@ -291,6 +286,24 @@ public class CreatureSpawner : MonoBehaviour {
             Destroy(spawned[index]);
             spawned.RemoveAt(index);
         }
+    }
+
+    // (Yande, PR #51) Prefabs keep the agent off so Instantiate does not register it before a mesh exists.
+    // Moves the new animal to `position`, then switches its agent on. Leaves it off when the spot isn't on
+    // the NavMesh (an agent off the mesh throws errors). Returns true when the agent is on and ready.
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5, claude-opus-5-5): shared by normal spawns and births.
+    static bool EnableAgentOnNavMesh(GameObject go, Vector3 position)
+    {
+        var navAgent = go.GetComponent<NavMeshAgent>();
+        if (navAgent == null)
+            return false;
+
+        navAgent.enabled = false;
+        go.transform.position = position;
+        navAgent.enabled = true;
+        if (!navAgent.isOnNavMesh)
+            navAgent.enabled = false;
+        return navAgent.enabled;
     }
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
