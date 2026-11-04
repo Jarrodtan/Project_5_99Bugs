@@ -43,16 +43,22 @@ public class Mascot : MonoBehaviour
         "Try clicking on an animal to see how it's doing!",                           // GE-M03
     };
     const string GuidedHelp = "Need help? Try inspecting an animal or watching how the ecosystem changes!";       // GE-M04
-    const string EventLine = "Something is happening in the highlands! Let's see what we can do!";                // GE-M05
-    const string DecisionLine = "Let's see how your choice affects the highlands!";                               // GE-M06
+    public const string EventLine = "Something is happening in the highlands! Let's see what we can do!";         // GE-M05
+    public const string DecisionLine = "Let's see how your choice affects the highlands!";                        // GE-M06
     const string GuidedHint = "Can you find a Blue Sheep or Snow Leopard? Click on one to learn more!";           // GE-M07
 
     public const string ModeSelectLine = "Ready to explore the highlands? Choose how you'd like to explore today!";
     public const string ConfigureLine = "Let's build your ecosystem! Choose how many Blue Sheep and Snow Leopards you'd like to start with!";
+    public const string GuidedIntroScreenLine = "Ready for an ecosystem adventure? Let's help the highlands stay in balance!";
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5) - Discovery activity (doc "Interactive Discovery Activities"), offered from Free Help
+    const string FindButton = "Explore!";
+    const string FoundLine = "You found one! Let's see how it's doing!";
+    static string FindLine(bool leopard) => $"Can you find a {(leopard ? "Snow Leopard" : "Blue Sheep")}? Click on one when you spot it!";
 
     const float HintAfterSeconds = 45f;     // no meaningful interaction for this long
     const float HintCooldown = 90f;         // shared by all hints
-    const float ReactionSeconds = 8f;       // animal reactions close by themselves
+    const float ReactionSeconds = 5f;       // animal reactions close by themselves (doc: 4-6 real-time seconds)
 
     // ---------- State ----------
 
@@ -66,6 +72,9 @@ public class Mascot : MonoBehaviour
     float hideAt = -1f;
     float lastActivity, hintReadyAt;
     bool journalOpened, inspected, terrainSeen, introPlayed;
+    string altLabel;                         // second button on the last line instead of Skip (e.g. "Explore!")
+    UnityEngine.Events.UnityAction altAction;
+    bool? findLeopard;                       // discovery activity running: which species to find
 
     /// <summary>A mascot line is on screen.</summary>
     public static bool Showing => current != null && current.panel != null && current.panel.activeSelf;
@@ -103,7 +112,10 @@ public class Mascot : MonoBehaviour
         nextLabel = n != null ? n.GetComponentInChildren<TMP_Text>(true) : null;
         skipLabel = s != null ? s.GetComponentInChildren<TMP_Text>(true) : null;
         Wire(nextBtn, OnNext);
-        Wire(skipBtn, Dismiss);
+        Wire(skipBtn, OnSkip);
+        // Longer labels ("Dismiss", "Explore!") shrink to fit the button instead of spilling out.
+        foreach (var l in new[] { nextLabel, skipLabel })
+            if (l != null && !l.enableAutoSizing) { l.fontSizeMax = l.fontSize; l.fontSizeMin = l.fontSize * 0.6f; l.enableAutoSizing = true; }
         panel.SetActive(false);
         lastActivity = Time.unscaledTime;
         hintReadyAt = Time.unscaledTime + HintAfterSeconds;
@@ -117,12 +129,15 @@ public class Mascot : MonoBehaviour
 
     // ---------- Showing lines ----------
 
-    void Say(string[] lines, bool intro, Transform watch = null, float autoHide = -1f)
+    void Say(string[] lines, bool intro, Transform watch = null, float autoHide = -1f,
+             string alt = null, UnityEngine.Events.UnityAction altDo = null)
     {
         if (line == null) return;
         sequence = lines;
         index = 0;
         watchTarget = watch;
+        altLabel = alt;
+        altAction = altDo;
         hideAt = autoHide > 0f ? Time.unscaledTime + autoHide : -1f;
         panel.SetActive(true);
         panel.transform.SetAsLastSibling();
@@ -136,8 +151,16 @@ public class Mascot : MonoBehaviour
         line.text = sequence[index];
         bool last = index == sequence.Length - 1;
         if (watchTarget != null) { SetLabel(nextLabel, "Watch"); SetLabel(skipLabel, "Dismiss"); skipBtn?.SetActive(true); }
+        else if (altLabel != null && last) { SetLabel(nextLabel, "Got It"); SetLabel(skipLabel, altLabel); skipBtn?.SetActive(true); }
         else { SetLabel(nextLabel, last ? "Got It" : "Next"); SetLabel(skipLabel, "Skip"); skipBtn?.SetActive(intro && !last); }
         nextBtn?.SetActive(true);
+    }
+
+    void OnSkip()
+    {
+        var act = altAction;
+        if (act != null && index == sequence.Length - 1) { act(); return; }
+        Dismiss();
     }
 
     void OnNext()
@@ -157,6 +180,8 @@ public class Mascot : MonoBehaviour
     {
         panel.SetActive(false);
         watchTarget = null;
+        altLabel = null;
+        altAction = null;
         hideAt = -1f;
         lastActivity = Time.unscaledTime;
     }
@@ -214,7 +239,36 @@ public class Mascot : MonoBehaviour
     public static void Hide() { if (current != null && Showing) current.Dismiss(); }
 
     public static void NoteJournalOpened() { if (current != null) current.journalOpened = true; }
-    public static void NoteInspected() { if (current != null) current.inspected = true; }
+    /// <summary>An animal was selected (Animal Inspection panel opens). Also completes a running discovery activity.</summary>
+    public static void NoteInspected(AnimalBrain animal = null)
+    {
+        if (current == null) return;
+        current.inspected = true;
+        var want = current.findLeopard;
+        if (want == null || animal == null || animal.IsPredatorSpecies != want.Value) return;
+        current.findLeopard = null;
+        if (Showing && current.intro) return;
+        current.Say(new[] { FoundLine }, false, null, ReactionSeconds);
+    }
+
+    // ---------- Discovery activity (Free) ----------
+
+    // "Can you find a Snow Leopard?": picks a species that is alive right now, then waits for the player to
+    // select one with the normal animal click (NoteInspected). Got It hides the bubble but keeps the
+    // activity going; Skip ends it. No score, no penalty.
+    void StartDiscovery()
+    {
+        bool sheep = false, leopards = false;
+        foreach (var a in AnimalBrain.All)
+        {
+            if (a == null || a.IsCaught) continue;
+            if (a.IsPredatorSpecies) leopards = true; else sheep = true;
+        }
+        if (!sheep && !leopards) { Dismiss(); return; }
+        bool leopard = sheep && leopards ? Random.value < 0.5f : leopards;
+        findLeopard = leopard;
+        Say(new[] { FindLine(leopard) }, false, null, -1f, "Skip", () => { findLeopard = null; Dismiss(); });
+    }
 
     /// <summary>FE-M09, the first time the Terrain Editor opens in a run.</summary>
     public static void NoteTerrainEditor()
@@ -271,7 +325,8 @@ public class Mascot : MonoBehaviour
         Wire(help.gameObject, () =>
         {
             if (ModalOpen()) return;
-            Say(new[] { ScreenFlow.GuidedMode ? GuidedHelp : FreeHelp }, false);
+            if (ScreenFlow.GuidedMode) Say(new[] { GuidedHelp }, false);
+            else Say(new[] { FreeHelp }, false, null, -1f, FindButton, StartDiscovery);   // FE-M05 + discovery activity
         });
     }
 
