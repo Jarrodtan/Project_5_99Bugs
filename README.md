@@ -89,11 +89,11 @@ Open `Assets/Scenes/HomeScreen` and press **Play** (always start from HomeScreen
 **Start → Explore (Himalayan Highlands) →** then either:
 
 - **Start Guided:** the 20-day challenge begins at once (10 blue sheep, 2 snow leopards).
-- **Start Free:** set the starting numbers (default 10 / 2, up to 20 / 5) and press **Start**.
+- **Start Free:** set the starting numbers (default 10 / 2, up to 50 each) and press **Start**.
 
 In the simulation: **Play/Pause**, the **speed** button (1x → 2x → 4x → 8x) and **Reset** at the bottom left; tap an animal to inspect it;
 **View Details** expands the ecosystem overview; **Field Journal** opens over the paused run; **Back** asks before leaving.
-Drag to spin the camera, two fingers to move, pinch to zoom. One game day is 2 real minutes at 1x, so test at 8x.
+Drag to spin the camera, two fingers to move, pinch to zoom. One game day is 1 real minute at 1x (a 20-day Guided run is 20 minutes, 2.5 at 8x).
 
 The built app starts from the first scene in Build Settings (HomeScreen).
 
@@ -140,6 +140,7 @@ Generated files, IDE folders, build output, logs and secrets are excluded by `.g
 - `main` is protected: merge only after the **EditMode tests** check passes. Never push directly to `main`.
 - Rename or move Unity files **inside the Unity Editor** so their `.meta` files move with them.
 - Jira tracks the work; this repository holds the implementation and evidence.
+- **Pull requests (from 5 Nov, lecturer's rule):** one Jira subtask per change; branch `feature/SCRUM-<key>-<name>`; commit messages start with the key (`SCRUM-321: …`); the PR says what changed, why, how it was tested and links the Jira key; at least one teammate reviews with comments on specific lines (not just "LGTM"); the author answers every comment; merge only after approval and passing checks.
 - **Access:** all 9 team members and the instructor are collaborators on the GitHub repository.
-- **Code freeze:** before each milestone, `main` is frozen (M1: Sat 3 Oct 2026, 5pm; M2: announced in the team chat). After the freeze, only bug fixes go in, through a reviewed pull request with passing tests. The submitted state is kept on a `M<n>-Submission` branch and a `v0.<n>-m<n>` tag.
+- **Code freeze:** before each milestone, `main` is frozen (M1: Sat 3 Oct 2026, 5pm; M2: Fri 6 Nov 2026, 23:59, submission Sun 8 Nov). After the freeze, only bug fixes go in, through a reviewed pull request with passing tests. The submitted state is kept on a `M<n>-Submission` branch and a `v0.<n>-m<n>` tag.
 - **Submission build:** the milestone zip is made from frozen `main` with `tools\unity.bat zip` / `tools/unity.sh zip`, so it matches exactly what was reviewed.

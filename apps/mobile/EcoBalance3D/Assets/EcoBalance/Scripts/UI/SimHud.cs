@@ -66,6 +66,8 @@ public class SimHud : MonoBehaviour
 
     GameObject inspection, expanded, overview;
     AnimalBrain shown;
+    AnimalBrain factAnimal;   // the animal the current fun fact was picked for
+    string fact;
     float nextRefresh;
     bool weatherMoved;
 
@@ -112,7 +114,9 @@ public class SimHud : MonoBehaviour
         if (inspection != null) inspection.SetActive(false);
         if (expanded != null) expanded.SetActive(false);
         var contextual = Find("ContextualPanel");
-        if (contextual != null) contextual.gameObject.SetActive(false);   // prediction questions come later (CQ01-05)
+        if (contextual != null) contextual.gameObject.SetActive(false);   // shown by ContextualQuestions when a question fires
+        Mascot.Attach(transform);
+        if (!ScreenFlow.GuidedMode) ContextualQuestions.Attach(transform);   // CQ01-05 are for Free Exploration
 
         Button("ResetBtn", () => { if (speed != null) speed.Reset(); });
         Button("Play/PauseBtn", TogglePlay);
@@ -137,6 +141,16 @@ public class SimHud : MonoBehaviour
 
     // The mock-up has a full-screen background that hid the whole world and blocked taps: make any
     // full-screen image clear and click-through. Also let every text shrink to fit its box.
+    // Icon spots in the mock-up (ValueImage, AnimalImage, GrassImage, FeedbackImage, ...) are plain white or
+    // green squares until the icons are drawn. Kids read them as buttons and tap them, so hide any that has no
+    // picture yet; once Shu Min / Nomitha drop a sprite in, it shows again by itself.
+    static bool IsIconPlaceholder(Image img)
+    {
+        string n = img.name.Trim().Trim('\'').Trim();
+        return img.sprite == null && (n.EndsWith("Image") || n.EndsWith("Img") || n == "Image")
+               && img.GetComponentInChildren<TMP_Text>(true) == null;   // a box holding text is a panel, not an icon
+    }
+
     void SeeThrough()
     {
         foreach (var img in GetComponentsInChildren<Image>(true))
@@ -144,9 +158,13 @@ public class SimHud : MonoBehaviour
             var rt = img.rectTransform;
             // Only the screen-sized background, not the cards (which also stretch, but inset from the edges).
             bool fullScreen = rt.anchorMin == Vector2.zero && rt.anchorMax == Vector2.one && rt.sizeDelta.x > -60f && rt.sizeDelta.y > -60f;
-            if (!fullScreen || img.GetComponent<Button>() != null) continue;
-            var c = img.color; c.a = 0f; img.color = c;
-            img.raycastTarget = false;
+            if (img.GetComponent<Button>() != null) continue;
+            if (fullScreen)
+            {
+                var c = img.color; c.a = 0f; img.color = c;
+                img.raycastTarget = false;
+            }
+            else if (IsIconPlaceholder(img)) img.enabled = false;
         }
         foreach (var t in GetComponentsInChildren<TextMeshProUGUI>(true))
         {
@@ -170,7 +188,7 @@ public class SimHud : MonoBehaviour
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
             {
                 if (hide.Contains(t.name)) t.gameObject.SetActive(false);
-                else if (withHud && t.TryGetComponent(out TMP_Text txt) && txt.text != null && txt.text.StartsWith("Live Everest") && t is RectTransform rt && !movedWeather.Contains(rt))
+                else if (withHud && t.TryGetComponent(out TMP_Text txt) && txt.text != null && (txt.text.StartsWith("Live Everest") || txt.text.Contains("Temp:")) && t is RectTransform rt && !movedWeather.Contains(rt))
                 {
                     movedWeather.Add(rt);
                     // Top-left, under the "Himalayan Highlands" title box: the bottom-left is the control bar.
@@ -255,6 +273,7 @@ public class SimHud : MonoBehaviour
         if (selected != shown)
         {
             shown = selected;
+            if (shown != null) Mascot.NoteInspected(shown);
             if (inspection != null) inspection.SetActive(shown != null);
         }
 
@@ -358,24 +377,35 @@ public class SimHud : MonoBehaviour
 
         SetText("ActionTxt", ActionWords(a), p);
         SetText("DescriptionTxt", Describe(a), p);
-        SetText("DYKTxt", a.IsPredatorSpecies
-            ? "Snow Leopards use their long, fluffy tails to balance on rocky mountains!"
-            : "Blue Sheep are excellent climbers and can move across steep, rocky mountain slopes.", Find("DYKPanel", p));
+        if (factAnimal != a) { factAnimal = a; fact = FieldJournalScreen.NextFactFor(a.IsPredatorSpecies); }   // new fact per tap, steady while open
+        SetText("DYKTxt", fact, Find("DYKPanel", p));
     }
 
-    static string ActionWords(AnimalBrain a) => a.CurrentAction switch
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): crossing the river or a stream at a ford (same check as the swim animation).
+    static bool Swimming(AnimalBrain a) => HimalayaRiver.InWater(a.transform.position, AnimalMotionBridge.SwimWithin);
+
+    static string ActionWords(AnimalBrain a) => Swimming(a)
+        ? (a.CurrentAction == AnimalBrain.AnimalAction.Fleeing ? "Swimming away!" : "Swimming")
+        : a.CurrentAction switch
     {
         AnimalBrain.AnimalAction.EatingGrass => "Grazing",
         AnimalBrain.AnimalAction.DrinkingWater => "Drinking",
         AnimalBrain.AnimalAction.Hunting => a.IsStalking ? "Stalking" : "Hunting",
         AnimalBrain.AnimalAction.Fleeing => "Running away!",
         AnimalBrain.AnimalAction.Reproducing => "Looking for a mate",
-        _ => "Exploring",
+        _ => a.IsLookingAround ? "Looking around" : "Exploring",
     };
 
     static string Describe(AnimalBrain a)
     {
         string who = a.IsPredatorSpecies ? "This Snow Leopard" : "This Blue Sheep";
+        if (Swimming(a))
+            return a.CurrentAction switch
+            {
+                AnimalBrain.AnimalAction.Fleeing => $"{who} is swimming across the water to get away!",
+                AnimalBrain.AnimalAction.Hunting => $"{who} is swimming across the water after a Blue Sheep!",
+                _ => $"{who} is swimming across at a shallow crossing.",
+            };
         return a.CurrentAction switch
         {
             AnimalBrain.AnimalAction.EatingGrass => $"{who} is eating grass to stay full.",
@@ -383,7 +413,8 @@ public class SimHud : MonoBehaviour
             AnimalBrain.AnimalAction.Hunting => a.IsStalking ? $"{who} is creeping up quietly on the herd." : $"{who} is chasing a Blue Sheep!",
             AnimalBrain.AnimalAction.Fleeing => $"{who} spotted a Snow Leopard and is running to safety.",
             AnimalBrain.AnimalAction.Reproducing => $"{who} is well fed and looking for a partner.",
-            _ => $"{who} is wandering around its home.",
+            _ => a.IsLookingAround ? $"{who} stopped to look around before moving on."
+                                   : $"{who} is wandering around its home.",
         };
     }
 

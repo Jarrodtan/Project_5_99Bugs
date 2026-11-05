@@ -183,7 +183,7 @@ MonoBehaviour:
   biteSize: 20
   caughtDuration: 5
   mateRadius: 10
-  predatorMateRadius: 90
+  predatorMateRadius: 1000
   mateDistance: 2
   reproduceMinWellFed: 70
   reproduceCooldownSeconds: 600

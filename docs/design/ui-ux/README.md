@@ -25,7 +25,7 @@ Which wireframe is built in Unity and whether it runs on live data. Scenes are i
 | 11 Overview expanded | `UI` → `ExpandedOverviewPanel` | ✅ numbers, trends, Enough / Low, bars | |
 | 09 Animal inspection | `UI` → `AnimalInspectionPanel` | ✅ name, sex, baby, Fullness, Hydration, Health, action, Did You Know | Animal portrait placeholder |
 | 08 Discovery toast | `CaseDiscoveryToast` (Dillon) | ✅ | Pops up when a case is discovered during the run |
-| 10 Let's think · 16 Your prediction · 01 What happened | `UI` → `ContextualPanel` | ❌ hidden | Prediction questions CQ01–05 (Nomitha) |
+| 10 Let's think · 16 Your prediction · 01 What happened | `UI` → `ContextualPanel` (`ContextualQuestions`) | ✅ | CQ01–05 fire from real simulation changes (Free); prediction → feedback → observed outcome |
 | 07 Journal home · 03 Ecosystem · 04 Investigations · 05 Detail · 06 Observations · 02 Fun facts | `FieldJournalScene` + `FieldJournalScreen` (Dillon) | ✅ investigations, observations graph; opens over the paused run, Back returns | Fun facts DY01–DY10 and the research's OG/PP wording still to add |
 | 17 Guided top bar (Back, ecosystem + mode, Day x / 20 + season, Field Journal, Ending Gallery) | `GuidedExploration` top bar | ✅ | Day panel shows day / 20, season, weather and °C on one dark line (readable on the tablet); settings button opens the volume slider |
 | 18 Guided intro ("Your Ecosystem Adventure!") | `GuidedExploration` `IntroPanel` | ✅ | Run waits paused until Start Simulation; numbers filled from the real start. Pictures still placeholders |

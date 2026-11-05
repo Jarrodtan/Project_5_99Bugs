@@ -12,7 +12,8 @@ public enum MotionState
     Eat,
     Drink,
     Alert,
-    Die
+    Die,
+    Swim    // crossing water: body low in the water, head up, legs paddling
 }
 
 /// <summary>

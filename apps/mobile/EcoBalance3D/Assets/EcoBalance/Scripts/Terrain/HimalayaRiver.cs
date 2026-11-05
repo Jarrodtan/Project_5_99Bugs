@@ -4,15 +4,24 @@ using Unity.AI.Navigation;
 using UnityEngine;
 
 /// <summary>
-/// One river across the map, the way meltwater really runs in the Himalaya: it starts high on a
-/// mountain at one edge and follows the valley floors down to the lowest ground at the far edge.
-/// The path is the cheapest route over the heightmap where low ground is cheap and climbing is
-/// expensive, so it naturally sits in the valleys.
+/// One river down the main valley. The route still follows low ground from the high edge to the
+/// low edge, then the climb over a ridge is cut off. What remains runs downhill, source first,
+/// so the flow shader's ripples travel toward lower ground.
 ///
-/// The river is cut out of the NavMesh (animals can't wade or swim across), so it divides the map
-/// into two sides; <see cref="Side"/> tells which side a point is on, so each side can have its own
-/// herd and territory.
+/// The river is cut out of the NavMesh except at fords (a gap every FordEvery metres, same rule as
+/// the glacier streams), where animals swim across. <see cref="Side"/> tells which side a point is
+/// on, so each side starts with its own herd; animals may cross later at the fords.
 /// </summary>
+/// <summary>
+/// One stream (a glacier stream from the map, or one drawn with Edit Terrain): its centre line counts as
+/// water while the object exists. Removing the object removes the stream (mesh, no-walk blockers).
+/// </summary>
+public class WaterLine : MonoBehaviour
+{
+    public List<Vector3> line;
+    void OnDestroy() { if (line != null) HimalayaRiver.Tributaries.Remove(line); }
+}
+
 public static class HimalayaRiver
 {
     /// <summary>The river centre line in world space, source first. Empty until <see cref="Build"/>.</summary>
@@ -27,28 +36,40 @@ public static class HimalayaRiver
     const int TributaryCount = 5;   // a stream in most side valleys, like the real Khumbu
     const float StreamSourceWidth = 2f, StreamMouthWidth = 3.5f;   // wide enough to see on the 200 m map
     const float FordEvery = 30f, FordWidth = 4f;                     // a shallow crossing every 30 m
+    /// <summary>NavMesh area of the fords (ProjectSettings/NavMeshAreas: "Ford"). Walkable if the area is missing.</summary>
+    public static int FordArea { get { int a = UnityEngine.AI.NavMesh.GetAreaFromName("Ford"); return a >= 0 ? a : 0; } }
     const float GlacierSnoutMinMeters = 4500f, GlacierSnoutMaxMeters = 5300f;   // valley heads just under the ice, where meltwater starts
     // [AI-GENERATED END]
 
     const int Grid = 96;   // heightmap cells per side used for the route search
+    const float ClimbSlackMeters = 30f;   // a bump this small stays in the river; a ridge does not
 
-    /// <summary>Finds the route, returns it as terrain UVs (source first).</summary>
+    /// <summary>Finds the route, returns it as terrain UVs (high end first).</summary>
     public static List<Vector2> Trace(HimalayaTerrainBuilder tb)
     {
-        // Elevation grid, 0..1.
-        var h = new float[Grid, Grid];
+        var metres = new float[Grid, Grid];
         float min = float.PositiveInfinity, max = float.NegativeInfinity;
         for (int x = 0; x < Grid; x++)
             for (int y = 0; y < Grid; y++)
             {
                 float e = tb.ElevationMeters(x / (Grid - 1f), y / (Grid - 1f));
-                h[x, y] = e; min = Mathf.Min(min, e); max = Mathf.Max(max, e);
+                metres[x, y] = e;
+                min = Mathf.Min(min, e);
+                max = Mathf.Max(max, e);
             }
-        float range = Mathf.Max(1f, max - min);
-        for (int x = 0; x < Grid; x++) for (int y = 0; y < Grid; y++) h[x, y] = (h[x, y] - min) / range;
+        // A flat island has no valley, so a fresh search draws the river somewhere else.
+        // Keep the course already traced on the mountain.
+        if (max - min < 50f && courseUv != null && courseUv.Count >= 2)
+            return new List<Vector2>(courseUv);
 
-        // Source: the highest point on the top edge. Mouth: the lowest point on the bottom edge.
-        // Both on the very edge, so the river cuts the map fully in two (no way round the ends).
+        float range = Mathf.Max(1f, max - min);
+        var h = new float[Grid, Grid];
+        for (int x = 0; x < Grid; x++)
+            for (int y = 0; y < Grid; y++)
+                h[x, y] = (metres[x, y] - min) / range;
+
+        // High end on the north edge, low end on the south edge, so the river crosses the map.
+        // Low ground is cheap and climbing is expensive, which keeps the line in the valleys.
         int band = Grid / 10;
         Vector2Int source = default, mouth = default;
         float hi = -1f, lo = 2f;
@@ -58,7 +79,6 @@ public static class HimalayaRiver
             if (h[x, 0] < lo) { lo = h[x, 0]; mouth = new Vector2Int(x, 0); }
         }
 
-        // Dijkstra on the grid: low ground is cheap, climbing is very expensive.
         var cost = new float[Grid, Grid];
         var from = new Vector2Int[Grid, Grid];
         for (int x = 0; x < Grid; x++) for (int y = 0; y < Grid; y++) cost[x, y] = float.PositiveInfinity;
@@ -96,16 +116,69 @@ public static class HimalayaRiver
             cells.Add(p);
             if (p == source || cells.Count > Grid * Grid) break;
         }
-        cells.Reverse();   // source first, so the water flows downhill along the ribbon
-        lastGrid = h; lastCells = cells;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): kept for the side streams
+        cells.Reverse();
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): keep the whole course, mountain edge to mountain edge.
+        // Cutting it at the first ridge (DownhillRun) left the river stopping in the middle of the map.
+        // cells = DownhillRun(cells, metres);
+        lastGrid = h;
+        lastCells = cells;
 
-        // Smooth the zig-zag of the grid into a natural bend.
-        var uv = new List<Vector2>();
+        var uv = new List<Vector2>(cells.Count);
         foreach (var c in cells) uv.Add(new Vector2(c.x / (Grid - 1f), c.y / (Grid - 1f)));
-        for (int pass = 0; pass < 8; pass++)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): more passes = natural curves, not grid zig-zags
+        for (int pass = 0; pass < 8; pass++)
             for (int i = 1; i < uv.Count - 1; i++)
                 uv[i] = (uv[i - 1] + uv[i] * 2f + uv[i + 1]) * 0.25f;
         return uv;
+    }
+
+    static List<Vector2> courseUv;
+
+    // Longest stretch that never rises more than a small bump above the lowest point so far.
+    // A ridge breaks the stretch. High end first, so the ripples run downhill.
+    static List<Vector2Int> DownhillRun(List<Vector2Int> cells, float[,] metres)
+    {
+        if (cells.Count < 2) return cells;
+
+        int bestStart = 0, bestLength = 1;
+        bool bestReachesValley = false;
+        for (int s = 0; s < cells.Count; s++)
+        {
+            float floor = metres[cells[s].x, cells[s].y];
+            float lowest = floor;
+            int end = s;
+            for (int i = s + 1; i < cells.Count; i++)
+            {
+                float height = metres[cells[i].x, cells[i].y];
+                if (height > floor + ClimbSlackMeters) break;
+                if (height < floor) floor = height;
+                if (height < lowest) lowest = height;
+                end = i;
+            }
+
+            int length = end - s + 1;
+            bool valley = lowest < RiverStartMeters;
+            bool better = valley != bestReachesValley ? valley : length > bestLength;
+            if (better)
+            {
+                bestStart = s;
+                bestLength = length;
+                bestReachesValley = valley;
+            }
+        }
+
+        // A short piece is what made the river vanish. Keep the whole valley line instead.
+        if (bestLength < Mathf.Max(8, cells.Count / 3)) return FaceDownhill(cells, metres);
+
+        var run = cells.GetRange(bestStart, bestLength);
+        return FaceDownhill(run, metres);
+    }
+
+    static List<Vector2Int> FaceDownhill(List<Vector2Int> cells, float[,] metres)
+    {
+        if (cells.Count >= 2
+            && metres[cells[cells.Count - 1].x, cells[cells.Count - 1].y] > metres[cells[0].x, cells[0].y])
+            cells.Reverse();
+        return cells;
     }
 
     /// <summary>
@@ -115,15 +188,21 @@ public static class HimalayaRiver
     public static List<Vector3> Build(HimalayaTerrainBuilder tb, Transform parent, Material water, float sourceWidth, float mouthWidth)
     {
         Path.Clear();
+        riverSourceHalf = sourceWidth * 0.5f; riverMouthHalf = mouthWidth * 0.5f;
         var banks = new List<Vector3>();
         var uv = Trace(tb);
         // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
         // The river starts where the glacier ends (the snout), not at the map edge. Above it is ice the
         // animals can walk over, so the long way round, high over the valley head, joins the two sides.
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): no longer cut at the snout. Animals now cross at the fords,
+        // so the river needs no walk-round over the ice, and starting mid-slope looked like it came from
+        // nowhere once the glacier streams were removed. It now runs from the north mountain edge.
+        // (Old snout cut: skip points above RiverStartMeters.)
         int snout = 0;
-        while (snout < uv.Count - 2 && tb.ElevationMeters(uv[snout].x, uv[snout].y) > RiverStartMeters) snout++;
         if (snout > 0) { uv.RemoveRange(0, snout); if (lastCells != null && lastCells.Count > snout) lastCells.RemoveRange(0, snout); }   // streams join the real river only
         // [AI-GENERATED END]
+        if (uv.Count >= 2 && tb.MaxElevation - tb.MinElevation >= 50f)
+            courseUv = new List<Vector2>(uv);
         if (uv.Count < 2) return banks;
 
         foreach (var p in uv) Path.Add(tb.WorldPosition(p.x, p.y));
@@ -133,7 +212,7 @@ public static class HimalayaRiver
         if (mesh != null)
         {
             var go = new GameObject("River");
-            go.transform.SetParent(parent, true);
+            Stick(go, parent);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var mr = go.AddComponent<MeshRenderer>();
             mr.sharedMaterial = water;
@@ -142,9 +221,9 @@ public static class HimalayaRiver
 
         // Not-walkable boxes along the river, and drinking spots just outside each bank.
         var blockers = new GameObject("River (no walking)");
-        blockers.transform.SetParent(parent, true);
+        Stick(blockers, parent);
         int notWalkable = UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
-        float sinceBank = 99f;
+        float sinceBank = 99f, riverRun = 0f;
         for (int i = 0; i < Path.Count - 1; i++)
         {
             Vector3 a = Path[i], b = Path[i + 1];
@@ -154,15 +233,12 @@ public static class HimalayaRiver
             float t = i / (float)(Path.Count - 1);
             float width = Mathf.Lerp(sourceWidth, mouthWidth, t);
 
-            var seg = new GameObject("Segment");
-            seg.transform.SetParent(blockers.transform, true);
-            seg.transform.SetPositionAndRotation((a + b) * 0.5f, Quaternion.LookRotation(flat));
-            var vol = seg.AddComponent<NavMeshModifierVolume>();
-            // [AI-GENERATED] Claude Code (Claude Opus 5.5): overlap by a full river width, so the outside of a bend
-            // has no wedge-shaped gap animals could walk through onto the water.
-            vol.size = new Vector3(width + 1f, 40f, len + width + 1f);
-            vol.center = Vector3.zero;
-            vol.area = notWalkable;
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): same rule as the glacier streams, a ford every
+            // FordEvery metres where animals swim across. Drinking spots still go along every stretch.
+            riverRun += len;
+            // The blockers either side reach (width + 1) / 2 into the gap (bend overlap below), so the skipped
+            // stretch is that much longer; otherwise the wide middle and south closed their fords.
+            bool ford = riverRun % FordEvery < FordWidth + width + 1f;
 
             sinceBank += len;
             if (sinceBank >= 10f)
@@ -172,8 +248,33 @@ public static class HimalayaRiver
                 banks.Add(a + side);
                 banks.Add(a - side);
             }
+            var seg = new GameObject(ford ? "Ford" : "Segment");
+            seg.transform.SetParent(blockers.transform, false);
+            Vector3 la = tb.LocalPosition(uv[i].x, uv[i].y);
+            Vector3 lb = tb.LocalPosition(uv[Mathf.Min(i + 1, uv.Count - 1)].x, uv[Mathf.Min(i + 1, uv.Count - 1)].y);
+            Vector3 localFlat = lb - la; localFlat.y = 0f;
+            seg.transform.localScale = Vector3.one;
+            seg.transform.localRotation = Quaternion.LookRotation(localFlat.sqrMagnitude > 1e-6f ? localFlat : Vector3.forward);
+            seg.transform.localPosition = (la + lb) * 0.5f;
+            var vol = seg.AddComponent<NavMeshModifierVolume>();
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): overlap by a full river width, so the outside of a bend
+            // has no wedge-shaped gap animals could walk through onto the water.
+            // A ford is its own area: only fleeing and hunting animals may use it (FordAccess), and no overlap,
+            // so it never covers the blocked river next to it.
+            vol.size = ford ? new Vector3(width + 1f, 40f, len) : new Vector3(width + 1f, 40f, len + width + 1f);
+            vol.center = Vector3.zero;
+            vol.area = ford ? FordArea : notWalkable;
         }
         return banks;
+    }
+
+    /// <summary>Parents a water object in terrain-local space so the island fade cannot leave it behind.</summary>
+    static void Stick(GameObject go, Transform parent)
+    {
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = Vector3.zero;
+        go.transform.localRotation = Quaternion.identity;
+        go.transform.localScale = Vector3.one;
     }
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
@@ -219,19 +320,22 @@ public static class HimalayaRiver
             wet.AddRange(cells);
             var uv = new List<Vector2>();
             foreach (var c in cells) uv.Add(new Vector2(c.x / (Grid - 1f), c.y / (Grid - 1f)));
-            for (int pass = 0; pass < 8; pass++)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): more passes = natural curves, not grid zig-zags
+            for (int pass = 0; pass < 8; pass++)
                 for (int i = 1; i < uv.Count - 1; i++)
                     uv[i] = (uv[i - 1] + uv[i] * 2f + uv[i + 1]) * 0.25f;
 
             var path = new List<Vector3>();
             foreach (var p in uv) path.Add(tb.WorldPosition(p.x, p.y));
             Tributaries.Add(path);
+            var root = new GameObject($"Glacier stream {Tributaries.Count}");
+            Stick(root, parent);   // terrain-local, like the river: the stream meshes are in terrain space
+            root.AddComponent<WaterLine>().line = path;
 
             var mesh = WaterMeshBuilder.Stream(tb, uv, StreamSourceWidth, StreamMouthWidth);
             if (mesh != null)
             {
-                var go = new GameObject($"Glacier stream {Tributaries.Count}");
-                go.transform.SetParent(parent, true);
+                var go = new GameObject("Water");
+                Stick(go, root.transform);
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var mr = go.AddComponent<MeshRenderer>();
                 mr.sharedMaterial = water;
@@ -239,8 +343,8 @@ public static class HimalayaRiver
             }
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): animals don't walk in the stream, only cross at
             // shallow fords (a gap in the blocker every FordEvery metres), like real meltwater streams.
-            var noWalk = new GameObject($"Glacier stream {Tributaries.Count} (no walking)");
-            noWalk.transform.SetParent(parent, true);
+            var noWalk = new GameObject("No walking");
+            Stick(noWalk, root.transform);
             int notWalkableArea = UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
             float run = 0f;
             for (int i = 0; i < path.Count - 1; i++)
@@ -250,15 +354,20 @@ public static class HimalayaRiver
                 float len = flat.magnitude;
                 if (len < 0.01f) continue;
                 run += len;
-                if (run % FordEvery < FordWidth) continue;   // leave a ford here
+                bool ford = run % FordEvery < FordWidth;   // a ford here (only fleeing / hunting animals use it)
                 float w = Mathf.Lerp(StreamSourceWidth, StreamMouthWidth, i / (float)(path.Count - 1));
-                var seg = new GameObject("Segment");
-                seg.transform.SetParent(noWalk.transform, true);
-                seg.transform.SetPositionAndRotation((a + b) * 0.5f, Quaternion.LookRotation(flat));
+                var seg = new GameObject(ford ? "Ford" : "Segment");
+                seg.transform.SetParent(noWalk.transform, false);
+                Vector3 la = tb.LocalPosition(uv[i].x, uv[i].y);
+                Vector3 lb = tb.LocalPosition(uv[Mathf.Min(i + 1, uv.Count - 1)].x, uv[Mathf.Min(i + 1, uv.Count - 1)].y);
+                Vector3 localFlat = lb - la; localFlat.y = 0f;
+                seg.transform.localScale = Vector3.one;
+                seg.transform.localRotation = Quaternion.LookRotation(localFlat.sqrMagnitude > 1e-6f ? localFlat : Vector3.forward);
+                seg.transform.localPosition = (la + lb) * 0.5f;
                 var vol = seg.AddComponent<Unity.AI.Navigation.NavMeshModifierVolume>();
-                vol.size = new Vector3(w + 0.6f, 40f, len + w * 0.5f);
+                vol.size = ford ? new Vector3(w + 0.6f, 40f, len) : new Vector3(w + 0.6f, 40f, len + w * 0.5f);
                 vol.center = Vector3.zero;
-                vol.area = notWalkableArea;
+                vol.area = ford ? FordArea : notWalkableArea;
             }
 
             // Drinking spots along it, about every 10 m.
@@ -280,7 +389,7 @@ public static class HimalayaRiver
         }
     }
 
-    // Cheapest downhill route from a cell to any cell of the target set (same costs as the main river).
+    // Cheapest route from a snout to the river. The caller drops a route that climbs more than 50 m.
     static List<Vector2Int> Route(float[,] h, Vector2Int start, HashSet<Vector2Int> targets)
     {
         var cost = new float[Grid, Grid];
@@ -338,6 +447,28 @@ public static class HimalayaRiver
         return best;
     }
     // [AI-GENERATED END]
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): the river widens from source to mouth, so "on the water"
+    // uses its half-width at the nearest point (an animal at a drinking spot on the bank does not swim).
+    static float riverSourceHalf = 1f, riverMouthHalf = 3.5f;
+
+    /// <summary>True when a point is on the river or a stream: animals there swim, not walk.</summary>
+    public static bool InWater(Vector3 p, float streamRadius)
+    {
+        if (!Exists) return false;
+        float best = float.PositiveInfinity; int at = 0;
+        for (int i = 0; i < Path.Count; i++)
+        {
+            float d = new Vector2(Path[i].x - p.x, Path[i].z - p.z).sqrMagnitude;
+            if (d < best) { best = d; at = i; }
+        }
+        float half = Mathf.Lerp(riverSourceHalf, riverMouthHalf, at / (float)(Path.Count - 1));
+        if (DistanceTo(p) < half) return true;
+        foreach (var t in Tributaries)
+            for (int i = 0; i < t.Count; i++)
+                if (new Vector2(t[i].x - p.x, t[i].z - p.z).sqrMagnitude < streamRadius * streamRadius) return true;
+        return false;
+    }
 
     /// <summary>Flat distance from a point to the river centre line (infinity if there is no river).</summary>
     public static float DistanceTo(Vector3 p)

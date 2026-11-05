@@ -14,7 +14,7 @@ public class SpeciesCounter : MonoBehaviour
     [Min(0)] public int startCount = 0;
     [Min(0)] public int minCount = 0;
     [Tooltip("Keep at or below the spawner's Max Visible so every animal gets a model.")]
-    [Min(0)] public int maxCount = 100;
+    [Min(0)] public int maxCount = 50;   // 100 of each jammed the NavMesh on tablets
 
     public int Count { get; private set; }
 

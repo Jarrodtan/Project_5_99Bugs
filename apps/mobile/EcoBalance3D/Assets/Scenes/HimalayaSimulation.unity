@@ -1639,7 +1639,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: dc46be639b4970c4fbd8f08c4de29abe, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 1
+  m_Volume: 0.4
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -1648,7 +1648,7 @@ AudioSource:
   Priority: 128
   DopplerLevel: 0.3
   MinDistance: 2
-  MaxDistance: 80
+  MaxDistance: 25
   Pan2D: 0
   rolloffMode: 1
   BypassEffects: 0
@@ -1753,8 +1753,8 @@ MonoBehaviour:
   waterNameContains: Water Patch
   samplePointsPerPatch: 80
   minDistance: 2
-  maxDistance: 40
-  volume: 1
+  maxDistance: 30
+  volume: 0.6
   followSpeed: 80
   debugLog: 1
 --- !u!1 &382773948
@@ -3518,6 +3518,7 @@ MonoBehaviour:
   dataLogging: {fileID: 396873609}
   secondsPerTick: 2
   pauseGateBehaviour: {fileID: 0}
+  clockBehaviour: {fileID: 0}
 --- !u!114 &933990898
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3550,6 +3551,7 @@ MonoBehaviour:
   dataLogging: {fileID: 0}
   secondsPerTick: 2
   pauseGateBehaviour: {fileID: 0}
+  clockBehaviour: {fileID: 0}
 --- !u!114 &933990900
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5522,6 +5524,7 @@ MonoBehaviour:
   popSound: {fileID: 8300000, guid: 4fde3ea4ac544014ebe699d79212bf9b, type: 3}
   popVolume: 1
   sfxSource: {fileID: 1115360657}
+  factText: {fileID: 0}
 --- !u!1 &1614410765
 GameObject:
   m_ObjectHideFlags: 0
@@ -5604,6 +5607,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PopulationCounterPanel
   dataProviderSource: {fileID: 1614410771}
   uiConfig: {fileID: 11400000, guid: 85c2d2ef993b6554abf460ee06e91698, type: 2}
+  treatZeroAsExtinct: 1
 --- !u!114 &1614410770
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5637,6 +5641,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EcosystemSimulationDataProvider
   simulator: {fileID: 933990895}
+  omitEmptyPopulations: 0
 --- !u!4 &1614410772
 Transform:
   m_ObjectHideFlags: 0
