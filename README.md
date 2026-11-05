@@ -140,6 +140,7 @@ Generated files, IDE folders, build output, logs and secrets are excluded by `.g
 - `main` is protected: merge only after the **EditMode tests** check passes. Never push directly to `main`.
 - Rename or move Unity files **inside the Unity Editor** so their `.meta` files move with them.
 - Jira tracks the work; this repository holds the implementation and evidence.
+- **Pull requests (from 5 Nov, lecturer's rule):** one Jira subtask per change; branch `feature/SCRUM-<key>-<name>`; commit messages start with the key (`SCRUM-321: …`); the PR says what changed, why, how it was tested and links the Jira key; at least one teammate reviews with comments on specific lines (not just "LGTM"); the author answers every comment; merge only after approval and passing checks.
 - **Access:** all 9 team members and the instructor are collaborators on the GitHub repository.
-- **Code freeze:** before each milestone, `main` is frozen (M1: Sat 3 Oct 2026, 5pm; M2: announced in the team chat). After the freeze, only bug fixes go in, through a reviewed pull request with passing tests. The submitted state is kept on a `M<n>-Submission` branch and a `v0.<n>-m<n>` tag.
+- **Code freeze:** before each milestone, `main` is frozen (M1: Sat 3 Oct 2026, 5pm; M2: Fri 6 Nov 2026, 23:59, submission Sun 8 Nov). After the freeze, only bug fixes go in, through a reviewed pull request with passing tests. The submitted state is kept on a `M<n>-Submission` branch and a `v0.<n>-m<n>` tag.
 - **Submission build:** the milestone zip is made from frozen `main` with `tools\unity.bat zip` / `tools/unity.sh zip`, so it matches exactly what was reviewed.
