@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,7 +5,7 @@ using UnityEngine;
 /// Island category: options come from <see cref="IslandPlatformConfig.islands"/> and clicks call <see cref="IslandManager.RequestSwap"/>.
 /// Prototype UI — not approved Feature Plan work.
 /// </summary>
-public class IslandSwapHandler : MonoBehaviour, IActionMenuCategoryHandler, IIslandSwapListener
+public class IslandSwapHandler : MonoBehaviour, IActionMenuCategoryHandler
 {
     [Tooltip("Must match the island category id on the action menu hub.")]
     [SerializeField]
@@ -62,49 +61,5 @@ public class IslandSwapHandler : MonoBehaviour, IActionMenuCategoryHandler, IIsl
                 return;
             }
         }
-    }
-
-    /// <inheritdoc />
-    public void OnIslandSpawned(IslandDefinition definition, Transform islandRoot, IslandPlatformConfig config)
-    {
-        if (islandRoot == null)
-            return;
-
-        StartCoroutine(ShowOnlyThisIsland(islandRoot));
-    }
-
-    /// <inheritdoc />
-    public void OnIslandDespawning(IslandDefinition definition, Transform islandRoot)
-    {
-    }
-
-    IEnumerator ShowOnlyThisIsland(Transform islandRoot)
-    {
-        HimalayaTerrainBuilder builder = null;
-        var wait = 0f;
-        while (wait < 30f && islandRoot != null)
-        {
-            builder = islandRoot.GetComponentInChildren<HimalayaTerrainBuilder>(true);
-            if (builder != null && builder.IsBuilt && builder.Terrain != null)
-                break;
-
-            wait += Time.deltaTime;
-            yield return null;
-        }
-
-        if (builder == null || builder.Terrain == null)
-            yield break;
-
-        var mine = builder.Terrain;
-        var terrains = FindObjectsByType<Terrain>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        for (var i = 0; i < terrains.Length; i++)
-        {
-            if (terrains[i] != null)
-                terrains[i].gameObject.SetActive(terrains[i] == mine);
-        }
-
-        var camera = FindAnyObjectByType<TerrainCameraController>();
-        if (camera != null)
-            camera.FocusTerrain(mine);
     }
 }

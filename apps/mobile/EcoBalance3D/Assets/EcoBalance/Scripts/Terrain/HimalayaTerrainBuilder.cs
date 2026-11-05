@@ -304,15 +304,6 @@ public class HimalayaTerrainBuilder : MonoBehaviour
 
     public float SlopeDegrees(float u, float v) => terrain.terrainData.GetSteepness(u, v);
 
-    /// <summary>Point on the terrain surface in the terrain's local space. Ignores the island fade scale.</summary>
-    public Vector3 LocalPosition(float u, float v)
-    {
-        var td = terrain.terrainData;
-        u = Mathf.Clamp01(u);
-        v = Mathf.Clamp01(v);
-        return new Vector3(u * td.size.x, td.GetInterpolatedHeight(u, v), v * td.size.z);
-    }
-
     public Vector3 WorldPosition(float u, float v)
     {
         var td = terrain.terrainData;

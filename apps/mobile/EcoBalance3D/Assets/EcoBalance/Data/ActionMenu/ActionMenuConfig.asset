@@ -166,6 +166,38 @@ MonoBehaviour:
       wholeNumbers: 0
       toggleDefault: 1
       locked: 0
+  - id: plant
+    label: Plant
+    icon: {fileID: 0}
+    enabled: 1
+    options: []
+    species: []
+    prefabOptions:
+    - id: Grass
+      label: Grass
+      prefab: {fileID: 8600000001, guid: a7c3e91b4d6f4088b2e15c0d9f8a7741, type: 3}
+    - id: Water
+      label: Water
+      prefab: {fileID: 8610000001, guid: c1000000000000000000000000000052, type: 3}
+    fields:
+    - id: plant-spawn-count
+      label: Spawn count per click
+      kind: 0
+      minimum: 1
+      maximum: 8
+      sliderDefault: 1
+      wholeNumbers: 1
+      toggleDefault: 0
+      locked: 0
+    - id: plant-random-position
+      label: Random position
+      kind: 1
+      minimum: 0
+      maximum: 1
+      sliderDefault: 0
+      wholeNumbers: 0
+      toggleDefault: 1
+      locked: 0
   - id: island
     label: Island
     icon: {fileID: 0}

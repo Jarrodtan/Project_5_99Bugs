@@ -26,10 +26,6 @@ public class IslandManager : MonoBehaviour, IOrbitTarget
     [SerializeField]
     List<MonoBehaviour> swapListenerBehaviours = new();
 
-    [Tooltip("Leave a scene-placed island where it already sits. Islands created by a swap still use the world anchor.")]
-    [SerializeField]
-    bool keepPlacedWorldPose;
-
     IIslandTransition _transition;
     IEcosystemReset _ecosystemReset;
     readonly List<IIslandSwapListener> _listeners = new();
@@ -123,12 +119,6 @@ public class IslandManager : MonoBehaviour, IOrbitTarget
             _ecosystemReset?.ResetEcosystem();
 
             SpawnIsland(next, notifyListeners: true);
-
-            // The river mesh is baked in world space and parented under the island. The fade scales
-            // that root; building while the scale is not 1 bakes the half-scaled pose into the water,
-            // so the river no longer sits in the valley once the island returns to full size.
-            if (_islandRoot != null)
-                yield return WaitUntilWorldReady(_islandRoot);
 
             if (_transition != null && _islandRoot != null && config != null)
                 yield return _transition.Transition(_islandRoot, true, config);
@@ -225,12 +215,9 @@ public class IslandManager : MonoBehaviour, IOrbitTarget
             _activeDefinition = definition;
             _islandRoot = placed;
             placed.gameObject.SetActive(true);
-            if (!keepPlacedWorldPose)
-            {
-                placed.position = config.worldAnchor;
-                placed.rotation = Quaternion.identity;
-                placed.localScale = Vector3.one;
-            }
+            placed.position = config.worldAnchor;
+            placed.rotation = Quaternion.identity;
+            placed.localScale = Vector3.one;
 
             if (notifyListeners)
             {
@@ -267,52 +254,6 @@ public class IslandManager : MonoBehaviour, IOrbitTarget
         }
 
         OrbitPivotChanged?.Invoke();
-    }
-
-    /// <summary>
-    /// Holds the new island at scale 1 until its terrain and river exist. Renderers stay off so the
-    /// player does not see the full island before the fade-in.
-    /// </summary>
-    IEnumerator WaitUntilWorldReady(Transform root)
-    {
-        var builder = root.GetComponentInChildren<HimalayaWorldBuilder>(true);
-        if (builder == null)
-            yield break;
-
-        // Build() has not started when SpawnIsland returns, so IsBuilding is still false here.
-        // Keep the full scale until the river exists; bailing out lets the fade catch the bake.
-        root.localScale = Vector3.one;
-        var hidden = new List<Renderer>();
-        float elapsed = 0f;
-        int idle = 0;
-        while (root != null && !builder.IsReady && elapsed < 30f)
-        {
-            root.localScale = Vector3.one;
-            elapsed += Time.deltaTime;
-            if (builder.IsBuilding)
-                idle = 0;
-            else if (++idle > 10)
-                break;
-
-            var pending = root.GetComponentsInChildren<Renderer>(true);
-            for (var i = 0; i < pending.Length; i++)
-            {
-                var renderer = pending[i];
-                if (renderer == null || !renderer.enabled)
-                    continue;
-
-                renderer.enabled = false;
-                hidden.Add(renderer);
-            }
-
-            yield return null;
-        }
-
-        for (var i = 0; i < hidden.Count; i++)
-        {
-            if (hidden[i] != null)
-                hidden[i].enabled = true;
-        }
     }
 
     void DespawnCurrent()

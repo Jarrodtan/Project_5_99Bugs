@@ -52,7 +52,12 @@ public static class ActionMenuPreview
         subject.SetActive(false);
         subject.name = prefab.name;
 
-        StripBehaviours(subject);
+        var behaviours = subject.GetComponentsInChildren<Behaviour>(true);
+        for (var i = 0; i < behaviours.Length; i++)
+        {
+            if (behaviours[i] != null)
+                Object.DestroyImmediate(behaviours[i]);
+        }
 
         var particles = subject.GetComponentsInChildren<ParticleSystem>(true);
         for (var i = 0; i < particles.Length; i++)
@@ -72,108 +77,11 @@ public static class ActionMenuPreview
         return subject;
     }
 
-    // Unity will not remove a component while another still requires it.
-    // AudioLowPassFilter and AnimalAudio both require AudioSource, so dependents go first.
-    static void StripBehaviours(GameObject subject)
-    {
-        var pending = new List<Behaviour>(subject.GetComponentsInChildren<Behaviour>(true));
-        var passes = pending.Count;
-        while (pending.Count > 0 && passes-- >= 0)
-        {
-            var destroyedAny = false;
-            for (var i = pending.Count - 1; i >= 0; i--)
-            {
-                var behaviour = pending[i];
-                if (behaviour == null)
-                {
-                    pending.RemoveAt(i);
-                    continue;
-                }
-
-                if (IsRequiredByPending(behaviour, pending))
-                    continue;
-
-                Object.DestroyImmediate(behaviour);
-                pending.RemoveAt(i);
-                destroyedAny = true;
-            }
-
-            if (!destroyedAny)
-                break;
-        }
-
-        for (var i = 0; i < pending.Count; i++)
-        {
-            var behaviour = pending[i];
-            if (behaviour == null)
-                continue;
-
-            behaviour.enabled = false;
-            if (behaviour is AudioSource source)
-            {
-                source.playOnAwake = false;
-                source.Stop();
-            }
-        }
-    }
-
-    static bool IsRequiredByPending(Behaviour candidate, List<Behaviour> pending)
-    {
-        var host = candidate.gameObject;
-        var candidateType = candidate.GetType();
-        for (var i = 0; i < pending.Count; i++)
-        {
-            var other = pending[i];
-            if (other == null || other == candidate || other.gameObject != host)
-                continue;
-
-            if (Requires(other.GetType(), candidateType))
-                return true;
-        }
-
-        return false;
-    }
-
-    static bool Requires(System.Type behaviourType, System.Type requiredType)
-    {
-        if (typeof(AudioSource).IsAssignableFrom(requiredType) && IsBuiltInAudioEffect(behaviourType))
-            return true;
-
-        var attributes = behaviourType.GetCustomAttributes(typeof(RequireComponent), true);
-        for (var i = 0; i < attributes.Length; i++)
-        {
-            var requirement = (RequireComponent)attributes[i];
-            if (Matches(requirement.m_Type0, requiredType)
-                || Matches(requirement.m_Type1, requiredType)
-                || Matches(requirement.m_Type2, requiredType))
-                return true;
-        }
-
-        return false;
-    }
-
-    static bool IsBuiltInAudioEffect(System.Type type)
-    {
-        return typeof(AudioLowPassFilter).IsAssignableFrom(type)
-            || typeof(AudioHighPassFilter).IsAssignableFrom(type)
-            || typeof(AudioReverbFilter).IsAssignableFrom(type)
-            || typeof(AudioDistortionFilter).IsAssignableFrom(type)
-            || typeof(AudioEchoFilter).IsAssignableFrom(type)
-            || typeof(AudioChorusFilter).IsAssignableFrom(type);
-    }
-
-    static bool Matches(System.Type required, System.Type candidate)
-    {
-        return required != null && required.IsAssignableFrom(candidate);
-    }
-
     static GameObject BuildIslandStandIn(GameObject prefab)
     {
         var builder = prefab.GetComponent<HimalayaTerrainBuilder>();
         var layers = builder != null ? builder.BootstrapLayers : null;
-        var profile = builder != null ? builder.BuildProfile : null;
-        var flat = profile != null && profile.flattenHeights;
-        var noSnow = profile != null && profile.suppressSnow;
+        var flat = builder != null && builder.BuildProfile != null && builder.BuildProfile.flattenHeights;
 
         var root = new GameObject(prefab.name + " Preview");
         var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -191,9 +99,7 @@ public static class ActionMenuPreview
             peak.transform.SetParent(root.transform, false);
             peak.transform.localScale = new Vector3(1.15f, 0.9f, 1.15f);
             peak.transform.localPosition = new Vector3(0.08f, 0.34f, 0f);
-            var peakLayer = noSnow && layers != null && layers.Length > 1 ? 1 : Last(layers);
-            var peakTint = noSnow ? new Color(0.48f, 0.4f, 0.34f) : new Color(0.93f, 0.95f, 0.97f);
-            Paint(peak, TextureOf(layers, peakLayer), peakTint);
+            Paint(peak, TextureOf(layers, Last(layers)), new Color(0.93f, 0.95f, 0.97f));
             Object.DestroyImmediate(peak.GetComponent<Collider>());
 
             var ridge = GameObject.CreatePrimitive(PrimitiveType.Sphere);
