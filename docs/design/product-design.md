@@ -91,7 +91,7 @@ Wireframes, user flows and mockups: [ui-ux/](ui-ux/). The 16 M2 wireframes (menu
 
 M2 turns the M1 sandbox into two modes, chosen after Home → Choose an ecosystem → Guided or free:
 
-- **Free Exploration:** set the starting Blue Sheep and Snow Leopards (default 10 / 2, max 100 each), run, observe, and discover investigations in the Field Journal.
+- **Free Exploration:** set the starting Blue Sheep and Snow Leopards (default 10 / 2, max 50 each), run, observe, and discover investigations in the Field Journal.
 - **Guided Exploration:** a 20-day survival challenge on a fixed ecosystem (10 / 2, starting in summer). Events pause the game and offer three choices (help one side, the other, or let nature take its course) that add short buffs or debuffs. The run ends on Day 20, or early if both species die out, with one of 5 endings (Thriving Highlands, Fragile Balance, Predator-Free Highlands, Disappearing Herd, Ecosystem Collapse), kept in an Ending Gallery.
 
 | ID | Feature | M2 status |

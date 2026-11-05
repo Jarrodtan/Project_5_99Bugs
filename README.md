@@ -89,7 +89,7 @@ Open `Assets/Scenes/HomeScreen` and press **Play** (always start from HomeScreen
 **Start → Explore (Himalayan Highlands) →** then either:
 
 - **Start Guided:** the 20-day challenge begins at once (10 blue sheep, 2 snow leopards).
-- **Start Free:** set the starting numbers (default 10 / 2, up to 100 each) and press **Start**.
+- **Start Free:** set the starting numbers (default 10 / 2, up to 50 each) and press **Start**.
 
 In the simulation: **Play/Pause**, the **speed** button (1x → 2x → 4x → 8x) and **Reset** at the bottom left; tap an animal to inspect it;
 **View Details** expands the ecosystem overview; **Field Journal** opens over the paused run; **Back** asks before leaving.
