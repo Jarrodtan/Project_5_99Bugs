@@ -128,7 +128,7 @@ public class AnimalData : MonoBehaviour
             case "LC": share = 0.5f; break;
         }
         // The share is of the research herd size (20 sheep / 5 leopards), not of the counter's maximum, so
-        // raising the Free maximum (100 each since 3 Nov) keeps the defaults at 10 sheep and 2 leopards.
+        // raising the Free maximum (50 each since 5 Nov; 100 jammed) keeps the defaults at 10 sheep and 2 leopards.
         var counter = simu_name == "SnowLeopard" ? snowLeopardCounter : blueSheepCounter;
         int reference = simu_name == "SnowLeopard" ? 5 : 20;
         int start_num = Mathf.Max(share > 0f ? 1 : 0, Mathf.RoundToInt(reference * share));

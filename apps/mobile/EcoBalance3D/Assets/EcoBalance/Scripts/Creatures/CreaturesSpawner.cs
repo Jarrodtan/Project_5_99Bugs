@@ -84,6 +84,7 @@ public class CreatureSpawner : MonoBehaviour {
             if (!NavMesh.SamplePosition(centre + new Vector3(r.x, 0f, r.y), out var hit, 6f, NavMesh.AllAreas)) continue;
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): the whole herd on the same bank as its centre, never split by the river.
             if (HimalayaRiver.Exists && HimalayaRiver.Side(hit.position) != HimalayaRiver.Side(centre)) continue;
+            if (AgentUnstick.OpenGround(hit.position) < 4f) continue;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): not on a tiny ledge it can't leave
             float gap = NearestSpawnedDistance(hit.position);
             if (gap >= minSpacing) { point = hit.position; return true; }
             if (gap > bestGap) { bestGap = gap; fallback = hit.position; }   // most room found so far
@@ -137,7 +138,8 @@ public class CreatureSpawner : MonoBehaviour {
             if (tb.SlopeDegrees(u, v) > maxSpawnSlope) continue;
             if (nearResource != null &&
                 ResourcePatch.FindNearest(tb.WorldPosition(u, v), new[] { nearResource }, nearResourceDistance) == null) continue;
-            if (NavMesh.SamplePosition(tb.WorldPosition(u, v), out var hit, 6f, NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(tb.WorldPosition(u, v), out var hit, 6f, NavMesh.AllAreas)
+                && AgentUnstick.OpenGround(hit.position) >= 4f)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): not a tiny ledge
             {
                 point = hit.position;
                 return true;
@@ -314,7 +316,18 @@ public class CreatureSpawner : MonoBehaviour {
         navAgent.enabled = false;
         go.transform.position = position;
         navAgent.enabled = true;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a packed herd (Free mode, 100 animals) put some just off the
+        // mesh, and those stood frozen for the whole run. Snap to the nearest walkable ground and try again.
         if (!navAgent.isOnNavMesh)
+        {
+            navAgent.enabled = false;
+            if (NavMesh.SamplePosition(position, out var hit, 10f, NavMesh.AllAreas))
+            {
+                go.transform.position = hit.position;
+                navAgent.enabled = true;
+            }
+        }
+        if (navAgent.enabled && !navAgent.isOnNavMesh)
             navAgent.enabled = false;
         return navAgent.enabled;
     }

@@ -273,7 +273,7 @@ public class SimHud : MonoBehaviour
         if (selected != shown)
         {
             shown = selected;
-            if (shown != null) Mascot.NoteInspected();
+            if (shown != null) Mascot.NoteInspected(shown);
             if (inspection != null) inspection.SetActive(shown != null);
         }
 
@@ -381,19 +381,31 @@ public class SimHud : MonoBehaviour
         SetText("DYKTxt", fact, Find("DYKPanel", p));
     }
 
-    static string ActionWords(AnimalBrain a) => a.CurrentAction switch
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): crossing the river or a stream at a ford (same check as the swim animation).
+    static bool Swimming(AnimalBrain a) => HimalayaRiver.InWater(a.transform.position, AnimalMotionBridge.SwimWithin);
+
+    static string ActionWords(AnimalBrain a) => Swimming(a)
+        ? (a.CurrentAction == AnimalBrain.AnimalAction.Fleeing ? "Swimming away!" : "Swimming")
+        : a.CurrentAction switch
     {
         AnimalBrain.AnimalAction.EatingGrass => "Grazing",
         AnimalBrain.AnimalAction.DrinkingWater => "Drinking",
         AnimalBrain.AnimalAction.Hunting => a.IsStalking ? "Stalking" : "Hunting",
         AnimalBrain.AnimalAction.Fleeing => "Running away!",
         AnimalBrain.AnimalAction.Reproducing => "Looking for a mate",
-        _ => "Exploring",
+        _ => a.IsLookingAround ? "Looking around" : "Exploring",
     };
 
     static string Describe(AnimalBrain a)
     {
         string who = a.IsPredatorSpecies ? "This Snow Leopard" : "This Blue Sheep";
+        if (Swimming(a))
+            return a.CurrentAction switch
+            {
+                AnimalBrain.AnimalAction.Fleeing => $"{who} is swimming across the water to get away!",
+                AnimalBrain.AnimalAction.Hunting => $"{who} is swimming across the water after a Blue Sheep!",
+                _ => $"{who} is swimming across at a shallow crossing.",
+            };
         return a.CurrentAction switch
         {
             AnimalBrain.AnimalAction.EatingGrass => $"{who} is eating grass to stay full.",
@@ -401,7 +413,8 @@ public class SimHud : MonoBehaviour
             AnimalBrain.AnimalAction.Hunting => a.IsStalking ? $"{who} is creeping up quietly on the herd." : $"{who} is chasing a Blue Sheep!",
             AnimalBrain.AnimalAction.Fleeing => $"{who} spotted a Snow Leopard and is running to safety.",
             AnimalBrain.AnimalAction.Reproducing => $"{who} is well fed and looking for a partner.",
-            _ => $"{who} is wandering around its home.",
+            _ => a.IsLookingAround ? $"{who} stopped to look around before moving on."
+                                   : $"{who} is wandering around its home.",
         };
     }
 
