@@ -58,7 +58,13 @@ public class SimHud : MonoBehaviour
 
     /// <summary>True while Shumin's HUD is on screen (Guided hides its own day pill then).</summary>
     public static bool Active { get; private set; }
-    void OnDestroy() { Active = false; }
+    void OnDestroy() { Active = false; if (current == this) current = null; }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): the right-hand cards (animal inspection, prediction question) are open;
+    // Edit Terrain steps aside until they close.
+    static SimHud current;
+    public static bool RightPanelOpen =>
+        ContextualQuestions.Showing || (current != null && current.inspection != null && current.inspection.activeInHierarchy);
 
     readonly Dictionary<string, List<Transform>> byName = new Dictionary<string, List<Transform>>();
     SimulationSpeedController speed;
@@ -109,6 +115,7 @@ public class SimHud : MonoBehaviour
         SeeThrough();
 
         inspection = Find("AnimalInspectionPanel")?.gameObject;
+        current = this;
         expanded = Find("ExpandedOverviewPanel")?.gameObject;
         overview = Find("EcosystemOverviewPanel")?.gameObject;
         if (inspection != null) inspection.SetActive(false);

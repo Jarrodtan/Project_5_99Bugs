@@ -416,7 +416,7 @@ public class GuidedChallenge : MonoBehaviour
         OnClick(introPanel, "StartBtn", () =>
         {
             introPanel.gameObject.SetActive(false);
-            if (introMascot != null) introMascot.gameObject.SetActive(false);
+            if (introMascot != null) { Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); }
             introDone = true;
             PopupOpen = false;
             Mascot.PlayGuidedIntro();   // GE-M01..03
@@ -449,8 +449,10 @@ public class GuidedChallenge : MonoBehaviour
                 btn.gameObject.SetActive(true);
             }
         }
-        OnClick(introMascot, "GotItBtn", () => introMascot.gameObject.SetActive(false));
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): the card dims while the mascot speaks; Got It brings it back.
+        OnClick(introMascot, "GotItBtn", () => { Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); });
         introMascot.gameObject.SetActive(true);
+        Spotlight.Show(introMascot);
     }
 
     // GE-M05 beside the event card, GE-M06 beside the feedback card (Shumin's two panels inside EventPanel).

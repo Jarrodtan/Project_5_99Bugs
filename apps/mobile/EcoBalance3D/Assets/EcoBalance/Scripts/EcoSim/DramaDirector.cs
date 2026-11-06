@@ -44,6 +44,10 @@ public class DramaDirector : MonoBehaviour
         if (instance == null) instance = new GameObject("[DramaDirector]").AddComponent<DramaDirector>();
         var d = instance;
         if (d.showing && d.subject != null && d.current == Moment.Hunt) return;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): not over the Free setup menu or a Guided card (intro, event):
+        // keep the newest line and show it once the run is on screen.
+        if (Held) { d.pending = text; return; }
+        if (Mascot.Announce(text)) return;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): the mascot says it
         if (d.banner == null) d.BuildUI();
         d.subject = null;
         d.caption.text = text;
@@ -67,7 +71,7 @@ public class DramaDirector : MonoBehaviour
     public static void UpdateStatusVisibility()
     {
         if (instance == null || instance.status == null) return;
-        instance.status.transform.parent.gameObject.SetActive(!SimHud.Active);
+        instance.status.transform.parent.gameObject.SetActive(!SimHud.Active && !ConfigurationScreen.Open);
     }
 
     void Offer(Moment moment, Transform target, string text)
@@ -87,8 +91,13 @@ public class DramaDirector : MonoBehaviour
         hideAt = now + ShowSeconds;
     }
 
+    static bool Held => ConfigurationScreen.Open || GuidedChallenge.PopupOpen;
+    string pending;
+
     void Update()
     {
+        if (pending != null && !Held) { string p = pending; pending = null; Announce(p); }
+        UpdateStatusVisibility();
         if (showing && Time.unscaledTime >= hideAt) Hide(QuietSeconds);
         else if (showing && watchButton.activeSelf && subject == null) Hide(QuietSeconds);   // the animal is gone
     }

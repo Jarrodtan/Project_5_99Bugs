@@ -785,18 +785,22 @@ public class TerrainEditTool : MonoBehaviour
     void PlaceToggle()
     {
         if (toggleRect == null) return;
-        float y = SimHud.Active ? -40f - 88f - 20f : -170f - 84f - 20f;   // top row (88 tall) + gap, or under the pill
+        float y = SimHud.Active ? -40f - 88f - 44f : -170f - 84f - 20f;   // top row (88 tall) + a clear gap, or under the pill
         if (Mathf.Approximately(toggleRect.anchoredPosition.y, y)) return;
         toggleRect.anchoredPosition = new Vector2(-40f, y);
         if (panel != null) panel.anchoredPosition = new Vector2(-40f, y - toggleRect.sizeDelta.y - 16f);
     }
+
+    float plainLookAt = -1f;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
     void UpdateToggleButton()
     {
         if (toggleRect == null) return;
 
         // The HUD scene loads a moment after the world: once it is there, copy its button's exact sprite and font.
-        if (!hudLookCopied && Time.unscaledTime >= nextHudLookTry)
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): try every frame while the HUD is up (cheap until found), so
+        // the plain white placeholder look is never seen.
+        if (!hudLookCopied && !ConfigurationScreen.Open)
         {
             nextHudLookTry = Time.unscaledTime + 0.5f;
             hudLookCopied = CopyHudLook();
@@ -806,7 +810,15 @@ public class TerrainEditTool : MonoBehaviour
         // unless the editor itself is open.
         var info = AnimalInfoUI.Instance;
         bool cardOpen = info != null && info.SelectedAnimal != null;
-        bool show = !cardOpen || panel.gameObject.activeSelf;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): also hidden behind the Free setup menu and while Shu Min's
+        // inspection or prediction card is open; it comes back when they close.
+        // Not before it wears the HUD's look: a white box flashed in Free between Start and the HUD loading.
+        // A scene with no HUD at all shows the plain button after a few seconds.
+        if (ConfigurationScreen.Open) plainLookAt = -1f;
+        else if (plainLookAt < 0f) plainLookAt = Time.unscaledTime + 3f;
+        bool styled = hudLookCopied || (plainLookAt > 0f && Time.unscaledTime >= plainLookAt && !SimHud.Active);
+        bool show = !ConfigurationScreen.Open && styled &&
+                    (panel.gameObject.activeSelf || (!cardOpen && !SimHud.RightPanelOpen));
         if (toggleRect.gameObject.activeSelf != show) toggleRect.gameObject.SetActive(show);
     }
 

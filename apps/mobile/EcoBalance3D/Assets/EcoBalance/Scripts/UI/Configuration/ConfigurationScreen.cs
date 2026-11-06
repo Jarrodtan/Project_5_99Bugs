@@ -11,8 +11,13 @@ public class ConfigurationScreen : MonoBehaviour
     [Tooltip("The whole configuration menu that disappears after Start.")]
     public GameObject configurationUI;
 
+    /// <summary>[AI-GENERATED] Claude Code (Claude Opus 5.5): true while the Free setup menu is on screen. The world behind it
+    /// keeps its live weather line, season pill, season message and Edit Terrain hidden until Start (the run shows them).</summary>
+    public static bool Open { get; private set; }
+
     private void Start()
     {
+        Open = configurationUI == null || configurationUI.activeSelf;
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.simu.TransitionTo(0f);
@@ -51,7 +56,7 @@ public class ConfigurationScreen : MonoBehaviour
                 al.enabled = false;
     }
 
-    void OnDestroy() => SceneManager.sceneLoaded -= OnSimulationSceneLoaded;
+    void OnDestroy() { SceneManager.sceneLoaded -= OnSimulationSceneLoaded; Open = false; }
     // [AI-GENERATED END]
 
     public void StartSimulation()
@@ -60,6 +65,7 @@ public class ConfigurationScreen : MonoBehaviour
         // 1. Save chosen populations
         // --------------------------------
 
+        Open = false;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): the run's HUD bits may show now
         EcosystemSimulator.StartingPopulationOverrides.Clear();
 
         foreach (var counter in counters)
