@@ -35,6 +35,7 @@ public class ContextualQuestions : MonoBehaviour
 
     // Live numbers, updated twice a second.
     int sheep, leopards, maxSheep, startSheep, lastSheep, lastLeopards;
+    float settleUntil;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): wait for the chosen animals to spawn after Start
     float veg;
     // Since the current prediction.
     int sheepAtPrediction, sheepBirths, sheepDeaths, sheepStarved, leopardsStarved, catches;
@@ -182,6 +183,11 @@ public class ContextualQuestions : MonoBehaviour
     {
         if (Time.unscaledTime < nextCheck) return;
         nextCheck = Time.unscaledTime + 0.5f;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): behind the Free setup menu the world still has the previous
+        // run's animals. Counting them made "a lot fewer Blue Sheep" fire on Day 1 (e.g. 50 before, 10 chosen).
+        // Start counting only once the chosen run is on screen and its animals have spawned.
+        if (ConfigurationScreen.Open) { maxSheep = startSheep = lastSheep = lastLeopards = 0; settleUntil = Time.unscaledTime + 2f; return; }
+        if (Time.unscaledTime < settleUntil) return;
         Count();
 
         if (watching != null && !Showing)

@@ -238,7 +238,9 @@ public class AnimalInfoUI : MonoBehaviour
         if (actionText != null)
         {
             actionText.text =
-                $"Currently: {GetActionText(selectedAnimal.CurrentAction)}";
+                HimalayaRiver.InWater(selectedAnimal.transform.position, AnimalMotionBridge.SwimWithin)
+                    ? "Currently: Swimming"   // [AI-GENERATED] Claude Code (Claude Opus 5.5): crossing at a ford
+                    : $"Currently: {GetActionText(selectedAnimal.CurrentAction)}";
         }
 
         // Target
@@ -280,7 +282,7 @@ public class AnimalInfoUI : MonoBehaviour
 
             case AnimalBrain.AnimalAction.Roaming:
             default:
-                return "Roaming";
+                return selectedAnimal != null && selectedAnimal.IsLookingAround ? "Looking around" : "Roaming";
         }
     }
 }

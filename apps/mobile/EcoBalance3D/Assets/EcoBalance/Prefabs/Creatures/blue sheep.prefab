@@ -324,7 +324,7 @@ MonoBehaviour:
   predatorTerritoryScale: 3
   patrolMinDistance: 25
   patrolMaxDistance: 60
-  patrolPauseSeconds: {x: 1.5, y: 4}
+  patrolPauseSeconds: {x: 0, y: 0}
   patrolMemory: 6
 --- !u!114 &-1853422331891634858
 MonoBehaviour:
