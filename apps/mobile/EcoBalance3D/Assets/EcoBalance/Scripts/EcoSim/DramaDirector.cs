@@ -91,7 +91,18 @@ public class DramaDirector : MonoBehaviour
         hideAt = now + ShowSeconds;
     }
 
-    static bool Held => ConfigurationScreen.Open || GuidedChallenge.PopupOpen;
+    // Also while the HUD (and its mascot) is still loading after Start: a few seconds at most, then the banner.
+    static float mascotWaitUntil = -1f;
+    static bool Held
+    {
+        get
+        {
+            if (ConfigurationScreen.Open || GuidedChallenge.PopupOpen) { mascotWaitUntil = -1f; return true; }
+            if (Mascot.Ready) return false;
+            if (mascotWaitUntil < 0f) mascotWaitUntil = Time.unscaledTime + 4f;
+            return Time.unscaledTime < mascotWaitUntil;
+        }
+    }
     string pending;
 
     void Update()

@@ -212,9 +212,15 @@ public class Mascot : MonoBehaviour
         lastActivity = Time.unscaledTime;
     }
 
+    string queuedNews;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): season/weather line waiting for the mascot to be free
+
+    /// <summary>True once a mascot is in the HUD and can talk.</summary>
+    public static bool Ready => current != null && current.line != null;
+
     void Update()
     {
         if (Showing && hideAt > 0f && Time.unscaledTime >= hideAt) Dismiss();
+        if (queuedNews != null && !Showing && !ModalOpen()) { string n = queuedNews; queuedNews = null; Say(new[] { n }, false, null, ReactionSeconds); }
 
         // Any tap or click counts as activity (inspecting, playback, camera moves...).
         var touch = Touchscreen.current;
@@ -301,7 +307,8 @@ public class Mascot : MonoBehaviour
     public static bool Announce(string text)
     {
         if (current == null || current.line == null) return false;
-        if (ModalOpen() || (Showing && (current.intro || current.watchTarget != null || current.findLeopard != null))) return true;
+        // Busy (welcome, a card, Watch, the discovery game): keep the newest line and say it when free.
+        if (ModalOpen() || (Showing && (current.intro || current.watchTarget != null || current.findLeopard != null))) { current.queuedNews = text; return true; }
         current.Say(new[] { text }, false, null, ReactionSeconds);
         return true;
     }
