@@ -408,14 +408,26 @@ public class GuidedChallenge : MonoBehaviour
         if (speed != null) speed.Pause();
         int card = 0;
         foreach (var t in introPanel.GetComponentsInChildren<Transform>(true))
-            if (t.name.StartsWith("AnimalCard")) SetText(t, "AmountTxt", $"x{(card++ == 0 ? Sheep : Leopards)}");
+            if (t.name.StartsWith("AnimalCard"))
+            {
+                SimHud.SetIcon(Find(t, "AnimalImage"), SimHud.AnimalIcon(card == 1));   // [AI-GENERATED] Claude Code (Claude Opus 5.5): the picture spot was empty
+                SetText(t, "AmountTxt", $"x{(card++ == 0 ? Sheep : Leopards)}");
+            }
         SetText(Find(introPanel, "GrassCard"), "ValueTxt", $"{Vegetation:0}%");
         introPanel.gameObject.SetActive(true);
-        ShowIntroMascot();
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): only the intro card can be used until Start: dim and
+        // block the run behind it (Back still works), and no mascot until the run starts.
+        Mascot.Hide();
+        ShowIntroMascot();   // the intro card's own mascot on the right stays
+        var blocker = IntroBlocker();
+        SimHud.SetWeatherVisible(false);   // it is drawn above the card
         PopupOpen = true;
         OnClick(introPanel, "StartBtn", () =>
         {
             introPanel.gameObject.SetActive(false);
+            if (blocker != null) Destroy(blocker);
+            SimHud.SetWeatherVisible(true);
+            SetTerrainEditVisible(true);
             if (introMascot != null) { Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); }
             introDone = true;
             PopupOpen = false;
@@ -424,6 +436,33 @@ public class GuidedChallenge : MonoBehaviour
             if (speed != null) speed.Play();
         });
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5)
+    // Full-screen dimmer just under the intro card (80) that eats every tap. The HUD's Back button is lifted
+    // above it so a child can still leave before pressing Start.
+    GameObject IntroBlocker()
+    {
+        // Plain dimmer in the HUD canvas, one sibling under the intro panel: the card, its mascot, Settings
+        // and Back (later siblings / own canvases) stay tappable, everything else in the HUD does not.
+        // The intro panel itself is screen-sized: only its card should catch taps, or it hides Back and the mascot.
+        if (introPanel.TryGetComponent(out Image panelBg)) panelBg.raycastTarget = false;
+        var go = new GameObject("IntroBlocker", typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(introPanel.parent, false);
+        go.transform.SetSiblingIndex(introPanel.GetSiblingIndex());
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(-4000f, -4000f); rt.offsetMax = new Vector2(4000f, 4000f);   // whole screen, whatever the parent's size
+        go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.4f);
+        SetTerrainEditVisible(false);   // its own canvas sits above the HUD
+        return go;
+    }
+
+    static void SetTerrainEditVisible(bool on)
+    {
+        var c = GameObject.Find("TerrainEditCanvas");
+        if (c != null && c.TryGetComponent(out Canvas canvas)) canvas.enabled = on;
+    }
+    // [AI-GENERATED END]
 
     // [AI-GENERATED] Claude Code (Claude Opus 5.5)
     // Guided Exploration Introduction screen (doc "Mascot Guidance System"): one friendly line beside the

@@ -785,7 +785,7 @@ public class TerrainEditTool : MonoBehaviour
     void PlaceToggle()
     {
         if (toggleRect == null) return;
-        float y = SimHud.Active ? -40f - 88f - 44f : -170f - 84f - 20f;   // top row (88 tall) + a clear gap, or under the pill
+        float y = SimHud.Active ? -195f : -170f - 84f - 20f;   // under the HUD row (ends near -146, measured 7 Nov) with a clear gap, or under the pill
         if (Mathf.Approximately(toggleRect.anchoredPosition.y, y)) return;
         toggleRect.anchoredPosition = new Vector2(-40f, y);
         if (panel != null) panel.anchoredPosition = new Vector2(-40f, y - toggleRect.sizeDelta.y - 16f);

@@ -11,6 +11,10 @@ public class ConfigurationScreen : MonoBehaviour
     [Tooltip("The whole configuration menu that disappears after Start.")]
     public GameObject configurationUI;
 
+    [Tooltip("Round arrow art of the other screens' Back buttons.")]
+    public Sprite backSprite;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+    public Sprite backArrowSprite;   // the arrow drawn on top of the round button
+
     /// <summary>[AI-GENERATED] Claude Code (Claude Opus 5.5): true while the Free setup menu is on screen. The world behind it
     /// keeps its live weather line, season pill, season message and Edit Terrain hidden until Start (the run shows them).</summary>
     public static bool Open { get; private set; }
@@ -22,6 +26,8 @@ public class ConfigurationScreen : MonoBehaviour
         {
             AudioManager.Instance.simu.TransitionTo(0f);
         }
+
+        AddBackButton();
 
         // Pause the game while the player is configuring the ecosystem.
         Time.timeScale = 0f;
@@ -57,6 +63,44 @@ public class ConfigurationScreen : MonoBehaviour
     }
 
     void OnDestroy() { SceneManager.sceneLoaded -= OnSimulationSceneLoaded; Open = false; }
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5): Back to Mode Selection before Start, like the
+    // Guided intro card. Sits in the setup menu, so it goes away with it on Start (the HUD's Back takes over).
+    void AddBackButton()
+    {
+        var parent = configurationUI != null ? configurationUI.transform : transform;
+        var canvas = parent.GetComponentInParent<Canvas>();
+        if (canvas == null) return;
+        if (parent.GetComponent<RectTransform>() == null) parent = canvas.transform;
+        var go = new GameObject("BackBtn", typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
+        go.transform.SetParent(parent, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(40f, -30f);
+        rt.sizeDelta = new Vector2(120f, 128f);
+        var img = go.GetComponent<UnityEngine.UI.Image>();
+        img.sprite = backSprite;
+        img.preserveAspect = true;
+        if (backSprite == null) img.color = new Color(0.98f, 0.94f, 0.84f);
+        if (backArrowSprite != null)
+        {
+            var arrow = new GameObject("Arrow", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+            arrow.transform.SetParent(go.transform, false);
+            var art = (RectTransform)arrow.transform;
+            art.anchorMin = art.anchorMax = art.pivot = new Vector2(0.5f, 0.5f);
+            art.sizeDelta = new Vector2(72f, 58f);   // same share of the circle as on Mode Selection (81 x 65 in 135 x 144)
+            var ai = arrow.GetComponent<UnityEngine.UI.Image>();
+            ai.sprite = backArrowSprite;
+            ai.preserveAspect = true;
+            ai.raycastTarget = false;
+        }
+        go.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(() =>
+        {
+            Time.timeScale = 1f;   // Open stays true until this scene is gone, so the run's pills don't flash
+            SceneManager.LoadScene(ScreenFlow.Modes);
+        });
+    }
     // [AI-GENERATED END]
 
     public void StartSimulation()
