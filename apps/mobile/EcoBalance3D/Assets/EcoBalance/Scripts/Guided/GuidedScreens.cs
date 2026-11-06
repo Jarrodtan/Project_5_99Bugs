@@ -120,6 +120,11 @@ public static class GuidedScreens
             SetText(box, "EndingDescriptionTxt", got ? GuidedChallenge.Endings[i].text : "Not discovered yet. Try different choices!");
             SetText(Find(box, "ExplanationBox01"), "WhatThisMeansTxt (1)", got ? GuidedChallenge.Endings[i].lesson : "");
             SetText(Find(box, "ExplanationBox02"), "WhatThisMeansTxt (1)", got ? "Play again and try different choices to find the other endings." : "");
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): "Ecosystem Collapse" wrapped onto two lines over the
+            // description, and long descriptions were cut off: title on one line, text shrinks to fit its box.
+            FitOneLine(Find(box, "EndingTitleTxt"));
+            FitBox(Find(box, "EndingDescriptionTxt"));
+            FitBox(Find(Find(box, "ExplanationBox01"), "WhatThisMeansTxt (1)"));
             overview.gameObject.SetActive(false);
             detail.gameObject.SetActive(true);
         }
