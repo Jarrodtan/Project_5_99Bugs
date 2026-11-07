@@ -20,7 +20,7 @@
 | Animal Models/Animations           | Models: Nomitha, Li Juan; animation: Wei Leong (SCRUM-267) | Placeholder models                                   | Real sheep/leopard models + core animation set (done: our procedural animation module `packages/procanim`: walk/run/flee/stalk, eat/drink, alert, swim (crossing fords, 3 Nov), legs/head/tail, child-friendly death) | Full animation set complete               |
 | CI/CD pipeline                     | Wei Leong (#4, #5) | Tests + Android build on every PR | Repo checks + tests (+ perf history) on PRs into `main`, no nightly run; APK on tags/manual to Gitea (`docs/infra/ci.md`) | Headless soak test on the VM, performance history |
 
-## M2 status and open tasks (updated 5 Nov)
+## M2 status and open tasks (updated 7 Nov)
 
 **Schedule:** code freeze **Fri 6 Nov 23:59** → Sat 7 Nov: `M2-Integration` → `main` (reviewed PR), `M2-Submission` branch, tag `v0.2-m2` (APK), tablet test, recordings (demo 5 min, engine 5 min, presentation) → submission **Sun 8 Nov**.
 
@@ -38,4 +38,4 @@ Team: 2 UXGD (Shu Min, PM; Nomitha, Design Lead), 6 IMGD programmers, 1 RTIS (We
 | Reginald | IMGD | Tune `AnimalPerception` and hunting at 8x; report balance |
 | Yusuf | IMGD | Hunting camouflage done (merged 2 Nov); left: pink mountains (shows in Guided and Free, fix before the recording) |
 | Li Juan | IMGD | CSV data logging + animal / river audio merged 2 Nov (her own commits, not the old branch); left: Tree column is 0 on the Khumbu terrain, finish the stream audio. Start new work from `M2-Integration` |
-| Wei Leong | RTIS, Tech Lead | Done 5 Nov: merged Shu Min's buttons UI, Zhi Jie's mascot, Nomitha's leopard animation; river fords (SCRUM-320); crowded-run freeze fix + Free max 50 (SCRUM-321); reverted PR #61 on `main` (FAB emptied the world; Yande's water fix kept). Left: PR `M2-Integration` → `main`, `M2-Submission` + tag `v0.2-m2` (SCRUM-262), engine video |
+| Wei Leong | RTIS, Tech Lead | Done 7 Nov: polish from playtesting: Back before Start in both modes, Guided intro blocks the run until Start (mascot, Settings, Back still usable), animal icons in the HUD and Guided intro, Enough / Low / Very low pills with colours, 22 px minimum text (menus + Guided HUD, Mode Selection re-laid out), opening prediction CQ00 in every Free run, Free +/- fixed (was +2), Shu Min's 7 Nov UI edits merged. Done 5 Nov: merged Shu Min's buttons UI, Zhi Jie's mascot, Nomitha's leopard animation; river fords (SCRUM-320); crowded-run freeze fix + Free max 50 (SCRUM-321); reverted PR #61 on `main` (FAB emptied the world; Yande's water fix kept). Left: PR `M2-Integration` → `main`, `M2-Submission` + tag `v0.2-m2` (SCRUM-262), engine video |

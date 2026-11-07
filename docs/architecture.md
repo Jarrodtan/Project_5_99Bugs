@@ -204,6 +204,8 @@ There is no server or database. EcoBalance is a single offline mobile app.
 - **Overlay Positioning:** `IOverlayPositioner` (Screen Space + World Space) driven by `InspectionUiConfig.overlayMode`.
 - **Island Platform:** `IslandManager` owns the active island instance (spawn at `worldAnchor`, `centerOffset` pivot fix, swap with fade + ecosystem reset). Per-island data lives on `IslandDefinition` assets; platform knobs on `IslandPlatformConfig`. Implements `IOrbitTarget` for the camera.
 - **Orbit Camera:** `OrbitCameraController` + `CameraConfig` (InputActionReferences, clamps, damping); pivots via `IOrbitTarget` only. 
+- **Screen flow and HUD (M2, 7 Nov):** `ScreenFlow` wires the menu buttons by name; `SimHud` drives Shu Min's HUD scene (`UI` in Free, `GuidedExploration` in Guided) by object name. Back works before Start in both modes: Free's setup screen gets a code-built Back button (`ConfigurationScreen.AddBackButton`, same art as the other screens), and Guided's intro card sits over a plain dimmer (`GuidedChallenge.IntroBlocker`) so only the card, its mascot, Settings and Back can be tapped until Start. Canvas sort orders: Edit Terrain 50, Leave box 85 (above the Guided cards at 80), Field Journal overlay 90.
+- **HUD helpers:** animal pictures are loaded from `Resources/AnimalIcons` (`SimHud.AnimalIcon`) into the overview cards, the inspection portrait and the Guided intro cards; the live-weather box re-sizes to its text (`FitBehindText`); HUD text auto-shrinks but never below 22 px (tablet readability); the old season pill (`DramaDirector`) stays hidden while the HUD is loading and on menu screens.
 
 ## 7. Repository and module structure
 
