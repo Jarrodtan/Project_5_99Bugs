@@ -529,6 +529,7 @@ public class GuidedChallenge : MonoBehaviour
             SetText(box, "Option Title", c.label);
             SetText(box, "EffectDescriptionTxt (1)", c.feedback);
             if (box.TryGetComponent(out Image boxImage)) boxImage.color = Color.white;
+            SelectedDot.Set(Find(box, "SelectionBtn"), false);
             OnClick(box, "SelectionBtn", () =>
             {
                 picked = c;
@@ -536,6 +537,7 @@ public class GuidedChallenge : MonoBehaviour
                 {
                     var other = Find(eventCard, $"OptionBox0{j}");
                     if (other != null && other.TryGetComponent(out Image img)) img.color = other == box ? new Color(0.85f, 0.95f, 0.85f) : Color.white;
+                    if (other != null) SelectedDot.Set(Find(other, "SelectionBtn"), other == box);
                 }
                 if (confirmButton != null) confirmButton.interactable = true;
             });
