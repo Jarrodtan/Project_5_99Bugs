@@ -82,6 +82,7 @@ public class WeatherManager : MonoBehaviour
             if (req.result != UnityWebRequest.Result.Success)
             {
                 Debug.Log("API connection failed: " + req.error);
+                if (txt != null) txt.text = "Live Everest weather: offline (no internet)";   // [AI-GENERATED] Claude Code (Claude Opus 5.5): say so instead of a stale placeholder
             }
             else
             {

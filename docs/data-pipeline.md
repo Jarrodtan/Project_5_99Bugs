@@ -63,6 +63,6 @@ Scenes live in `Assets/Scenes/` (referenced by Build Settings); personal test sc
 
 ## Terrain data (M2)
 
-- **Heights:** AWS Terrain Tiles (Terrarium PNG, zoom 11), downloaded at runtime and cached in `persistentDataPath/HimalayaCache`. The map box is the Khumbu valleys, 86.72–86.97°E, 27.78–28.03°N (set in `Terrain/HimalayaConfig.asset`); real heights about 2,830–8,740 m, squeezed into a 200 m game map.
+- **Heights:** AWS Terrain Tiles (Terrarium PNG, zoom 11), downloaded at runtime and cached in `persistentDataPath/HimalayaCache`; a copy of the 8 tiles and the OpenStreetMap water for this box ships in `Resources/HimalayaData`, so the world builds with no internet (7 Nov). Only the live weather needs a connection. The map box is the Khumbu valleys, 86.72–86.97°E, 27.78–28.03°N (set in `Terrain/HimalayaConfig.asset`); real heights about 2,830–8,740 m, squeezed into a 200 m game map.
 - **Habitats:** blue sheep 4,000–5,200 m, snow leopard 4,200–5,500 m, tree line 4,200 m, snow line 5,200 m (from the animal research).
 - **Water:** the main river and glacier streams are traced from the heights at runtime (`HimalayaRiver`); OpenStreetMap water is only used when the traced river is switched off.
