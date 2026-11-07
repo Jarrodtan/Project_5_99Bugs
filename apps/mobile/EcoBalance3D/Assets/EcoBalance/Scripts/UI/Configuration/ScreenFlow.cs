@@ -138,7 +138,7 @@ public static class ScreenFlow
         var canvasGo = new GameObject("[Leave Canvas]", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(LeaveMarker));
         var canvas = canvasGo.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 70;
+        canvas.sortingOrder = 85;   // above the Guided intro / event cards (80) so Leave works before Start; under the journal (90)
         var scaler = canvasGo.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1200);
@@ -146,11 +146,12 @@ public static class ScreenFlow
 
         var confirm = Rect(canvasGo.transform, "Confirm", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
         var card = Rect(confirm.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
-        Text(card.transform, GuidedMode ? "Leave the challenge?\n<size=70%>Your progress in this run will be lost.</size>" : "Leave the simulation?", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(820f, 200f));
+        Text(card.transform, GuidedMode ? "Leave the challenge?\n<size=70%>Your progress in this run will be lost.</size>" : "Leave the simulation?\n<size=70%>Your ecosystem in this run will be lost.</size>", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(820f, 200f));
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         bool wasRunning = false;
         Btn(card.transform, "Stay", new Vector2(-200f, -110f), new Color(0.3f, 0.62f, 0.38f), () => { confirm.SetActive(false); if (wasRunning && speed != null) speed.Play(); });
         Btn(card.transform, "Leave", new Vector2(200f, -110f), new Color(0.55f, 0.55f, 0.55f), () => Load(Modes));
+        StyleLikeShumin(card, "Leave");
         confirm.SetActive(false);
         openConfirm = () =>
         {
@@ -283,7 +284,69 @@ public static class ScreenFlow
         });
 
         Btn(card.transform, "Done", new Vector2(0f, -130f), new Color(0.3f, 0.62f, 0.38f), () => { PlayerPrefs.Save(); Object.Destroy(canvasGo); });
+        StyleLikeShumin(card, null);
+        // Slider in the same palette: brown track, green fill, round green knob.
+        var bg = slider.transform.Find("Background");
+        if (bg != null) bg.GetComponent<Image>().color = new Color(0.86f, 0.78f, 0.62f);
+        if (handle != null)
+        {
+            var hi = handle.GetComponent<Image>();
+            hi.color = new Color(0.2f, 0.45f, 0.28f);
+            var round = ShuminSprite(GreenButtons);
+            if (round != null) { hi.sprite = round; hi.type = Image.Type.Sliced; }
+        }
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // The Leave and Sound volume boxes are built in code: give them Shu Min's look (cream card with a brown
+    // edge, her rounded green / red buttons and the Chewy font), borrowed from what is on screen right now.
+    static readonly string[] GreenButtons = { "Play/PauseBtn", "StartBtn", "StartGuidedBtn", "StartFreeBtn", "ExploreBtn" };
+    static readonly string[] RedButtons = { "ResetBtn", "QuitBtn" };
+    static readonly Color Cream = new Color(0.98f, 0.94f, 0.84f), Brown = new Color(0.45f, 0.32f, 0.18f), Ink = new Color(0.22f, 0.16f, 0.1f);
+
+    static void StyleLikeShumin(GameObject card, string redButton)
+    {
+        var img = card.GetComponent<Image>();
+        img.color = Cream;
+        var edge = card.GetComponent<Outline>();
+        if (edge == null) edge = card.AddComponent<Outline>();
+        edge.effectColor = Brown;
+        edge.effectDistance = new Vector2(6f, -6f);
+
+        var title = ShuminFont("Chewy");
+        foreach (var t in card.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true))
+        {
+            bool onButton = t.GetComponentInParent<Button>() != null && t.transform.parent != card.transform;
+            if (title != null) t.font = title;
+            if (!onButton) t.color = Ink;
+        }
+        Sprite green = ShuminSprite(GreenButtons), red = ShuminSprite(RedButtons);
+        foreach (Transform child in card.transform)
+        {
+            if (!child.TryGetComponent(out Button b) || !child.TryGetComponent(out Image bi)) continue;
+            var s = child.name == redButton ? (red ?? green) : green;
+            if (s == null) continue;
+            bi.sprite = s; bi.type = Image.Type.Sliced; bi.color = Color.white;
+        }
+    }
+
+    static Sprite ShuminSprite(string[] names)
+    {
+        foreach (var n in names)
+        {
+            var go = GameObject.Find(n);
+            if (go != null && go.TryGetComponent(out Image i) && i.sprite != null) return i.sprite;
+        }
+        return null;
+    }
+
+    static TMPro.TMP_FontAsset ShuminFont(string nameContains)
+    {
+        foreach (var f in Resources.FindObjectsOfTypeAll<TMPro.TMP_FontAsset>())
+            if (f != null && f.name.Contains(nameContains)) return f;
+        return null;
+    }
+    // [AI-GENERATED END]
 
     static void Load(string scene)
     {

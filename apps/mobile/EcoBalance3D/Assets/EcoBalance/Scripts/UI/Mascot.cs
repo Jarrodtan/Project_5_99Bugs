@@ -115,7 +115,7 @@ public class Mascot : MonoBehaviour
         Wire(skipBtn, OnSkip);
         // Longer labels ("Dismiss", "Explore!") shrink to fit the button instead of spilling out.
         foreach (var l in new[] { nextLabel, skipLabel })
-            if (l != null && !l.enableAutoSizing) { l.fontSizeMax = l.fontSize; l.fontSizeMin = l.fontSize * 0.6f; l.enableAutoSizing = true; }
+            if (l != null) { if (!l.enableAutoSizing) l.fontSizeMax = l.fontSize; l.fontSizeMin = Mathf.Min(l.fontSizeMax * 0.6f, 18f); l.enableAutoSizing = true; l.textWrappingMode = TextWrappingModes.NoWrap; }   // "Explore!" broke onto two lines
         panel.SetActive(false);
         lastActivity = Time.unscaledTime;
         hintReadyAt = Time.unscaledTime + HintAfterSeconds;
@@ -125,7 +125,7 @@ public class Mascot : MonoBehaviour
         if (!ScreenFlow.GuidedMode) Invoke(nameof(PlayFreeIntro), 1f);
     }
 
-    void OnDestroy() { if (current == this) current = null; }
+    void OnDestroy() { if (panel != null) Spotlight.Hide(panel.transform); if (current == this) current = null; }
 
     // ---------- Showing lines ----------
 
@@ -141,7 +141,32 @@ public class Mascot : MonoBehaviour
         hideAt = autoHide > 0f ? Time.unscaledTime + autoHide : -1f;
         panel.SetActive(true);
         panel.transform.SetAsLastSibling();
+        BehindControlBar();
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): the introduction dims the rest of the screen until Got It / Skip.
+        if (intro) Spotlight.Show(panel.transform, ControlBar()); else Spotlight.Hide(panel.transform);
         Refresh(intro);
+    }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): the mascot stands bottom-left where the Play / speed / Reset bar is:
+    // draw it just under that bar so the buttons stay visible and tappable.
+    void BehindControlBar()
+    {
+        var bar = ControlBar();
+        if (bar != null) panel.transform.SetSiblingIndex(Mathf.Max(0, bar.GetSiblingIndex()));
+    }
+
+    // The sibling of the mascot panel that holds the Play/Pause button (the control bar), or null.
+    Transform ControlBar()
+    {
+        var parent = panel.transform.parent;
+        if (parent == null) return null;
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            var sib = parent.GetChild(i);
+            if (sib == panel.transform || !sib.gameObject.activeInHierarchy) continue;
+            if (sib.name == "Play/PauseBtn" || Find(sib, "Play/PauseBtn") != null) return sib;
+        }
+        return null;
     }
 
     bool intro;
@@ -178,6 +203,7 @@ public class Mascot : MonoBehaviour
 
     void Dismiss()
     {
+        Spotlight.Hide(panel.transform);
         panel.SetActive(false);
         watchTarget = null;
         altLabel = null;
@@ -186,9 +212,15 @@ public class Mascot : MonoBehaviour
         lastActivity = Time.unscaledTime;
     }
 
+    string queuedNews;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): season/weather line waiting for the mascot to be free
+
+    /// <summary>True once a mascot is in the HUD and can talk.</summary>
+    public static bool Ready => current != null && current.line != null;
+
     void Update()
     {
         if (Showing && hideAt > 0f && Time.unscaledTime >= hideAt) Dismiss();
+        if (queuedNews != null && !Showing && !ModalOpen()) { string n = queuedNews; queuedNews = null; Say(new[] { n }, false, null, ReactionSeconds); }
 
         // Any tap or click counts as activity (inspecting, playback, camera moves...).
         var touch = Touchscreen.current;
@@ -270,6 +302,17 @@ public class Mascot : MonoBehaviour
         Say(new[] { FindLine(leopard) }, false, null, -1f, "Skip", () => { findLeopard = null; Dismiss(); });
     }
 
+    /// <summary>[AI-GENERATED] Claude Code (Claude Opus 5.5): season and weather news, said by the mascot instead of the
+    /// centre banner. False = no mascot here (the banner shows it). Never cuts into the intro or a card.</summary>
+    public static bool Announce(string text)
+    {
+        if (current == null || current.line == null) return false;
+        // Busy (welcome, a card, Watch, the discovery game): keep the newest line and say it when free.
+        if (ModalOpen() || (Showing && (current.intro || current.watchTarget != null || current.findLeopard != null))) { current.queuedNews = text; return true; }
+        current.Say(new[] { text }, false, null, ReactionSeconds);
+        return true;
+    }
+
     /// <summary>FE-M09, the first time the Terrain Editor opens in a run.</summary>
     public static void NoteTerrainEditor()
     {
@@ -284,8 +327,10 @@ public class Mascot : MonoBehaviour
     /// </summary>
     public static bool React(DramaDirector.Moment moment, Transform subject, string bannerText)
     {
-        if (current == null || ScreenFlow.GuidedMode || ModalOpen()) return false;
-        if (Showing && current.intro) return false;   // never cut into the introduction
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): both modes; all news goes through the mascot. While a card,
+        // question or the intro is up the moment is skipped (it is over by the time they close).
+        if (current == null) return false;
+        if (ModalOpen() || (Showing && current.intro)) return true;
         string text = null;
         switch (moment)
         {
@@ -295,7 +340,7 @@ public class Mascot : MonoBehaviour
                 break;
             case DramaDirector.Moment.Hunt: text = Stalking; break;
             case DramaDirector.Moment.Catch: text = bannerText != null && bannerText.Contains("got away") ? Escaped : CaughtLine; break;
-            default: return false;   // mating keeps the old banner
+            default: text = bannerText; break;   // mating and anything new: the line the banner would have shown
         }
         bool watch = moment != DramaDirector.Moment.Catch;
         current.Say(new[] { text }, false, watch ? subject : null, ReactionSeconds);
