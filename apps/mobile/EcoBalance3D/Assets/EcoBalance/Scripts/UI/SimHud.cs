@@ -415,6 +415,7 @@ public class SimHud : MonoBehaviour
         if (pill == null) return;
         SetText("Text (TMP)", level == 2 ? "Enough" : level == 1 ? "Low" : "Very low!", pill);
         var label = Txt("Text (TMP)", pill);   // the mock-up's "Low!" text is red: colour it to match the pill
+        if (label != null) { label.textWrappingMode = TextWrappingModes.NoWrap; label.enableAutoSizing = true; label.fontSizeMin = 18f; }   // "Enough" wrapped onto 2 lines in Guided's narrower pill
         if (label != null) label.color = level == 2 ? new Color(0.24f, 0.5f, 0.3f) : level == 1 ? new Color(0.7f, 0.42f, 0.1f) : new Color(0.75f, 0.2f, 0.2f);
         if (pill.TryGetComponent(out Image img))
             img.color = level == 2 ? new Color(0.78f, 0.88f, 0.70f) : level == 1 ? new Color(0.99f, 0.84f, 0.60f) : new Color(0.97f, 0.70f, 0.66f);
