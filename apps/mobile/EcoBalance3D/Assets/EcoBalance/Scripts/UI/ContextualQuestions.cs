@@ -35,6 +35,7 @@ public class ContextualQuestions : MonoBehaviour
 
     // Live numbers, updated twice a second.
     int sheep, leopards, maxSheep, startSheep, lastSheep, lastLeopards;
+    float runStartDay = -1f;   // Day when the chosen animals were first counted (for CQ00)
     float settleUntil;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): wait for the chosen animals to spawn after Start
     float veg;
     // Since the current prediction.
@@ -52,6 +53,21 @@ public class ContextualQuestions : MonoBehaviour
         bool DaysPassed(float n) => Day - predictionDay >= n;
         questions = new List<Question>
         {
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): one opening question in every Free run, half a day in,
+            // so each child makes at least one prediction; CQ01-05 still come when their situation happens.
+            new Question {
+                id = "CQ00", situation = "Your ecosystem has started!",
+                question = "What do you think will happen to the Blue Sheep over the next few days?",
+                learning = "Animal numbers change with food, water, births and predators. Watching over time shows the pattern.",
+                options = new[] { "There will be more Blue Sheep", "There will be fewer Blue Sheep", "Nothing will change" },
+                feedback = Fb("Interesting prediction! Let's watch the Blue Sheep herd!",
+                              "Interesting prediction! Let's see what happens to the Blue Sheep!",
+                              "Interesting prediction! Let's observe whether the herd stays the same!"),
+                trigger = () => runStartDay >= 0f && Day - runStartDay >= 0.5f && sheep > 0,
+                outcomes = new[] {
+                    new Outcome { happened = () => DaysPassed(3f) && sheep > sheepAtPrediction, reflection = "There are more Blue Sheep now than when you made your prediction! How does this compare with what you thought?" },
+                    new Outcome { happened = () => DaysPassed(3f) && sheep < sheepAtPrediction, reflection = "There are fewer Blue Sheep now than when you made your prediction. What do you think caused it?" },
+                    new Outcome { happened = () => DaysPassed(3f), reflection = "The Blue Sheep herd is about the same size as before. What might change it later?" } } },
             new Question {
                 id = "CQ01", situation = "The grass is running low!",
                 question = "What might happen to the Blue Sheep if there isn't enough grass?",
@@ -186,9 +202,10 @@ public class ContextualQuestions : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): behind the Free setup menu the world still has the previous
         // run's animals. Counting them made "a lot fewer Blue Sheep" fire on Day 1 (e.g. 50 before, 10 chosen).
         // Start counting only once the chosen run is on screen and its animals have spawned.
-        if (ConfigurationScreen.Open) { maxSheep = startSheep = lastSheep = lastLeopards = 0; settleUntil = Time.unscaledTime + 2f; return; }
+        if (ConfigurationScreen.Open) { runStartDay = -1f; maxSheep = startSheep = lastSheep = lastLeopards = 0; settleUntil = Time.unscaledTime + 2f; return; }
         if (Time.unscaledTime < settleUntil) return;
         Count();
+        if (runStartDay < 0f && sheep + leopards > 0) runStartDay = Day;
 
         if (watching != null && !Showing)
         {

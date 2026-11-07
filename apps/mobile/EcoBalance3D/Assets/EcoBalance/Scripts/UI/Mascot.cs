@@ -115,7 +115,7 @@ public class Mascot : MonoBehaviour
         Wire(skipBtn, OnSkip);
         // Longer labels ("Dismiss", "Explore!") shrink to fit the button instead of spilling out.
         foreach (var l in new[] { nextLabel, skipLabel })
-            if (l != null && !l.enableAutoSizing) { l.fontSizeMax = l.fontSize; l.fontSizeMin = l.fontSize * 0.6f; l.enableAutoSizing = true; }
+            if (l != null) { if (!l.enableAutoSizing) l.fontSizeMax = l.fontSize; l.fontSizeMin = Mathf.Min(l.fontSizeMax * 0.6f, 18f); l.enableAutoSizing = true; l.textWrappingMode = TextWrappingModes.NoWrap; }   // "Explore!" broke onto two lines
         panel.SetActive(false);
         lastActivity = Time.unscaledTime;
         hintReadyAt = Time.unscaledTime + HintAfterSeconds;

@@ -58,6 +58,10 @@ public static class GeoCache
     {
         var p = Path.Combine(Dir, file);
         if (File.Exists(p)) { data = File.ReadAllBytes(p); return true; }
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): terrain tiles shipped with the game (Resources/HimalayaData/*.bytes),
+        // so the world builds on a tablet with no Wi-Fi on first launch.
+        var bundled = Resources.Load<TextAsset>("HimalayaData/" + Path.GetFileNameWithoutExtension(file));
+        if (bundled != null) { data = bundled.bytes; return true; }
         data = null;
         return false;
     }
