@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd10ba53277213b4f87e228a0819a3b3, type: 3}
+  m_Name: animal1Data
+  m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
+  speciesName: animal1
+  eats: []
+  needs: []
+  reproductionRate: 1
+  starvationThreshold: 2
+  visualPrefab: {fileID: 0}

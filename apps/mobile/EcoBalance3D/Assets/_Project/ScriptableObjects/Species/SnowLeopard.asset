@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd10ba53277213b4f87e228a0819a3b3, type: 3}
+  m_Name: SnowLeopard
+  m_EditorClassIdentifier: Assembly-CSharp::SpeciesDefinition
+  speciesName: SnowLeopard
+  footstep: {fileID: 0}
+  idle: {fileID: 0}
+  eat: {fileID: 0}
+  death: {fileID: 0}
+  startingPopulation: 5
+  relationships:
+  - type: 0
+    targetSpecies: {fileID: 11400000, guid: 1a3ba100c9599964abc576bd2888c5cf, type: 2}
+    targetResource: {fileID: 0}
+  reproductionRate: 0.1
+  starvationThreshold: 0.1
+  needs: []
+  goals: []
+  predationRate: 0.01
+  foodNeededPerCapita: 0.4
+  visualPrefab: {fileID: 9037334413921091483, guid: faf46ddc0cc51574f8ad4ca79b5bc2b8, type: 3}
