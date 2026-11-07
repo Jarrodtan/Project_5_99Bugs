@@ -500,12 +500,26 @@ public class AnimalBrain : MonoBehaviour
     // Counted in simulation time, so at x8 the body doesn't lie there 8 times longer.
     public bool IsCaught => caught_timer > 0f;
 
+    /// <summary>[AI-GENERATED] Claude Code (Claude Opus 5.5): what could be holding this animal still (freeze report).</summary>
+    public string DebugWhyStill() =>
+        $"action {CurrentAction}, enabled {enabled}, busy {busy_timer:0.0}s, caught {IsCaught}, young {IsYoung}" +
+        $"{(IsYoung ? $" (mum near {HasMotherNearby})" : "")}, wander {wander_timer:0.0}s, patrol {has_patrol}, " +
+        $"sim running {(simulationController == null ? "no controller" : simulationController.IsRunning.ToString())}";
+
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
     const float DeadHoldTimer = 0.001f;
 
     /// <summary>Dead (Events mode) and the lie-down time is over: ready for the spawner to remove.</summary>
     public bool DeathFinished => EventsMode && IsCaught && caught_timer <= DeadHoldTimer;
     // [AI-GENERATED END]
+
+    /// <summary>An animal died because Fullness or Hydration stayed empty (contextual questions, mascot).</summary>
+    public static event System.Action<AnimalBrain> Starved;
+    /// <summary>A predator caught its prey (predator, prey).</summary>
+    public static event System.Action<AnimalBrain, AnimalBrain> Caught;
+    /// <summary>A baby was born (raised by the spawner once the baby is placed).</summary>
+    public static event System.Action<AnimalBrain> Born;
+    public static void RaiseBorn(AnimalBrain baby) => Born?.Invoke(baby);
 
     public void MarkCaught()
     {
@@ -677,6 +691,12 @@ public class AnimalBrain : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): procedural animation (ProcAnim module) for every animal.
         if (!TryGetComponent(out AnimalMotionBridge _))
             gameObject.AddComponent<AnimalMotionBridge>();
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): river and stream fords only while fleeing or hunting.
+        if (!TryGetComponent(out FordAccess _))
+            gameObject.AddComponent<FordAccess>();
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): frees animals that jam in crowded (100-animal) runs.
+        if (!TryGetComponent(out AgentUnstick _))
+            gameObject.AddComponent<AgentUnstick>();
     }
 
     void Update()
@@ -888,7 +908,10 @@ public class AnimalBrain : MonoBehaviour
     // animals re-pathing every frame queue up and lag, which at x8 is 8x as much simulated time.
     void SetDestinationIfMoved(Vector3 target, float tolerance)
     {
-        if (agent.hasPath || agent.pathPending)
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): a path still being computed is not restarted. With 200 animals
+        // a fleeing sheep re-asked every time its target shifted, went to the back of the queue and never moved.
+        if (agent.pathPending) return;
+        if (agent.hasPath)
         {
             Vector3 d = agent.destination - target;
             d.y = 0f;
@@ -937,6 +960,7 @@ public class AnimalBrain : MonoBehaviour
         }
 
         simulator.RecordStarvation(species_data);
+        Starved?.Invoke(this);
 
         MarkCaught();
 
@@ -1306,7 +1330,29 @@ public class AnimalBrain : MonoBehaviour
             fleeSpeedMultiplier *
             speed;
 
-        SetDestinationIfMoved(hit.position, 2f);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): don't re-path every frame
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): run in a straight line over walkable ground. A NavMesh ray
+        // stops at the first edge (cliff, river), so the target is always directly reachable and its path is
+        // trivial. Asking for a spot behind a cliff made Unity search a whole area; with 100 sheep fleeing at
+        // once that used up the path budget and some animals waited many seconds for any path at all.
+        // Cornered against a cliff or the water: try directions from straight away to sideways and run the one
+        // with the most open ground, instead of pushing into the edge on the spot.
+        Vector3 dest = hit.position;
+        float bestRun = -1f;
+        Vector3 awayFlat = away; awayFlat.y = 0f; awayFlat.Normalize();
+        for (int k = 0; k < 7; k++)
+        {
+            float ang = (k == 0 ? 0f : ((k + 1) / 2) * 30f * (k % 2 == 0 ? -1f : 1f)) * (fleeSide == 0 ? 1 : fleeSide);
+            Vector3 dir = Quaternion.Euler(0f, ang, 0f) * awayFlat;
+            Vector3 probe = transform.position + dir * 12f;
+            Vector3 end = NavMesh.Raycast(transform.position, probe, out var edge, agent.areaMask) ? edge.position : probe;
+            Vector3 d = end - transform.position; d.y = 0f;
+            float run = d.magnitude - k * 0.5f;   // prefer straight away when the runs are about the same
+            if (run > bestRun) { bestRun = run; dest = end; }
+            if (k == 0 && d.magnitude >= 10f) break;   // open ground straight away: no need to look sideways
+        }
+        // Re-path only when the new spot is well away from the current one, or the current run is nearly done.
+        bool nearlyThere = agent.hasPath && !agent.pathPending && agent.remainingDistance < 3f;
+        SetDestinationIfMoved(dest, nearlyThere ? 0.5f : 4f);
 
         return true;
     }
@@ -1381,8 +1427,7 @@ public class AnimalBrain : MonoBehaviour
         agent.speed =
             base_speed * speed;
 
-        agent.SetDestination(
-            patch.transform.position);
+        SetDestinationIfMoved(patch.transform.position, 1f);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): not a new path every frame
 
         return true;
     }
@@ -1418,6 +1463,7 @@ public class AnimalBrain : MonoBehaviour
             if (prey_brain != null)
             {
                 prey_brain.MarkCaught();
+                Caught?.Invoke(this, prey_brain);
                 DramaDirector.Report(DramaDirector.Moment.Catch, transform,   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
                     $"The {SpeciesLabel(species_data)} caught a {SpeciesLabel(prey_brain.species_data)}. Hunting is how it feeds its family.");
 
@@ -1580,8 +1626,7 @@ public class AnimalBrain : MonoBehaviour
         agent.speed =
             base_speed * speed;
 
-        agent.SetDestination(
-            mate.position);
+        SetDestinationIfMoved(mate.position, 1f);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): not a new path every frame
 
         return true;
     }
@@ -1704,7 +1749,12 @@ public class AnimalBrain : MonoBehaviour
     public float patrolMinDistance = 25f;
     public float patrolMaxDistance = 60f;
     [Tooltip("Seconds (at 1x) a predator pauses at each patrol point.")]
-    public Vector2 patrolPauseSeconds = new Vector2(1.5f, 4f);
+    public Vector2 patrolPauseSeconds = Vector2.zero;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): no pause, keeps moving
+
+    /// <summary>[AI-GENERATED] Claude Code (Claude Opus 5.5): roaming but stopped on purpose between two walks
+    /// (only if a pause is set again in patrolPauseSeconds), so the panel says so instead of "Exploring".</summary>
+    public bool IsLookingAround => CurrentAction == AnimalAction.Roaming && !has_patrol && wander_timer > 0f
+                                   && agent != null && !agent.hasPath && patrolPauseSeconds.y > 0f;
     [Tooltip("Recent patrol points it avoids going back to.")]
     [Min(0)] public int patrolMemory = 6;
 
@@ -1744,6 +1794,11 @@ public class AnimalBrain : MonoBehaviour
         return snowPreference * (c.grass + 0.5f * c.rock) / sum;
     }
 
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): a roaming animal can't use the fords (FordAccess), so a spot
+    // across the river can't be reached; asking for it makes Unity search the whole bank for nothing, and with
+    // 200 animals those searches used up the path budget and others waited seconds for theirs.
+    bool OtherBank(Vector3 p) => HimalayaRiver.Exists && HimalayaRiver.Side(p) != HimalayaRiver.Side(transform.position);
+
     void Patrol(float speed)
     {
         float dt = Time.deltaTime * speed;
@@ -1772,6 +1827,7 @@ public class AnimalBrain : MonoBehaviour
             float dist = Random.Range(patrolMinDistance, patrolMaxDistance);
             Vector3 candidate = transform.position + new Vector3(dir.x, 0f, dir.y) * dist;
             if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 10f, NavMesh.AllAreas)) continue;
+            if (OtherBank(hit.position)) continue;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
             // Staying in the territory matters most (10 m outside ≈ 0.5), then snowy ground, then going somewhere new.
             float score = OutsideHabitat(hit.position) * 5f + NotSnowCost(hit.position) + PatrolStaleness(hit.position);
             if (score < bestScore) { bestScore = score; best = hit.position; found = true; }
@@ -1804,7 +1860,7 @@ public class AnimalBrain : MonoBehaviour
             if ((mum - transform.position).sqrMagnitude > followMotherDistance * followMotherDistance)
             {
                 agent.speed = base_speed * speed * 1.2f;   // trots to catch up
-                agent.SetDestination(mum - Mother.transform.forward * 1f);
+                SetDestinationIfMoved(mum - Mother.transform.forward * 1f, 1f);   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
             }
             return;
         }
@@ -1820,7 +1876,10 @@ public class AnimalBrain : MonoBehaviour
         wander_timer -=
             Time.deltaTime * speed;
 
-        if (wander_timer > 0f)
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): no standing about. The timer only caps a walk's length;
+        // once the animal arrives it picks the next spot straight away.
+        bool walking = agent.pathPending || (agent.hasPath && agent.remainingDistance > agent.stoppingDistance + 0.5f);
+        if (wander_timer > 0f && walking)
             return;
 
         // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
@@ -1839,6 +1898,7 @@ public class AnimalBrain : MonoBehaviour
         {
             Vector3 candidate = transform.position + Random.insideUnitSphere * reach;
             if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 10f, NavMesh.AllAreas)) continue;
+            if (OtherBank(hit.position)) continue;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
             float score = OutsideHabitat(hit.position) + DangerAt(hit.position);   // danger 1 ≈ 100 m outside home
             if (score < bestScore) { bestScore = score; best = hit.position; found = true; }
             if (score <= 0f && !away) break;   // already home: any spot inside is fine

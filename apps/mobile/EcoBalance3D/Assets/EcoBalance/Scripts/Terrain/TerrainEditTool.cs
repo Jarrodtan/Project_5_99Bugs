@@ -29,7 +29,7 @@ using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 [DefaultExecutionOrder(1000)]
 public class TerrainEditTool : MonoBehaviour
 {
-    public enum Tool { Look, Raise, Lower, Flatten, Smooth, AddGrass, RemoveGrass, AddPond, RemovePond }
+    public enum Tool { Look, Raise, Lower, Flatten, Smooth, AddGrass, RemoveGrass, DrawStream, RemoveStream }
 
     [Tooltip("Brush radius range, world units.")]
     public Vector2 brushSizeRange = new Vector2(3f, 60f);
@@ -181,6 +181,7 @@ public class TerrainEditTool : MonoBehaviour
             }
         }
         if (!down && wasStroking) SetStatus(tool == Tool.Look ? "" : $"{tool}: drag on the ground to paint");
+        if (!down && wasStroking && tool == Tool.DrawStream) FinishStream();
         wasStroking = stroking;
 
         UpdateRing(editing && onGround && !(overUi && !stroking), hitPoint);
@@ -298,11 +299,11 @@ public class TerrainEditTool : MonoBehaviour
             case Tool.RemoveGrass:
                 RemoveGrass(centre);
                 break;
-            case Tool.AddPond:
-                AddPond(centre, dt);
+            case Tool.DrawStream:
+                AddStreamPoint(centre);
                 break;
-            case Tool.RemovePond:
-                RemovePonds(centre);
+            case Tool.RemoveStream:
+                RemoveStreams(centre);
                 break;
         }
     }
@@ -403,56 +404,93 @@ public class TerrainEditTool : MonoBehaviour
         foreach (var patch in doomed) Destroy(patch.gameObject);   // animals heading there null-check and pick another
     }
 
-    // ---------- Ponds (water the animals can drink) ----------
+    // ---------- Streams (drawn by dragging a line) ----------
 
-    float pondTimer;
+    const float StreamPointSpacing = 2f;   // metres between points of a drawn line
+    readonly List<Vector2> streamUVs = new List<Vector2>();
+    Vector3 lastStreamPoint;
+    LineRenderer streamPreview;
 
-    // One pond per tap (holding the finger down adds another every half second, spaced apart).
-    void AddPond(Vector3 centre, float dt)
+    void AddStreamPoint(Vector3 p)
     {
-        if (resourcePlacer == null) return;
-        pondTimer -= dt;
-        if (pondTimer > 0f) return;
-        pondTimer = 0.5f;
-
-        var uv = terrainBuilder.WorldToUV(centre);
+        if (streamUVs.Count > 0 && Vector3.Distance(p, lastStreamPoint) < StreamPointSpacing) return;
+        var uv = terrainBuilder.WorldToUV(p);
         if (uv.x < 0f || uv.x > 1f || uv.y < 0f || uv.y > 1f) return;
-        if (terrainBuilder.SlopeDegrees(uv.x, uv.y) > resourcePlacer.MaxPondSlope) { SetStatus("Too steep for a pond: Flatten here first."); return; }
-        if (HimalayaRiver.Exists && HimalayaRiver.DistanceTo(centre) < resourcePlacer.RiverClearance) { SetStatus("That's already the river."); return; }
-        foreach (var patch in ResourcePatch.All)
-        {
-            if (patch == null || !patch.name.StartsWith(HimalayaResourcePlacer.PondName)) continue;
-            var d = patch.transform.position - centre; d.y = 0f;
-            if (d.sqrMagnitude < 4f * HimalayaResourcePlacer.PondRadius * HimalayaResourcePlacer.PondRadius) return;   // keep ponds apart
-        }
+        streamUVs.Add(uv);
+        lastStreamPoint = p;
 
-        // Grass doesn't grow in water: clear any clumps under the new pond.
+        // Show the line being drawn until the finger lifts.
+        if (streamPreview == null)
+        {
+            streamPreview = new GameObject("Stream preview").AddComponent<LineRenderer>();
+            streamPreview.material = new Material(Shader.Find("Sprites/Default"));
+            streamPreview.startColor = streamPreview.endColor = new Color(0.3f, 0.65f, 1f, 0.9f);
+            streamPreview.widthMultiplier = 1.2f;
+        }
+        streamPreview.positionCount = streamUVs.Count;
+        streamPreview.SetPosition(streamUVs.Count - 1, p + Vector3.up * 0.4f);
+        SetStatus($"Drawing a stream: {streamUVs.Count * StreamPointSpacing:0} m. Lift your finger to fill it with water.");
+    }
+
+    void FinishStream()
+    {
+        if (streamPreview != null) { Destroy(streamPreview.gameObject); streamPreview = null; }
+        if (streamUVs.Count < 3 || resourcePlacer == null) { streamUVs.Clear(); SetStatus("Drag a longer line to draw a stream."); return; }
+
+        var stream = resourcePlacer.SpawnStreamAlong(terrainBuilder, new List<Vector2>(streamUVs));
+        streamUVs.Clear();
+        if (stream == null) return;
+
+        // Grass doesn't grow in the water: clear clumps on the new stream.
         var grass = resourcePlacer.GrassResource;
+        var line = stream.GetComponent<WaterLine>().line;
         var wet = new List<ResourcePatch>();
         foreach (var patch in ResourcePatch.All)
         {
             if (patch == null || patch.Resource != grass) continue;
-            var d = patch.transform.position - centre; d.y = 0f;
-            if (d.sqrMagnitude <= HimalayaResourcePlacer.PondRadius * HimalayaResourcePlacer.PondRadius) wet.Add(patch);
+            foreach (var q in line)
+            {
+                var d = patch.transform.position - q; d.y = 0f;
+                if (d.sqrMagnitude < 2.5f * 2.5f) { wet.Add(patch); break; }
+            }
         }
         foreach (var patch in wet) Destroy(patch.gameObject);
-
-        resourcePlacer.SpawnPondAt(terrainBuilder.WorldPosition(uv.x, uv.y));
-        SetStatus("Pond added: thirsty animals will come to drink.");
+        SetStatus("Stream added: animals drink from it and swim across.");
     }
 
-    // Only ponds painted with Add Pond; the river and the map's lakes stay.
-    void RemovePonds(Vector3 centre)
+    // Any stream the brush touches: drawn ones and the map's glacier streams (like Remove Grass, which takes
+    // any grass). The main river is not a WaterLine, so it always stays and the animals always have water.
+    void RemoveStreams(Vector3 centre)
     {
-        float r = brushSize + HimalayaResourcePlacer.PondRadius;
-        var doomed = new List<ResourcePatch>();
+        float r2 = brushSize * brushSize;
+        var doomed = new List<WaterLine>();
+        foreach (var s in FindObjectsByType<WaterLine>())
+            foreach (var q in s.line)
+            {
+                var d = q - centre; d.y = 0f;
+                if (d.sqrMagnitude <= r2) { doomed.Add(s); break; }
+            }
+        if (doomed.Count == 0) return;
+
+        // A glacier stream's drinking spots sit on its banks (not inside its object): remove those too,
+        // unless they also belong to the main river.
+        var spots = new List<ResourcePatch>();
         foreach (var patch in ResourcePatch.All)
         {
-            if (patch == null || !patch.name.StartsWith(HimalayaResourcePlacer.PondName)) continue;
-            var d = patch.transform.position - centre; d.y = 0f;
-            if (d.sqrMagnitude <= r * r) doomed.Add(patch);
+            if (patch == null || patch.Resource == resourcePlacer?.GrassResource) continue;
+            var p = patch.transform.position;
+            if (HimalayaRiver.Exists && HimalayaRiver.DistanceTo(p) < resourcePlacer.RiverClearance) continue;
+            foreach (var s in doomed)
+            {
+                bool near = false;
+                foreach (var q in s.line) { var d = p - q; d.y = 0f; if (d.sqrMagnitude < 4.5f * 4.5f) { near = true; break; } }
+                if (near) { spots.Add(patch); break; }
+            }
         }
-        foreach (var patch in doomed) Destroy(patch.gameObject);   // animals heading there null-check and pick another
+        foreach (var patch in spots) Destroy(patch.gameObject);
+        foreach (var s in doomed) Destroy(s.gameObject);   // mesh and no-walk blockers are children
+        MarkDirty();   // re-bake walking: where the stream was is now dry ground
+        SetStatus($"Removed {doomed.Count} stream(s). The main river always stays.");
     }
 
     bool GrassNear(Vector3 p, float spacing)
@@ -621,7 +659,7 @@ public class TerrainEditTool : MonoBehaviour
         ring.enabled = dot.enabled = show;
         if (!show) return;
 
-        var c = tool == Tool.RemoveGrass || tool == Tool.RemovePond || tool == Tool.Lower ? new Color(1f, 0.4f, 0.3f) : new Color(1f, 1f, 1f);
+        var c = tool == Tool.RemoveGrass || tool == Tool.RemoveStream || tool == Tool.Lower ? new Color(1f, 0.4f, 0.3f) : new Color(1f, 1f, 1f);
         ring.material.color = c;
         ring.startColor = ring.endColor = c;
         dot.startColor = dot.endColor = c;
@@ -706,8 +744,8 @@ public class TerrainEditTool : MonoBehaviour
         AddToolButton(grid, Tool.Flatten, "Flatten");
         AddToolButton(grid, Tool.RemoveGrass, "Remove Grass");
         AddToolButton(grid, Tool.AddGrass, "Add Grass");
-        AddToolButton(grid, Tool.RemovePond, "Remove Pond");
-        AddToolButton(grid, Tool.AddPond, "Add Pond");
+        AddToolButton(grid, Tool.RemoveStream, "Remove Stream");
+        AddToolButton(grid, Tool.DrawStream, "Draw Stream");
 
         MakeSlider(panel, "Brush Size", brushSizeRange.x, brushSizeRange.y, brushSize, v => brushSize = v, v => $"{v:0}");
         MakeSlider(panel, "Strength", 0.05f, 1f, strength, v => strength = v, v => $"{v * 100f:0}%");
@@ -727,6 +765,7 @@ public class TerrainEditTool : MonoBehaviour
     {
         bool open = !panel.gameObject.activeSelf;
         panel.gameObject.SetActive(open);
+        if (open) Mascot.NoteTerrainEditor();   // FE-M09
         toggleLabel.text = open ? "Close Editor" : "Edit Terrain";
         if (!open) SelectTool(Tool.Look);
 
@@ -746,18 +785,22 @@ public class TerrainEditTool : MonoBehaviour
     void PlaceToggle()
     {
         if (toggleRect == null) return;
-        float y = SimHud.Active ? -40f - 88f - 20f : -170f - 84f - 20f;   // top row (88 tall) + gap, or under the pill
+        float y = SimHud.Active ? -40f - 88f - 44f : -170f - 84f - 20f;   // top row (88 tall) + a clear gap, or under the pill
         if (Mathf.Approximately(toggleRect.anchoredPosition.y, y)) return;
         toggleRect.anchoredPosition = new Vector2(-40f, y);
         if (panel != null) panel.anchoredPosition = new Vector2(-40f, y - toggleRect.sizeDelta.y - 16f);
     }
+
+    float plainLookAt = -1f;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
     void UpdateToggleButton()
     {
         if (toggleRect == null) return;
 
         // The HUD scene loads a moment after the world: once it is there, copy its button's exact sprite and font.
-        if (!hudLookCopied && Time.unscaledTime >= nextHudLookTry)
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): try every frame while the HUD is up (cheap until found), so
+        // the plain white placeholder look is never seen.
+        if (!hudLookCopied && !ConfigurationScreen.Open)
         {
             nextHudLookTry = Time.unscaledTime + 0.5f;
             hudLookCopied = CopyHudLook();
@@ -767,7 +810,15 @@ public class TerrainEditTool : MonoBehaviour
         // unless the editor itself is open.
         var info = AnimalInfoUI.Instance;
         bool cardOpen = info != null && info.SelectedAnimal != null;
-        bool show = !cardOpen || panel.gameObject.activeSelf;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): also hidden behind the Free setup menu and while Shu Min's
+        // inspection or prediction card is open; it comes back when they close.
+        // Not before it wears the HUD's look: a white box flashed in Free between Start and the HUD loading.
+        // A scene with no HUD at all shows the plain button after a few seconds.
+        if (ConfigurationScreen.Open) plainLookAt = -1f;
+        else if (plainLookAt < 0f) plainLookAt = Time.unscaledTime + 3f;
+        bool styled = hudLookCopied || (plainLookAt > 0f && Time.unscaledTime >= plainLookAt && !SimHud.Active);
+        bool show = !ConfigurationScreen.Open && styled &&
+                    (panel.gameObject.activeSelf || (!cardOpen && !SimHud.RightPanelOpen));
         if (toggleRect.gameObject.activeSelf != show) toggleRect.gameObject.SetActive(show);
     }
 

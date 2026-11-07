@@ -120,6 +120,11 @@ public static class GuidedScreens
             SetText(box, "EndingDescriptionTxt", got ? GuidedChallenge.Endings[i].text : "Not discovered yet. Try different choices!");
             SetText(Find(box, "ExplanationBox01"), "WhatThisMeansTxt (1)", got ? GuidedChallenge.Endings[i].lesson : "");
             SetText(Find(box, "ExplanationBox02"), "WhatThisMeansTxt (1)", got ? "Play again and try different choices to find the other endings." : "");
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): "Ecosystem Collapse" wrapped onto two lines over the
+            // description, and long descriptions were cut off: title on one line, text shrinks to fit its box.
+            FitOneLine(Find(box, "EndingTitleTxt"));
+            FitBox(Find(box, "EndingDescriptionTxt"));
+            FitBox(Find(Find(box, "ExplanationBox01"), "WhatThisMeansTxt (1)"));
             overview.gameObject.SetActive(false);
             detail.gameObject.SetActive(true);
         }
@@ -141,6 +146,8 @@ public static class GuidedScreens
                 bool got = (mask & (1 << i)) != 0;
                 SetText(card, "EndingTitleTxt", got ? GuidedChallenge.Endings[i].title : "???");
                 SetText(card, "CardDescriptionTxt", got ? GuidedChallenge.Endings[i].lesson : "Not discovered yet");
+                FitOneLine(Find(card, "EndingTitleTxt"));   // "Ecosystem Collapse" wrapped onto the description
+                FitBox(Find(card, "CardDescriptionTxt"));    // long lessons were cut off
                 var unlocked = Find(card, "UnlockedStatus"); if (unlocked != null) unlocked.gameObject.SetActive(got);
                 var locked = Find(card, "LockedStatus"); if (locked != null) locked.gameObject.SetActive(!got);
                 int s = slot;
@@ -235,6 +242,26 @@ public static class GuidedScreens
     }
 
     // ---------- Helpers (names in the mock-ups sometimes carry quotes or trailing spaces) ----------
+
+    // Card text from the mock-up has fixed sizes for short placeholder words; shrink real text to fit.
+    static void FitOneLine(Transform t)
+    {
+        if (t == null || !t.TryGetComponent(out TextMeshProUGUI tmp)) return;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        if (!tmp.enableAutoSizing) tmp.fontSizeMax = tmp.fontSize;   // never bigger than the design
+        tmp.enableAutoSizing = true;
+        tmp.fontSizeMin = 14f;
+    }
+
+    static void FitBox(Transform t)
+    {
+        if (t == null || !t.TryGetComponent(out TextMeshProUGUI tmp)) return;
+        tmp.textWrappingMode = TextWrappingModes.Normal;
+        if (!tmp.enableAutoSizing) tmp.fontSizeMax = tmp.fontSize;   // never bigger than the design
+        tmp.enableAutoSizing = true;
+        tmp.fontSizeMin = 12f;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
+    }
 
     static Transform Find(Transform under, string name)
     {

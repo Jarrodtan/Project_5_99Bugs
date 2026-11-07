@@ -79,10 +79,14 @@ public static class ScreenFlow
                 On("FieldJournalBtn", OpenJournal);
                 break;
             case Modes:
+                Mascot.SetMenuLine(scene, Mascot.ModeSelectLine);
                 On("BackBtn", () => Load(Ecosystems));
                 On("StartGuidedBtn", () => StartSimulation(true));
                 On("StartFreeBtn", () => StartSimulation(false));
                 On("FieldJournalBtn", OpenJournal);
+                break;
+            case Configuration:
+                Mascot.SetMenuLine(scene, Mascot.ConfigureLine);
                 break;
             case Journal:
                 if (mode == LoadSceneMode.Additive) { SetUpJournalOverlay(scene); On("BackBtn", CloseJournalOverlay); }
@@ -90,6 +94,7 @@ public static class ScreenFlow
                 FieldJournalScreen.Attach(scene);   // tabs, Investigations and Observations pages
                 break;
             case Simulation:
+                HideActionMenu(scene);
                 FieldJournalInstaller.InstallInSimulation(scene);   // history graph + "New case discovered" popup
                 if (mode == LoadSceneMode.Single) SimHud.Enter();   // Shumin's HUD on top; not when Configuration loads it behind itself
                 else SimHud.HideOldHud(false);                    // Free: hide the old buttons while choosing animals
@@ -105,6 +110,23 @@ public static class ScreenFlow
         if (buttons.TryGetValue("SettingBtn", out var settings))
             foreach (var b in settings) ButtonCaption.Ensure(b, "Sound", 20f);
         AudioListener.volume = Volume;
+    }
+
+    // Yande's FAB (add animals, island swap, season / weather / hazard) is a prototype: the design says
+    // children can't add animals during a run (Shu Min, 4 Nov) and three of its menus do nothing yet.
+    // Kept in the scene and kept running (its island handlers build the map), only made invisible and
+    // untouchable here in both modes. Switching the objects off left the world empty.
+    static void HideActionMenu(Scene scene)
+    {
+        foreach (var root in scene.GetRootGameObjects())
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name != "FAB") continue;
+                if (!t.TryGetComponent(out CanvasGroup g)) g = t.gameObject.AddComponent<CanvasGroup>();
+                g.alpha = 0f;
+                g.interactable = false;
+                g.blocksRaycasts = false;
+            }
     }
 
     // Back button on the simulation (both modes), bottom-left above the weather text. Asks first, so a
@@ -129,6 +151,7 @@ public static class ScreenFlow
         bool wasRunning = false;
         Btn(card.transform, "Stay", new Vector2(-200f, -110f), new Color(0.3f, 0.62f, 0.38f), () => { confirm.SetActive(false); if (wasRunning && speed != null) speed.Play(); });
         Btn(card.transform, "Leave", new Vector2(200f, -110f), new Color(0.55f, 0.55f, 0.55f), () => Load(Modes));
+        StyleLikeShumin(card, "Leave");
         confirm.SetActive(false);
         openConfirm = () =>
         {
@@ -196,6 +219,7 @@ public static class ScreenFlow
     public static void OpenJournalOverlay()
     {
         if (SceneManager.GetSceneByName(Journal).isLoaded) return;
+        Mascot.NoteJournalOpened();
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         journalWasRunning = speed != null && speed.IsRunning;
         if (speed != null) speed.Pause();
@@ -260,7 +284,69 @@ public static class ScreenFlow
         });
 
         Btn(card.transform, "Done", new Vector2(0f, -130f), new Color(0.3f, 0.62f, 0.38f), () => { PlayerPrefs.Save(); Object.Destroy(canvasGo); });
+        StyleLikeShumin(card, null);
+        // Slider in the same palette: brown track, green fill, round green knob.
+        var bg = slider.transform.Find("Background");
+        if (bg != null) bg.GetComponent<Image>().color = new Color(0.86f, 0.78f, 0.62f);
+        if (handle != null)
+        {
+            var hi = handle.GetComponent<Image>();
+            hi.color = new Color(0.2f, 0.45f, 0.28f);
+            var round = ShuminSprite(GreenButtons);
+            if (round != null) { hi.sprite = round; hi.type = Image.Type.Sliced; }
+        }
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
+    // The Leave and Sound volume boxes are built in code: give them Shu Min's look (cream card with a brown
+    // edge, her rounded green / red buttons and the Chewy font), borrowed from what is on screen right now.
+    static readonly string[] GreenButtons = { "Play/PauseBtn", "StartBtn", "StartGuidedBtn", "StartFreeBtn", "ExploreBtn" };
+    static readonly string[] RedButtons = { "ResetBtn", "QuitBtn" };
+    static readonly Color Cream = new Color(0.98f, 0.94f, 0.84f), Brown = new Color(0.45f, 0.32f, 0.18f), Ink = new Color(0.22f, 0.16f, 0.1f);
+
+    static void StyleLikeShumin(GameObject card, string redButton)
+    {
+        var img = card.GetComponent<Image>();
+        img.color = Cream;
+        var edge = card.GetComponent<Outline>();
+        if (edge == null) edge = card.AddComponent<Outline>();
+        edge.effectColor = Brown;
+        edge.effectDistance = new Vector2(6f, -6f);
+
+        var title = ShuminFont("Chewy");
+        foreach (var t in card.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true))
+        {
+            bool onButton = t.GetComponentInParent<Button>() != null && t.transform.parent != card.transform;
+            if (title != null) t.font = title;
+            if (!onButton) t.color = Ink;
+        }
+        Sprite green = ShuminSprite(GreenButtons), red = ShuminSprite(RedButtons);
+        foreach (Transform child in card.transform)
+        {
+            if (!child.TryGetComponent(out Button b) || !child.TryGetComponent(out Image bi)) continue;
+            var s = child.name == redButton ? (red ?? green) : green;
+            if (s == null) continue;
+            bi.sprite = s; bi.type = Image.Type.Sliced; bi.color = Color.white;
+        }
+    }
+
+    static Sprite ShuminSprite(string[] names)
+    {
+        foreach (var n in names)
+        {
+            var go = GameObject.Find(n);
+            if (go != null && go.TryGetComponent(out Image i) && i.sprite != null) return i.sprite;
+        }
+        return null;
+    }
+
+    static TMPro.TMP_FontAsset ShuminFont(string nameContains)
+    {
+        foreach (var f in Resources.FindObjectsOfTypeAll<TMPro.TMP_FontAsset>())
+            if (f != null && f.name.Contains(nameContains)) return f;
+        return null;
+    }
+    // [AI-GENERATED END]
 
     static void Load(string scene)
     {

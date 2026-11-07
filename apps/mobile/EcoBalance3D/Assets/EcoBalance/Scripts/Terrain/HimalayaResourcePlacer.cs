@@ -60,66 +60,6 @@ public class HimalayaResourcePlacer : MonoBehaviour
     /// <summary>Grass is kept at least this far from the river centre line.</summary>
     public float RiverClearance => riverMouthWidth;
 
-    /// <summary>Radius of a pond painted with Edit Terrain's Add Pond brush.</summary>
-    public const float PondRadius = 4f;
-    /// <summary>Name prefix of painted ponds; Remove Pond only removes these, never the river or lakes.</summary>
-    public const string PondName = "Pond (painted)";
-    /// <summary>Steepest ground a pond can sit on (the surface is flat).</summary>
-    public float MaxPondSlope => maxPatchSlope;
-    Material pondMaterial;
-    Mesh pondMesh;
-    int ponds;
-
-    /// <summary>
-    /// Adds a small still pond at a world point: a flat water disc plus a drinking spot that refills
-    /// like the river. Used by TerrainEditTool's Add Pond brush.
-    /// </summary>
-    public ResourcePatch SpawnPondAt(Vector3 position)
-    {
-        if (water == null) return null;
-        if (pondMaterial == null)
-        {
-            var shader = Shader.Find("EcoBalance/WaterFlow");
-            pondMaterial = shader != null ? new Material(shader) { name = "Pond (still)" } : MakeMaterial(waterColor);
-            if (shader != null) { pondMaterial.SetFloat("_FlowSpeed", 0.08f); pondMaterial.SetFloat("_RippleScale", 0.3f); }
-        }
-        if (pondMesh == null) pondMesh = DiscMesh(PondRadius, 24);
-
-        var go = new GameObject($"{PondName} {++ponds}");
-        go.transform.SetParent(transform, true);
-        go.transform.position = position + Vector3.up * 0.12f;   // just above the ground so it doesn't flicker
-        go.AddComponent<MeshFilter>().sharedMesh = pondMesh;
-        var mr = go.AddComponent<MeshRenderer>();
-        mr.sharedMaterial = pondMaterial;
-        mr.shadowCastingMode = ShadowCastingMode.Off;
-        var patch = go.AddComponent<ResourcePatch>();
-        patch.Configure(water);
-        patch.RegrowPerSecond = riverRefillPerSecond;
-        spawned.Add(go);
-        return patch;
-    }
-
-    static Mesh DiscMesh(float radius, int segments)
-    {
-        var verts = new Vector3[segments + 1];
-        var uvs = new Vector2[segments + 1];
-        var tris = new int[segments * 3];
-        uvs[0] = new Vector2(0.5f, 0.5f);
-        for (int i = 0; i < segments; i++)
-        {
-            float a = i * Mathf.PI * 2f / segments;
-            verts[i + 1] = new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius);
-            uvs[i + 1] = new Vector2(0.5f + Mathf.Cos(a) * 0.5f, 0.5f + Mathf.Sin(a) * 0.5f);
-            tris[i * 3] = 0;
-            tris[i * 3 + 1] = i == segments - 1 ? 1 : i + 2;
-            tris[i * 3 + 2] = i + 1;
-        }
-        var mesh = new Mesh { name = "Pond", vertices = verts, uv = uvs, triangles = tris };
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-        return mesh;
-    }
-
     /// <summary>
     /// Adds one grass patch at a world point, same look and regrowth as the generated meadows.
     /// Used by TerrainEditTool's Add Grass brush.
@@ -132,6 +72,59 @@ public class HimalayaResourcePlacer : MonoBehaviour
         SpawnTuft(grass, position, Random.value * 360f, grassMaterial, $"Grass Patch (painted) {spawned.Count + 1}");
         return spawned[spawned.Count - 1].GetComponent<ResourcePatch>();
     }
+
+    /// <summary>Name prefix of streams drawn with Edit Terrain's Draw Stream brush.</summary>
+    public const string StreamName = "Stream (painted)";
+    const float StreamSpotSpacing = 8f;   // a drinking spot every 8 m along a drawn stream
+    Material streamMaterial;
+    int drawnStreams;
+
+    /// <summary>
+    /// Adds a flowing stream along a line drawn on the map (terrain UVs), with drinking spots along it that
+    /// refill like the river. Used by TerrainEditTool's Draw Stream brush. Null if the line is too short.
+    /// </summary>
+    public GameObject SpawnStreamAlong(HimalayaTerrainBuilder tb, List<Vector2> uvs)
+    {
+        if (water == null || uvs == null || uvs.Count < 2) return null;
+        var mesh = WaterMeshBuilder.Stream(tb, uvs, streamWidth);
+        if (mesh == null) return null;
+        if (streamMaterial == null)
+        {
+            var shader = Shader.Find("EcoBalance/WaterFlow");
+            streamMaterial = shader != null ? new Material(shader) { name = "Stream (flowing)" } : MakeMaterial(waterColor);
+        }
+
+        var go = new GameObject($"{StreamName} {++drawnStreams}");
+        go.transform.SetParent(tb.Terrain.transform, false);   // the stream mesh is terrain-local (WaterMeshBuilder)
+        go.transform.localPosition = Vector3.zero; go.transform.localRotation = Quaternion.identity; go.transform.localScale = Vector3.one;
+        go.AddComponent<MeshFilter>().sharedMesh = mesh;
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.sharedMaterial = streamMaterial;
+        mr.shadowCastingMode = ShadowCastingMode.Off;
+        spawned.Add(go);
+
+        var line = new List<Vector3>(uvs.Count);
+        foreach (var uv in uvs) line.Add(tb.WorldPosition(uv.x, uv.y));
+        HimalayaRiver.Tributaries.Add(line);
+        go.AddComponent<WaterLine>().line = line;
+
+        // Invisible drinking spots along it, children of the stream so they go when it is removed.
+        var spotMat = MakeMaterial(waterColor);
+        float carried = StreamSpotSpacing;
+        for (int i = 0; i < line.Count; i++)
+        {
+            if (i > 0) carried += Vector3.Distance(line[i - 1], line[i]);
+            if (carried < StreamSpotSpacing) continue;
+            carried = 0f;
+            Spawn(water, line[i], waterSize, spotMat, $"{go.name} drinking spot");
+            var spot = spawned[spawned.Count - 1];
+            spot.transform.SetParent(go.transform, true);
+            if (spot.TryGetComponent(out Renderer r)) r.enabled = false;
+            if (spot.TryGetComponent(out ResourcePatch patch)) patch.RegrowPerSecond = riverRefillPerSecond;
+        }
+        return go;
+    }
+
     // [AI-GENERATED END]
 
     public void Clear()
@@ -216,7 +209,12 @@ public class HimalayaResourcePlacer : MonoBehaviour
         var mat = shader != null ? new Material(shader) { name = "River (flowing)" } : MakeMaterial(waterColor);
 
         var system = new GameObject("River System");
-        system.transform.SetParent(transform, true);
+        // Terrain-local, not world-locked. The FAB fade scales the island; a mesh parked at the
+        // world origin keeps the half-scaled position after the island grows back.
+        system.transform.SetParent(tb.Terrain.transform, false);
+        system.transform.localPosition = Vector3.zero;
+        system.transform.localRotation = Quaternion.identity;
+        system.transform.localScale = Vector3.one;
         spawned.Add(system);
         RiverRoot = system.transform;
 
@@ -327,7 +325,10 @@ public class HimalayaResourcePlacer : MonoBehaviour
             if (mesh == null) continue;
 
             var go = new GameObject(f.IsArea ? $"Lake {lakes + 1}" : $"Stream {streams + 1}");
-            go.transform.SetParent(transform, true);   // keeps it at the world origin: the mesh is in world space
+            go.transform.SetParent(tb.Terrain.transform, false);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = Vector3.one;
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var mr = go.AddComponent<MeshRenderer>();
             mr.sharedMaterial = f.IsArea ? still : flowing;

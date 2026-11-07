@@ -58,6 +58,14 @@ public class WeatherManager : MonoBehaviour
     }
     // [AI-GENERATED END]
 
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): hidden behind the Free setup menu; the run shows it.
+    void Update()
+    {
+        if (txt == null) return;
+        bool show = !ConfigurationScreen.Open;
+        if (txt.enabled != show) txt.enabled = show;
+    }
+
     void Start()
     {
         PinText();
