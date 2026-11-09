@@ -99,7 +99,52 @@ public class Mascot : MonoBehaviour
             var t = Find(p, "DynamicTxt");
             if (t != null && t.TryGetComponent(out TMP_Text tmp)) tmp.text = text;
         }
+        Speak(text);
     }
+
+    // ---------- Voice ----------
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): pre-recorded voice lines. tools/voice/generate_mascot_voice.py
+    // makes one clip per line into Resources/MascotVoice, named by ClipName(text). A line without a clip
+    // (or with the voice switched off) just shows its text, so new lines never break anything.
+
+    public const string VoicePref = "EcoBalance.MascotVoice";
+    static AudioSource voice;
+
+    /// <summary>Mascot voice on/off (saved). Off stops the current line.</summary>
+    public static bool VoiceOn
+    {
+        get => PlayerPrefs.GetInt(VoicePref, 1) == 1;
+        set { PlayerPrefs.SetInt(VoicePref, value ? 1 : 0); if (!value) StopVoice(); }
+    }
+
+    /// <summary>Clip file name for a line: FNV-1a 32-bit of the trimmed UTF-8 text (same as the Python script).</summary>
+    public static string ClipName(string text)
+    {
+        uint h = 2166136261;
+        foreach (byte b in System.Text.Encoding.UTF8.GetBytes(text.Trim())) { h ^= b; h *= 16777619; }
+        return h.ToString("x8");
+    }
+
+    static void Speak(string text)
+    {
+        StopVoice();
+        if (!VoiceOn || string.IsNullOrEmpty(text)) return;
+        var clip = Resources.Load<AudioClip>("MascotVoice/" + ClipName(text));
+        if (clip == null) return;
+        if (voice == null)
+        {
+            var go = new GameObject("MascotVoice");
+            DontDestroyOnLoad(go);
+            voice = go.AddComponent<AudioSource>();
+            voice.playOnAwake = false;
+            voice.spatialBlend = 0f;
+            voice.ignoreListenerPause = true;   // keeps talking while the run is paused
+        }
+        voice.clip = clip;
+        voice.Play();
+    }
+
+    static void StopVoice() { if (voice != null) voice.Stop(); }
 
     void Start()
     {
@@ -125,7 +170,7 @@ public class Mascot : MonoBehaviour
         if (!ScreenFlow.GuidedMode) Invoke(nameof(PlayFreeIntro), 1f);
     }
 
-    void OnDestroy() { if (panel != null) Spotlight.Hide(panel.transform); if (current == this) current = null; }
+    void OnDestroy() { if (panel != null) Spotlight.Hide(panel.transform); if (current == this) { current = null; StopVoice(); } }
 
     // ---------- Showing lines ----------
 
@@ -174,6 +219,10 @@ public class Mascot : MonoBehaviour
     {
         intro = isIntro;
         line.text = sequence[index];
+        Speak(sequence[index]);
+        // A line that closes by itself stays up until its voice has finished.
+        if (hideAt > 0f && voice != null && voice.isPlaying)
+            hideAt = Mathf.Max(hideAt, Time.unscaledTime + voice.clip.length + 0.5f);
         bool last = index == sequence.Length - 1;
         if (watchTarget != null) { SetLabel(nextLabel, "Watch"); SetLabel(skipLabel, "Dismiss"); skipBtn?.SetActive(true); }
         else if (altLabel != null && last) { SetLabel(nextLabel, "Got It"); SetLabel(skipLabel, altLabel); skipBtn?.SetActive(true); }
@@ -204,6 +253,7 @@ public class Mascot : MonoBehaviour
     void Dismiss()
     {
         Spotlight.Hide(panel.transform);
+        StopVoice();
         panel.SetActive(false);
         watchTarget = null;
         altLabel = null;
