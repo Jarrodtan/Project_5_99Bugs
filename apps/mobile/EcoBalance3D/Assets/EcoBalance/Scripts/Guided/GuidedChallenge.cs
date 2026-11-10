@@ -137,6 +137,9 @@ public class GuidedChallenge : MonoBehaviour
     SimulationSpeedController speed;
     int lastDay = -1;
     bool started, finished, showing;
+
+    /// <summary>The challenge card or an event card is open (the mascot's hints and Help wait).</summary>
+    public static bool PopupOpen { get; private set; }
     float quietUntil;
 
     int Day => clock != null ? clock.Day : 1;
@@ -174,6 +177,7 @@ public class GuidedChallenge : MonoBehaviour
 
     void Awake()
     {
+        PopupOpen = false;   // statics survive Play without a domain reload
         // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
         var sim = FindFirstObjectByType<EcosystemSimulator>();
         if (sim != null) sim.mode = EcosystemSimulator.SimulationMode.Events;
@@ -217,8 +221,12 @@ public class GuidedChallenge : MonoBehaviour
     void Show(GuidedEvent e)
     {
         showing = true;
+        PopupOpen = true;
         if (speed != null) speed.Pause();
-        if (FindShuminUI()) { ShowShumin(e); return; }
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): Shumin's event card has its own mascot beside it (GE-M05);
+        // the HUD mascot would sit under the card, so it closes. The code-built popup keeps the HUD line.
+        if (FindShuminUI()) { Mascot.Hide(); ShowShumin(e); return; }
+        Mascot.GuidedEvent(false);   // GE-M05
         popupTitle.text = e.title;
         popupText.text = e.text;
         for (int i = 0; i < choiceButtons.Length; i++)
@@ -234,13 +242,16 @@ public class GuidedChallenge : MonoBehaviour
         popup.SetActive(true);
     }
 
-    void Choose(GuidedEvent e, Choice c)
+    /// <param name="decisionSaid">The feedback card's mascot already said GE-M06: don't repeat it on the HUD.</param>
+    void Choose(GuidedEvent e, Choice c, bool decisionSaid = false)
     {
         e.environment?.Invoke();
         c.apply();
         resolved.Add(e.id);
         if (popup != null) popup.SetActive(false);
         showing = false;
+        PopupOpen = false;
+        if (!decisionSaid) Mascot.GuidedEvent(true);    // GE-M06
         quietUntil = Time.unscaledTime + QuietSecondsBetweenEvents;
         if (speed != null) speed.Play();
         DramaDirector.Announce(c.feedback);
@@ -290,6 +301,7 @@ public class GuidedChallenge : MonoBehaviour
     // ---------- Shumin's Guided Exploration HUD (GuidedExploration.unity), found by object name ----------
 
     Transform shuminRoot, introPanel, eventPanel, eventCard, feedbackCard;
+    Transform introMascot, eventMascot, feedbackMascot;   // Shumin's mascots beside the intro, event and feedback cards
     bool introDone, introShown;
 
     bool FindShuminUI()
@@ -304,9 +316,14 @@ public class GuidedChallenge : MonoBehaviour
         eventPanel = Find(shuminRoot, "EventPanel");
         eventCard = Find(eventPanel, "EventCard");
         feedbackCard = Find(eventPanel, "FeedbackCard");
+        introMascot = Find(shuminRoot, "IntroMascotPanel");
+        eventMascot = Find(eventPanel, "MascotPanel");
+        feedbackMascot = Find(eventPanel, "MascotPanel(FeedbackVer)");
         if (eventPanel != null) eventPanel.gameObject.SetActive(false);
         if (introPanel != null) introPanel.gameObject.SetActive(false);
+        if (introMascot != null) introMascot.gameObject.SetActive(false);
         OnTop(introPanel);
+        OnTop(introMascot);   // after IntroPanel in the hierarchy, so it draws over the card's edge
         OnTop(eventPanel);
         return eventCard != null;
     }
@@ -391,16 +408,105 @@ public class GuidedChallenge : MonoBehaviour
         if (speed != null) speed.Pause();
         int card = 0;
         foreach (var t in introPanel.GetComponentsInChildren<Transform>(true))
-            if (t.name.StartsWith("AnimalCard")) SetText(t, "AmountTxt", $"x{(card++ == 0 ? Sheep : Leopards)}");
+            if (t.name.StartsWith("AnimalCard"))
+            {
+                SimHud.SetIcon(Find(t, "AnimalImage"), SimHud.AnimalIcon(card == 1));   // [AI-GENERATED] Claude Code (Claude Opus 5.5): the picture spot was empty
+                SetText(t, "AmountTxt", $"x{(card++ == 0 ? Sheep : Leopards)}");
+            }
         SetText(Find(introPanel, "GrassCard"), "ValueTxt", $"{Vegetation:0}%");
         introPanel.gameObject.SetActive(true);
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): only the intro card can be used until Start: dim and
+        // block the run behind it (Back still works), and no mascot until the run starts.
+        Mascot.Hide();
+        ShowIntroMascot();   // the intro card's own mascot on the right stays
+        var blocker = IntroBlocker();
+        SimHud.SetWeatherVisible(false);   // it is drawn above the card
+        PopupOpen = true;
         OnClick(introPanel, "StartBtn", () =>
         {
             introPanel.gameObject.SetActive(false);
+            if (blocker != null) Destroy(blocker);
+            SimHud.SetWeatherVisible(true);
+            SetTerrainEditVisible(true);
+            if (introMascot != null) { Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); }
             introDone = true;
+            PopupOpen = false;
+            Mascot.PlayGuidedIntro();   // GE-M01..03
             quietUntil = Time.unscaledTime + QuietSecondsBetweenEvents;
             if (speed != null) speed.Play();
         });
+    }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5)
+    // Full-screen dimmer just under the intro card (80) that eats every tap. The HUD's Back button is lifted
+    // above it so a child can still leave before pressing Start.
+    GameObject IntroBlocker()
+    {
+        // Plain dimmer in the HUD canvas, one sibling under the intro panel: the card, its mascot, Settings
+        // and Back (later siblings / own canvases) stay tappable, everything else in the HUD does not.
+        // The intro panel itself is screen-sized: only its card should catch taps, or it hides Back and the mascot.
+        if (introPanel.TryGetComponent(out Image panelBg)) panelBg.raycastTarget = false;
+        var go = new GameObject("IntroBlocker", typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(introPanel.parent, false);
+        go.transform.SetSiblingIndex(introPanel.GetSiblingIndex());
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(-4000f, -4000f); rt.offsetMax = new Vector2(4000f, 4000f);   // whole screen, whatever the parent's size
+        go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.4f);
+        SetTerrainEditVisible(false);   // its own canvas sits above the HUD
+        return go;
+    }
+
+    static void SetTerrainEditVisible(bool on)
+    {
+        var c = GameObject.Find("TerrainEditCanvas");
+        if (c != null && c.TryGetComponent(out Canvas canvas)) canvas.enabled = on;
+    }
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+    // Guided Exploration Introduction screen (doc "Mascot Guidance System"): one friendly line beside the
+    // challenge card, every time the card opens. Got It closes only the mascot; Start closes both.
+    void ShowIntroMascot()
+    {
+        if (introMascot == null) return;
+        SetText(introMascot, "DynamicTxt", Mascot.GuidedIntroScreenLine);
+        var bubble = Find(introMascot, "SpeechBubble") as RectTransform;
+        if (bubble != null && Find(bubble, "GotItBtn") == null)
+        {
+            // The panel has no button: borrow the HUD mascot's Next button (same art) and put it under the bubble.
+            var hudNext = Find(Find(shuminRoot, "MascotPanel"), "NextBtn");
+            if (hudNext != null)
+            {
+                var btn = (RectTransform)Instantiate(hudNext.gameObject, bubble, false).transform;
+                btn.name = "GotItBtn";
+                // The button's top-right corner sits just under the bubble's bottom-right corner.
+                btn.anchorMin = btn.anchorMax = new Vector2(1f, 0f);
+                btn.pivot = new Vector2(1f, 1f);
+                btn.anchoredPosition = new Vector2(-10f, -8f);
+                foreach (var t in btn.GetComponentsInChildren<TMP_Text>(true)) t.text = "Got It";
+                btn.gameObject.SetActive(true);
+            }
+        }
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): the card dims while the mascot speaks; Got It brings it back.
+        OnClick(introMascot, "GotItBtn", () => { Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); });
+        introMascot.gameObject.SetActive(true);
+        Spotlight.Show(introMascot);
+    }
+
+    // GE-M05 beside the event card, GE-M06 beside the feedback card (Shumin's two panels inside EventPanel).
+    void ShowEventMascot(bool feedback)
+    {
+        if (eventMascot != null)
+        {
+            eventMascot.gameObject.SetActive(!feedback);
+            if (!feedback) SetText(eventMascot, "DynamicTxt", Mascot.EventLine);
+        }
+        if (feedbackMascot != null)
+        {
+            feedbackMascot.gameObject.SetActive(feedback);
+            if (feedback) SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine);
+        }
     }
 
     // Event card (wireframes 18-19): pick one of three options, then Confirm; the feedback card follows.
@@ -423,6 +529,7 @@ public class GuidedChallenge : MonoBehaviour
             SetText(box, "Option Title", c.label);
             SetText(box, "EffectDescriptionTxt (1)", c.feedback);
             if (box.TryGetComponent(out Image boxImage)) boxImage.color = Color.white;
+            SelectedDot.Set(Find(box, "SelectionBtn"), false);
             OnClick(box, "SelectionBtn", () =>
             {
                 picked = c;
@@ -430,6 +537,7 @@ public class GuidedChallenge : MonoBehaviour
                 {
                     var other = Find(eventCard, $"OptionBox0{j}");
                     if (other != null && other.TryGetComponent(out Image img)) img.color = other == box ? new Color(0.85f, 0.95f, 0.85f) : Color.white;
+                    if (other != null) SelectedDot.Set(Find(other, "SelectionBtn"), other == box);
                 }
                 if (confirmButton != null) confirmButton.interactable = true;
             });
@@ -440,6 +548,7 @@ public class GuidedChallenge : MonoBehaviour
             var chosen = picked;
             eventCard.gameObject.SetActive(false);
             if (feedbackCard == null) { eventPanel.gameObject.SetActive(false); Choose(e, chosen); return; }
+            ShowEventMascot(true);   // GE-M06 beside the feedback card
             SetText(feedbackCard, "FeedbackTitleTxt", chosen.label);
             SetText(feedbackCard, "FeedbackDescriptionTxt", chosen.feedback);
             SetText(feedbackCard, "EffectDescriptionTxt (1)", chosen.feedback);
@@ -449,9 +558,10 @@ public class GuidedChallenge : MonoBehaviour
             {
                 feedbackCard.gameObject.SetActive(false);
                 eventPanel.gameObject.SetActive(false);
-                Choose(e, chosen);
+                Choose(e, chosen, feedbackMascot != null);
             });
         });
+        ShowEventMascot(false);   // GE-M05 beside the event card
         eventCard.gameObject.SetActive(true);
         if (feedbackCard != null) feedbackCard.gameObject.SetActive(false);
         eventPanel.gameObject.SetActive(true);

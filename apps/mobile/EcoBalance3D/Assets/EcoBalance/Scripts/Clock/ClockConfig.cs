@@ -11,7 +11,7 @@ public class ClockConfig : ScriptableObject
     [Header("Time")]
     [Tooltip("Real seconds for one in-game day at 1× sim speed.")]
     [Min(0.01f)]
-    public float dayLengthSeconds = 120f;
+    public float dayLengthSeconds = 60f;
 
     [Tooltip("Time of day when the clock starts or resets, 0–1 (0.25 = 06:00).")]
     [Range(0f, 1f)]

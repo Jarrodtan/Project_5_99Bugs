@@ -14,19 +14,12 @@ public class AnimalMotionBridge : MonoBehaviour
     [Tooltip("Below this ground speed (m/s) the animal counts as standing.")]
     public float standingSpeed = 0.15f;
 
-    [Tooltip("Alert / stalk when a predator / prey is within this many times the flee / hunt radius.")]
-    public float awarenessMultiplier = 1.5f;
-
-    [Tooltip("Seconds between predator/prey proximity checks (EcoRegistry lookups).")]
-    public float awarenessInterval = 0.25f;
-
     AnimalBrain brain;
     ProcAnimator animator;
     bool wasStanding = true;
     Transform nearPredator, nearPrey;
     bool predatorNear => nearPredator != null;
     bool preyNear => nearPrey != null;
-    float nextAwarenessCheck;
 
     public ProcAnimator Animator => animator;
 
@@ -49,12 +42,9 @@ public class AnimalMotionBridge : MonoBehaviour
 
     void Update()
     {
-        if (Time.time >= nextAwarenessCheck)
-        {
-            nextAwarenessCheck = Time.time + awarenessInterval;
-            UpdateAwareness();
-        }
+        UpdateAwareness();
         var state = Pick();
+        if (InWater() && state != MotionState.Die && !wasStanding) state = MotionState.Swim;
         animator.SetState(state);
         // Alert prey watch the nearest predator; predators watch their prey (when hunting or stalking).
         // Not while fleeing: the predator is behind, past the head's turn limit.
@@ -73,6 +63,20 @@ public class AnimalMotionBridge : MonoBehaviour
         Vector3 size = t.terrainData.size;
         if (local.x < 0f || local.z < 0f || local.x > size.x || local.z > size.z) return Vector3.up;
         return t.terrainData.GetInterpolatedNormal(local.x / size.x, local.z / size.z);
+    }
+
+    // Crossing a river or stream (the fords): swim instead of walking on the water. Checked a few times
+    // a second, not every frame, since it walks the river line.
+    public const float SwimWithin = 1.8f;   // metres from a water centre line
+    float waterCheckTimer;
+    bool inWater;
+    bool InWater()
+    {
+        waterCheckTimer -= Time.deltaTime;
+        if (waterCheckTimer > 0f) return inWater;
+        waterCheckTimer = 0.25f;
+        inWater = HimalayaRiver.InWater(transform.position, SwimWithin);
+        return inWater;
     }
 
     MotionState Pick()
@@ -105,13 +109,15 @@ public class AnimalMotionBridge : MonoBehaviour
         }
     }
 
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5, claude-opus-5-5): only react to animals this one can actually
+    // see (AnimalPerception), so a leopard no longer crouches at a sheep on the other side of a hill.
     void UpdateAwareness()
     {
-        var species = brain.species_data;
-        if (species == null) { nearPredator = nearPrey = null; return; }
-        Vector3 at = transform.position;
-        nearPredator = EcoRegistry.NearestPredator(species, at, brain.fleeRadius * awarenessMultiplier);
-        nearPrey = EcoRegistry.NearestPrey(species, at, brain.huntRadius * awarenessMultiplier);
+        var perception = brain.Perception;
+        var predator = perception != null ? perception.NearestPredator : null;
+        var prey = perception != null ? perception.NearestPrey : null;
+        nearPredator = predator != null && !predator.IsCaught ? predator.transform : null;
+        nearPrey = prey != null && !prey.IsCaught ? prey.transform : null;
     }
 }
 // [AI-GENERATED END]

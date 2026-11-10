@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1000000000000000000000000000001, type: 3}
   m_Name: ClockConfig_Default
   m_EditorClassIdentifier: Assembly-CSharp::ClockConfig
-  dayLengthSeconds: 120
+  dayLengthSeconds: 60
   startTimeOfDay: 0.25
   startingDay: 1
   sunriseHour: 6

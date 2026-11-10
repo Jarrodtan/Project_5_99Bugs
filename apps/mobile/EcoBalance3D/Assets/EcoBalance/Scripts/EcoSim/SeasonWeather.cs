@@ -18,7 +18,7 @@ public class SeasonWeather : MonoBehaviour
     public enum Season { Spring, Summer, Autumn, Winter }
     public enum Weather { Clear, Rain, Snow, Drought }
 
-    [Tooltip("Game days in each season (1 game day = 2 real minutes at 1x).")]
+    [Tooltip("Game days in each season (1 game day = 1 real minute at 1x, ClockConfig).")]
     public int daysPerSeason = 5;
 
     public static Season CurrentSeason { get; private set; }

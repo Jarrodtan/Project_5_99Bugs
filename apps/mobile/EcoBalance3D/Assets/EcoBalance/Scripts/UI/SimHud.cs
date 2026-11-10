@@ -29,6 +29,8 @@ public class SimHud : MonoBehaviour
     }
 
     static bool loading;
+    /// <summary>True from Start until the HUD scene has loaded.</summary>
+    public static bool Loading => loading;
 
     static void OnLoaded(Scene scene, LoadSceneMode mode)
     {
@@ -58,7 +60,13 @@ public class SimHud : MonoBehaviour
 
     /// <summary>True while Shumin's HUD is on screen (Guided hides its own day pill then).</summary>
     public static bool Active { get; private set; }
-    void OnDestroy() { Active = false; }
+    void OnDestroy() { Active = false; if (current == this) current = null; }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): the right-hand cards (animal inspection, prediction question) are open;
+    // Edit Terrain steps aside until they close.
+    static SimHud current;
+    public static bool RightPanelOpen =>
+        ContextualQuestions.Showing || (current != null && current.inspection != null && current.inspection.activeInHierarchy);
 
     readonly Dictionary<string, List<Transform>> byName = new Dictionary<string, List<Transform>>();
     SimulationSpeedController speed;
@@ -66,6 +74,8 @@ public class SimHud : MonoBehaviour
 
     GameObject inspection, expanded, overview;
     AnimalBrain shown;
+    AnimalBrain factAnimal;   // the animal the current fun fact was picked for
+    string fact;
     float nextRefresh;
     bool weatherMoved;
 
@@ -107,12 +117,23 @@ public class SimHud : MonoBehaviour
         SeeThrough();
 
         inspection = Find("AnimalInspectionPanel")?.gameObject;
+        current = this;
         expanded = Find("ExpandedOverviewPanel")?.gameObject;
         overview = Find("EcosystemOverviewPanel")?.gameObject;
         if (inspection != null) inspection.SetActive(false);
         if (expanded != null) expanded.SetActive(false);
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): the animal icon spots were empty boxes; use the same
+        // Blue Sheep / Snow Leopard pictures as the Configuration cards.
+        foreach (var panel in new[] { overview, expanded })
+        {
+            if (panel == null) continue;
+            SetIcon(Child(Find("AnimalPanel_01", panel.transform), "Image"), AnimalIcon(false));
+            SetIcon(Child(Find("AnimalPanel_02", panel.transform), "Image"), AnimalIcon(true));
+        }
         var contextual = Find("ContextualPanel");
-        if (contextual != null) contextual.gameObject.SetActive(false);   // prediction questions come later (CQ01-05)
+        if (contextual != null) contextual.gameObject.SetActive(false);   // shown by ContextualQuestions when a question fires
+        Mascot.Attach(transform);
+        if (!ScreenFlow.GuidedMode) ContextualQuestions.Attach(transform);   // CQ01-05 are for Free Exploration
 
         Button("ResetBtn", () => { if (speed != null) speed.Reset(); });
         Button("Play/PauseBtn", TogglePlay);
@@ -131,12 +152,27 @@ public class SimHud : MonoBehaviour
         ScreenFlow.AddLeaveButton(ownButton: false);   // the confirm box, opened by BackBtn
         HideOldHud(true);
         SetText("EcosystemTxt", "Himalayan Highlands");
+        foreach (var n in new[] { "EcosystemTxt", "EcosystemTxt (1)" })   // [AI-GENERATED] Claude Code (Claude Opus 5.5): "Free Exploration" wrapped onto two lines
+        {
+            var t = Txt(n);
+            if (t != null) t.textWrappingMode = TextWrappingModes.NoWrap;
+        }
         UpdateSpeedLabel();
         UpdatePlayLabel();
     }
 
     // The mock-up has a full-screen background that hid the whole world and blocked taps: make any
     // full-screen image clear and click-through. Also let every text shrink to fit its box.
+    // Icon spots in the mock-up (ValueImage, AnimalImage, GrassImage, FeedbackImage, ...) are plain white or
+    // green squares until the icons are drawn. Kids read them as buttons and tap them, so hide any that has no
+    // picture yet; once Shu Min / Nomitha drop a sprite in, it shows again by itself.
+    static bool IsIconPlaceholder(Image img)
+    {
+        string n = img.name.Trim().Trim('\'').Trim();
+        return img.sprite == null && (n.EndsWith("Image") || n.EndsWith("Img") || n == "Image")
+               && img.GetComponentInChildren<TMP_Text>(true) == null;   // a box holding text is a panel, not an icon
+    }
+
     void SeeThrough()
     {
         foreach (var img in GetComponentsInChildren<Image>(true))
@@ -144,15 +180,19 @@ public class SimHud : MonoBehaviour
             var rt = img.rectTransform;
             // Only the screen-sized background, not the cards (which also stretch, but inset from the edges).
             bool fullScreen = rt.anchorMin == Vector2.zero && rt.anchorMax == Vector2.one && rt.sizeDelta.x > -60f && rt.sizeDelta.y > -60f;
-            if (!fullScreen || img.GetComponent<Button>() != null) continue;
-            var c = img.color; c.a = 0f; img.color = c;
-            img.raycastTarget = false;
+            if (img.GetComponent<Button>() != null) continue;
+            if (fullScreen)
+            {
+                var c = img.color; c.a = 0f; img.color = c;
+                img.raycastTarget = false;
+            }
+            else if (IsIconPlaceholder(img)) img.enabled = false;
         }
         foreach (var t in GetComponentsInChildren<TextMeshProUGUI>(true))
         {
             if (t.enableAutoSizing) continue;
             t.fontSizeMax = t.fontSize;
-            t.fontSizeMin = Mathf.Max(18f, t.fontSize * 0.6f);   // shrink to fit, but stay readable on a tablet
+            t.fontSizeMin = Mathf.Min(t.fontSize, 22f);   // shrink to fit, but never under 22 px (tablet rule)
             t.enableAutoSizing = true;
         }
     }
@@ -170,12 +210,12 @@ public class SimHud : MonoBehaviour
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
             {
                 if (hide.Contains(t.name)) t.gameObject.SetActive(false);
-                else if (withHud && t.TryGetComponent(out TMP_Text txt) && txt.text != null && txt.text.StartsWith("Live Everest") && t is RectTransform rt && !movedWeather.Contains(rt))
+                else if (withHud && t.TryGetComponent(out TMP_Text txt) && txt.text != null && (txt.text.StartsWith("Live Everest") || txt.text.Contains("Temp:")) && t is RectTransform rt && !movedWeather.Contains(rt))
                 {
                     movedWeather.Add(rt);
                     // Top-left, under the "Himalayan Highlands" title box: the bottom-left is the control bar.
                     rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
-                    rt.anchoredPosition = new Vector2(48f, -185f);   // clear of the title box
+                    rt.anchoredPosition = new Vector2(48f, -215f);   // clear of the title box and the Back button
                     txt.alignment = TextAlignmentOptions.TopLeft;
 
                     // White text was lost on the snowy peaks: the same dark pill as the day panel behind it.
@@ -190,12 +230,25 @@ public class SimHud : MonoBehaviour
                     var img = bg.GetComponent<Image>();
                     img.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
                     img.raycastTarget = false;
+                    bg.AddComponent<FitBehindText>().text = txt;   // keep it sized to the text as it changes
                 }
                 if (withHud && t is RectTransform r2 && movedWeather.Contains(r2)) moved = true;
             }
         return moved;
     }
     static readonly HashSet<RectTransform> movedWeather = new HashSet<RectTransform>();
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): hide the live weather line (and its dark box) while the Guided intro card is up.
+    public static void SetWeatherVisible(bool on)
+    {
+        foreach (var rt in movedWeather)
+        {
+            if (rt == null) continue;
+            rt.gameObject.SetActive(on);
+            var bg = rt.parent != null ? rt.parent.Find("Weather Bg") : null;
+            if (bg != null) bg.gameObject.SetActive(on);
+        }
+    }
 
     // ---------- Controls ----------
 
@@ -255,6 +308,7 @@ public class SimHud : MonoBehaviour
         if (selected != shown)
         {
             shown = selected;
+            if (shown != null) Mascot.NoteInspected(shown);
             if (inspection != null) inspection.SetActive(shown != null);
         }
 
@@ -299,14 +353,14 @@ public class SimHud : MonoBehaviour
             var vp = Find("VegetationPanel", p);
             SetText("ValueNoTxt", $"{veg:0}%", vp);
             SetText("ValueTxt", Trend("veg", veg, 2f), vp);
-            SetText("Text (TMP)", veg >= 50f ? "Enough" : veg >= 30f ? "Low" : "Very low", Find("Image", vp));
+            StatusPill(Find("Status", vp), veg >= 50f ? 2 : veg >= 30f ? 1 : 0);   // was writing into the icon, so the mock-up's "Low!" stayed
             SetBar(Find("Bar_Fill", vp), veg / 100f, Find("Bar_BG", vp));
             SetText("VegetationTxt", veg < 30f ? "The grass is running low! Blue Sheep may go hungry." : veg < 60f ? "Some grass has been eaten. It grows back over time." : "Plenty of grass for the Blue Sheep to eat.", vp);
 
             var wp = Find("WaterPanel", p);
             SetText("ValueNoTxt", $"{water:0}%", wp);
             SetText("ValueTxt", Trend("water", water, 2f), wp);
-            SetText("Text (TMP)", water >= 50f ? "Enough" : water >= 20f ? "Low" : "Very low", Find("Status", wp));
+            StatusPill(Find("Status", wp), water >= 50f ? 2 : water >= 20f ? 1 : 0);
             SetBar(Find("Bar_Fill", wp), water / 100f, Find("Bar_BG", wp));
             SetText("VegetationTxt", water >= 50f ? "Melting glaciers keep the streams full." : "The streams are running low. Animals may get thirsty.", wp);
 
@@ -322,6 +376,49 @@ public class SimHud : MonoBehaviour
             SetText("ValueTxt", Trend("leopards", leopards, 0.5f), lp);
             SetText("AnimalTxt", leopards == 0 ? "No Snow Leopards. Nothing hunts the Blue Sheep now." : "Snow Leopards hunt Blue Sheep. More leopards mean more hunting.", lp);
         }
+    }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5): animal pictures from Resources/AnimalIcons.
+    static Sprite sheepIcon, leopardIcon;
+    public static Sprite AnimalIcon(bool leopard)
+    {
+        ref Sprite s = ref leopard ? ref leopardIcon : ref sheepIcon;
+        if (s == null)
+        {
+            var all = Resources.LoadAll<Sprite>(leopard ? "AnimalIcons/SnowLeopardIcon" : "AnimalIcons/BlueSheepIcon");
+            if (all.Length > 0) s = all[0];
+        }
+        return s;
+    }
+
+    static Transform Child(Transform parent, string name)
+    {
+        if (parent == null) return null;
+        foreach (Transform c in parent) if (c.name.Trim().Trim('\'').Trim() == name) return c;
+        return null;
+    }
+
+    public static void SetIcon(Transform t, Sprite sprite)
+    {
+        if (t == null || sprite == null || !t.TryGetComponent(out Image img)) return;
+        img.sprite = sprite;
+        img.color = Color.white;
+        img.preserveAspect = true;
+        img.raycastTarget = false;
+        img.enabled = true;
+    }
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): status pill text and colour (0 very low, 1 low, 2 enough).
+    void StatusPill(Transform pill, int level)
+    {
+        if (pill == null) return;
+        SetText("Text (TMP)", level == 2 ? "Enough" : level == 1 ? "Low" : "Very low!", pill);
+        var label = Txt("Text (TMP)", pill);   // the mock-up's "Low!" text is red: colour it to match the pill
+        if (label != null) { label.textWrappingMode = TextWrappingModes.NoWrap; label.enableAutoSizing = true; label.fontSizeMin = 18f; }   // "Enough" wrapped onto 2 lines in Guided's narrower pill
+        if (label != null) label.color = level == 2 ? new Color(0.24f, 0.5f, 0.3f) : level == 1 ? new Color(0.7f, 0.42f, 0.1f) : new Color(0.75f, 0.2f, 0.2f);
+        if (pill.TryGetComponent(out Image img))
+            img.color = level == 2 ? new Color(0.78f, 0.88f, 0.70f) : level == 1 ? new Color(0.99f, 0.84f, 0.60f) : new Color(0.97f, 0.70f, 0.66f);
     }
 
     // Increasing / Decreasing / Stable, compared with the value about 20 real seconds ago.
@@ -341,9 +438,10 @@ public class SimHud : MonoBehaviour
     void RefreshInspection(AnimalBrain a)
     {
         var p = inspection.transform;
+        SetIcon(Child(p, "Image"), AnimalIcon(a.IsPredatorSpecies));   // portrait: the direct child "Image", not the buttons' ones
         string name = a.species_data != null
             ? System.Text.RegularExpressions.Regex.Replace(a.species_data.speciesName, "(?<=[a-z])(?=[A-Z])", " ") : a.name;
-        string sex = a.AnimalSex == AnimalBrain.Sex.Male ? "<color=#3A7BD5>♂ Male</color>" : "<color=#D5487A>♀ Female</color>";
+        string sex = a.AnimalSex == AnimalBrain.Sex.Male ? "<color=#3A7BD5>Male</color>" : "<color=#D5487A>Female</color>";
         SetText("AnimalTxt", (a.IsYoung ? "Baby " : "") + name + "  <size=60%>" + sex + "</size>", p);
 
         var cond = Find("ConditionPanel", p);
@@ -358,24 +456,35 @@ public class SimHud : MonoBehaviour
 
         SetText("ActionTxt", ActionWords(a), p);
         SetText("DescriptionTxt", Describe(a), p);
-        SetText("DYKTxt", a.IsPredatorSpecies
-            ? "Snow Leopards use their long, fluffy tails to balance on rocky mountains!"
-            : "Blue Sheep are excellent climbers and can move across steep, rocky mountain slopes.", Find("DYKPanel", p));
+        if (factAnimal != a) { factAnimal = a; fact = FieldJournalScreen.NextFactFor(a.IsPredatorSpecies); }   // new fact per tap, steady while open
+        SetText("DYKTxt", fact, Find("DYKPanel", p));
     }
 
-    static string ActionWords(AnimalBrain a) => a.CurrentAction switch
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): crossing the river or a stream at a ford (same check as the swim animation).
+    static bool Swimming(AnimalBrain a) => HimalayaRiver.InWater(a.transform.position, AnimalMotionBridge.SwimWithin);
+
+    static string ActionWords(AnimalBrain a) => Swimming(a)
+        ? (a.CurrentAction == AnimalBrain.AnimalAction.Fleeing ? "Swimming away!" : "Swimming")
+        : a.CurrentAction switch
     {
         AnimalBrain.AnimalAction.EatingGrass => "Grazing",
         AnimalBrain.AnimalAction.DrinkingWater => "Drinking",
         AnimalBrain.AnimalAction.Hunting => a.IsStalking ? "Stalking" : "Hunting",
         AnimalBrain.AnimalAction.Fleeing => "Running away!",
         AnimalBrain.AnimalAction.Reproducing => "Looking for a mate",
-        _ => "Exploring",
+        _ => a.IsLookingAround ? "Looking around" : "Exploring",
     };
 
     static string Describe(AnimalBrain a)
     {
         string who = a.IsPredatorSpecies ? "This Snow Leopard" : "This Blue Sheep";
+        if (Swimming(a))
+            return a.CurrentAction switch
+            {
+                AnimalBrain.AnimalAction.Fleeing => $"{who} is swimming across the water to get away!",
+                AnimalBrain.AnimalAction.Hunting => $"{who} is swimming across the water after a Blue Sheep!",
+                _ => $"{who} is swimming across at a shallow crossing.",
+            };
         return a.CurrentAction switch
         {
             AnimalBrain.AnimalAction.EatingGrass => $"{who} is eating grass to stay full.",
@@ -383,7 +492,8 @@ public class SimHud : MonoBehaviour
             AnimalBrain.AnimalAction.Hunting => a.IsStalking ? $"{who} is creeping up quietly on the herd." : $"{who} is chasing a Blue Sheep!",
             AnimalBrain.AnimalAction.Fleeing => $"{who} spotted a Snow Leopard and is running to safety.",
             AnimalBrain.AnimalAction.Reproducing => $"{who} is well fed and looking for a partner.",
-            _ => $"{who} is wandering around its home.",
+            _ => a.IsLookingAround ? $"{who} stopped to look around before moving on."
+                                   : $"{who} is wandering around its home.",
         };
     }
 
@@ -441,6 +551,8 @@ public class SimHud : MonoBehaviour
     {
         if (row == null) return;
         SetText("AmountTxt", $"{percent:0}%", row);
+        var amount = Txt("AmountTxt", row);   // "100%" wrapped to "100 / %" in the narrow box
+        if (amount != null) { amount.textWrappingMode = TextWrappingModes.NoWrap; amount.overflowMode = TextOverflowModes.Overflow; }
         SetBar(Find(bar + "_Fill", row), percent / 100f, Find(bar + "_BG", row));
     }
 
@@ -470,5 +582,22 @@ public class SimHud : MonoBehaviour
         }
         var s = fill.localScale;
         fill.localScale = new Vector3(Mathf.Clamp01(value), s.y, s.z);
+    }
+}
+
+// [AI-GENERATED] Claude Code (Claude Opus 5.5): the dark box behind the live weather text was sized once, from
+// whatever the text said at that moment (shorter in Guided), so it did not match. Re-fit it when the text changes.
+public class FitBehindText : MonoBehaviour
+{
+    public TMP_Text text;
+    string last;
+    void LateUpdate()
+    {
+        if (text == null) { gameObject.SetActive(false); return; }
+        if (text.text == last) return;
+        last = text.text;
+        var rt = (RectTransform)transform;
+        rt.anchoredPosition = text.rectTransform.anchoredPosition + new Vector2(-14f, 8f);
+        rt.sizeDelta = text.GetPreferredValues(text.text) + new Vector2(28f, 16f);
     }
 }

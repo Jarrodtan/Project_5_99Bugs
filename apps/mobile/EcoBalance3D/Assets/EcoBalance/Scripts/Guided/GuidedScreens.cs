@@ -120,6 +120,11 @@ public static class GuidedScreens
             SetText(box, "EndingDescriptionTxt", got ? GuidedChallenge.Endings[i].text : "Not discovered yet. Try different choices!");
             SetText(Find(box, "ExplanationBox01"), "WhatThisMeansTxt (1)", got ? GuidedChallenge.Endings[i].lesson : "");
             SetText(Find(box, "ExplanationBox02"), "WhatThisMeansTxt (1)", got ? "Play again and try different choices to find the other endings." : "");
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): "Ecosystem Collapse" wrapped onto two lines over the
+            // description, and long descriptions were cut off: title on one line, text shrinks to fit its box.
+            FitOneLine(Find(box, "EndingTitleTxt"));
+            FitBox(Find(box, "EndingDescriptionTxt"));
+            FitBox(Find(Find(box, "ExplanationBox01"), "WhatThisMeansTxt (1)"));
             overview.gameObject.SetActive(false);
             detail.gameObject.SetActive(true);
         }
@@ -141,12 +146,15 @@ public static class GuidedScreens
                 bool got = (mask & (1 << i)) != 0;
                 SetText(card, "EndingTitleTxt", got ? GuidedChallenge.Endings[i].title : "???");
                 SetText(card, "CardDescriptionTxt", got ? GuidedChallenge.Endings[i].lesson : "Not discovered yet");
+                FitOneLine(Find(card, "EndingTitleTxt"));   // "Ecosystem Collapse" wrapped onto the description
+                FitBox(Find(card, "CardDescriptionTxt"));    // long lessons were cut off
                 var unlocked = Find(card, "UnlockedStatus"); if (unlocked != null) unlocked.gameObject.SetActive(got);
                 var locked = Find(card, "LockedStatus"); if (locked != null) locked.gameObject.SetActive(!got);
                 int s = slot;
                 OnClick(card, null, () => ShowDetail(s));
             }
             OnClick(overview, "BackBtn", CloseOrLeave);
+            SetUpScroll(overview);
         }
         if (detail != null)
         {
@@ -155,6 +163,69 @@ public static class GuidedScreens
             OnClick(detail, "RArrowBtn", () => ShowDetail(shown + 1));
         }
         ShowOverview();
+    }
+
+    // The overview fits 3 whole cards on a 16:10 tablet (the 4th was cut off, the 5th off-screen). Show 3 at a
+    // time in the first three cards' places; a swipe or the arrows move the window one card, and one dot per
+    // scroll position (3 for 5 cards) shows where you are.
+    const int VisibleCards = 3;
+    const float SwipeDistance = 60f;   // screen pixels a finger must travel sideways to count as a swipe
+
+    // Sideways swipe anywhere on the overview (cards are buttons, so their drags bubble up to here).
+    class Swipe : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+    {
+        public System.Action<int> onSwipe;   // +1 = next cards (finger moved left), -1 = previous
+        Vector2 start;
+        public void OnBeginDrag(PointerEventData e) => start = e.position;
+        public void OnDrag(PointerEventData e) { }
+        public void OnEndDrag(PointerEventData e)
+        {
+            var d = e.position - start;
+            if (Mathf.Abs(d.x) >= SwipeDistance && Mathf.Abs(d.x) > Mathf.Abs(d.y)) onSwipe?.Invoke(d.x < 0f ? 1 : -1);
+        }
+    }
+
+    static void SetUpScroll(Transform overview)
+    {
+        var cards = new List<RectTransform>();
+        for (int n = 1; n <= GalleryOrder.Length; n++)
+            if (Find(overview, $"EndingCard0{n}") is RectTransform rt) cards.Add(rt);
+        if (cards.Count <= VisibleCards) return;
+
+        var places = new Vector2[VisibleCards];
+        for (int n = 0; n < VisibleCards; n++) places[n] = cards[n].anchoredPosition;
+        int last = cards.Count - VisibleCards;
+        var dots = new List<Image>();
+        for (int n = 1; n <= 9; n++)
+        {
+            if (!(Find(overview, $"ScrollBall0{n}") is Transform d)) continue;
+            bool used = n - 1 <= last;          // 5 cards, 3 in view: positions 1-3, 2-4, 3-5 = 3 dots
+            d.gameObject.SetActive(used);
+            if (used && d.TryGetComponent(out Image img)) dots.Add(img);
+        }
+
+        int first = 0;
+        void Show()
+        {
+            for (int n = 0; n < cards.Count; n++)
+            {
+                int place = n - first;
+                bool inView = place >= 0 && place < VisibleCards;
+                cards[n].gameObject.SetActive(inView);
+                if (inView) cards[n].anchoredPosition = places[place];
+            }
+            for (int n = 0; n < dots.Count; n++)
+                dots[n].color = n == first ? new Color(0.3f, 0.62f, 0.38f) : Color.white;
+        }
+        void Move(int step) { first = Mathf.Clamp(first + step, 0, last); Show(); }
+        OnClick(overview, "LArrowBtn", () => Move(-1));
+        OnClick(overview, "RArrowBtn", () => Move(1));
+
+        // Swiping needs something on the panel the touch can land on; a clear image if the mock-up has none.
+        if (!overview.TryGetComponent(out Graphic bg)) { bg = overview.gameObject.AddComponent<Image>(); bg.color = Color.clear; }
+        bg.raycastTarget = true;
+        overview.gameObject.AddComponent<Swipe>().onSwipe = Move;
+        Show();
     }
 
     static void CloseOrLeave()
@@ -171,6 +242,26 @@ public static class GuidedScreens
     }
 
     // ---------- Helpers (names in the mock-ups sometimes carry quotes or trailing spaces) ----------
+
+    // Card text from the mock-up has fixed sizes for short placeholder words; shrink real text to fit.
+    static void FitOneLine(Transform t)
+    {
+        if (t == null || !t.TryGetComponent(out TextMeshProUGUI tmp)) return;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        if (!tmp.enableAutoSizing) tmp.fontSizeMax = tmp.fontSize;   // never bigger than the design
+        tmp.enableAutoSizing = true;
+        tmp.fontSizeMin = 14f;
+    }
+
+    static void FitBox(Transform t)
+    {
+        if (t == null || !t.TryGetComponent(out TextMeshProUGUI tmp)) return;
+        tmp.textWrappingMode = TextWrappingModes.Normal;
+        if (!tmp.enableAutoSizing) tmp.fontSizeMax = tmp.fontSize;   // never bigger than the design
+        tmp.enableAutoSizing = true;
+        tmp.fontSizeMin = 12f;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
+    }
 
     static Transform Find(Transform under, string name)
     {

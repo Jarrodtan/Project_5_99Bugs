@@ -85,13 +85,13 @@ Full diagram and component owners: [architecture.md](../architecture.md).
 
 Wireframes, user flows and mockups: [ui-ux/](ui-ux/). The 16 M2 wireframes (menus, simulation HUD, prediction loop, Field Journal) are in [ui-ux/wireframes/](ui-ux/wireframes/). *TODO (Design): add the M1 mockup.*
 
-## 11. Milestone 2 (status 31 Oct)
+## 11. Milestone 2 (status 7 Nov)
 
 *Added by Tech for review by Design (Shu Min). Source: the M2 research document "EcoBalance — Ecosystem Research & Simulation Reference" and the wireframes.*
 
 M2 turns the M1 sandbox into two modes, chosen after Home → Choose an ecosystem → Guided or free:
 
-- **Free Exploration:** set the starting Blue Sheep and Snow Leopards (default 10 / 2, max 20 / 5), run, observe, and discover investigations in the Field Journal.
+- **Free Exploration:** set the starting Blue Sheep and Snow Leopards (default 10 / 2, max 50 each), run, observe, and discover investigations in the Field Journal.
 - **Guided Exploration:** a 20-day survival challenge on a fixed ecosystem (10 / 2, starting in summer). Events pause the game and offer three choices (help one side, the other, or let nature take its course) that add short buffs or debuffs. The run ends on Day 20, or early if both species die out, with one of 5 endings (Thriving Highlands, Fragile Balance, Predator-Free Highlands, Disappearing Herd, Ecosystem Collapse), kept in an Ending Gallery.
 
 | ID | Feature | M2 status |
@@ -100,11 +100,13 @@ M2 turns the M1 sandbox into two modes, chosen after Home → Choose an ecosyste
 | F02 / F06 | Run, control, speed | Done (Shu Min's HUD) |
 | F03 / F04 | Observe behaviour and resources | Done: realistic Khumbu world, grazing, drinking, hunting (stalk and sprint), herd alarm, breeding, research numbers with health |
 | F05 | Changes over time | Done: overview with trends + live population graph in the Field Journal |
-| F07 | Contextual questions | Prediction questions CQ01–05: to do (Nomitha) |
+| F07 | Contextual questions | Done (Free): an opening prediction (CQ00) half a day into every run, then CQ01–05 when their situation happens (once each, one at a time) |
 | F08 | Did You Know | Facts on the inspection panel; full DY01–DY10 set: to do |
 | F09 | Inspect individual organisms | Done (inspection panel: Fullness, Hydration, Health, action) |
 | Guided | Events and endings | Done (GE01–GE08, 5 endings, gallery) |
 | Field Journal | Investigations OG01–03, PP01–03 | Done (Dillon): investigations, observations graph, discovery popup; research wording for OG/PP still to match |
+
+**Navigation and readability (7 Nov):** Back works before Start in both modes (Free setup screen, Guided intro card) and asks before leaving a running game; the Guided intro pauses and dims the run until Start. All text is at least 22 px on the 1920×1200 tablet.
 
 Simulation rules follow the research document (Simulation Logic tab); see [architecture.md](../architecture.md) section 2.2 for the values used.
 

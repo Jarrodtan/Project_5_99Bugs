@@ -452,8 +452,8 @@ MonoBehaviour:
 
     Snow leopards use their long, fluffy tails to help them balance while climbing steep, rocky mountains! '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -589,8 +589,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Targeted by:'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -804,8 +804,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Currently: Roaming'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -924,8 +924,8 @@ MonoBehaviour:
 
     Condition: '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1080,8 +1080,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Snow Leopard
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1217,8 +1217,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Hunger: 100%'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1354,8 +1354,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 4x
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1818,8 +1818,8 @@ MonoBehaviour:
 
 '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1955,8 +1955,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Blue Sheep
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2265,8 +2265,8 @@ MonoBehaviour:
 
 '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2404,8 +2404,8 @@ MonoBehaviour:
 
 '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2546,8 +2546,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Currently: Roaming'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3826,8 +3826,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Targeted by:'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3963,8 +3963,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 2x
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4247,8 +4247,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Play
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4384,8 +4384,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Hunger: 100%'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4521,8 +4521,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 8x
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4739,8 +4739,8 @@ MonoBehaviour:
 
     Blue sheep are an important food source for snow leopards. '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4876,8 +4876,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: End
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -5377,8 +5377,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Thirst: 100%'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
+  m_sharedMaterial: {fileID: -2438841166202371441, guid: a4582ca5037552448b9a3065d7c406b1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

@@ -72,6 +72,59 @@ public class HimalayaResourcePlacer : MonoBehaviour
         SpawnTuft(grass, position, Random.value * 360f, grassMaterial, $"Grass Patch (painted) {spawned.Count + 1}");
         return spawned[spawned.Count - 1].GetComponent<ResourcePatch>();
     }
+
+    /// <summary>Name prefix of streams drawn with Edit Terrain's Draw Stream brush.</summary>
+    public const string StreamName = "Stream (painted)";
+    const float StreamSpotSpacing = 8f;   // a drinking spot every 8 m along a drawn stream
+    Material streamMaterial;
+    int drawnStreams;
+
+    /// <summary>
+    /// Adds a flowing stream along a line drawn on the map (terrain UVs), with drinking spots along it that
+    /// refill like the river. Used by TerrainEditTool's Draw Stream brush. Null if the line is too short.
+    /// </summary>
+    public GameObject SpawnStreamAlong(HimalayaTerrainBuilder tb, List<Vector2> uvs)
+    {
+        if (water == null || uvs == null || uvs.Count < 2) return null;
+        var mesh = WaterMeshBuilder.Stream(tb, uvs, streamWidth);
+        if (mesh == null) return null;
+        if (streamMaterial == null)
+        {
+            var shader = Shader.Find("EcoBalance/WaterFlow");
+            streamMaterial = shader != null ? new Material(shader) { name = "Stream (flowing)" } : MakeMaterial(waterColor);
+        }
+
+        var go = new GameObject($"{StreamName} {++drawnStreams}");
+        go.transform.SetParent(tb.Terrain.transform, false);   // the stream mesh is terrain-local (WaterMeshBuilder)
+        go.transform.localPosition = Vector3.zero; go.transform.localRotation = Quaternion.identity; go.transform.localScale = Vector3.one;
+        go.AddComponent<MeshFilter>().sharedMesh = mesh;
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.sharedMaterial = streamMaterial;
+        mr.shadowCastingMode = ShadowCastingMode.Off;
+        spawned.Add(go);
+
+        var line = new List<Vector3>(uvs.Count);
+        foreach (var uv in uvs) line.Add(tb.WorldPosition(uv.x, uv.y));
+        HimalayaRiver.Tributaries.Add(line);
+        go.AddComponent<WaterLine>().line = line;
+
+        // Invisible drinking spots along it, children of the stream so they go when it is removed.
+        var spotMat = MakeMaterial(waterColor);
+        float carried = StreamSpotSpacing;
+        for (int i = 0; i < line.Count; i++)
+        {
+            if (i > 0) carried += Vector3.Distance(line[i - 1], line[i]);
+            if (carried < StreamSpotSpacing) continue;
+            carried = 0f;
+            Spawn(water, line[i], waterSize, spotMat, $"{go.name} drinking spot");
+            var spot = spawned[spawned.Count - 1];
+            spot.transform.SetParent(go.transform, true);
+            if (spot.TryGetComponent(out Renderer r)) r.enabled = false;
+            if (spot.TryGetComponent(out ResourcePatch patch)) patch.RegrowPerSecond = riverRefillPerSecond;
+        }
+        return go;
+    }
+
     // [AI-GENERATED END]
 
     public void Clear()
