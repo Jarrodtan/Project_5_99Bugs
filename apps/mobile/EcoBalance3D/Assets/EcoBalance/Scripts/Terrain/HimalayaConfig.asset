@@ -21,7 +21,7 @@ MonoBehaviour:
   worldWidth: 400
   verticalExaggeration: 1
   areaSizeKm: 50
-  landCover: {fileID: 0}
+  landCover: {fileID: 2800000, guid: f6d98535ab794042979f0ae6f3694e82, type: 3}
   treeLineMeters: 4200
   treeFadeMeters: 800
   maxTreeSlope: 35
