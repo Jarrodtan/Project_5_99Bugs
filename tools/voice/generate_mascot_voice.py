@@ -44,7 +44,7 @@ def mascot_lines() -> list[str]:
     for m in re.finditer(r'"((?:[^"\\\n]|\\.)*)"', src):
         s = m.group(1)
         # Spoken lines are sentences: have a space and end in . ! or ?  (skips object names, prefs, labels)
-        if " " in s and s.rstrip()[-1:] in ".!?" and "{" not in s and len(s) >= 15:
+        if " " in s and s.rstrip()[-1:] in ".!?" and "{" not in s and "}" not in s and s[:1].isalpha() and len(s) >= 15:
             found.append(s)
     seen, lines = set(), []
     for s in found + EXTRA:
@@ -57,7 +57,7 @@ def mascot_lines() -> list[str]:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--voice", default="af_heart", help="Kokoro voice id")
-    ap.add_argument("--speed", type=float, default=0.9, help="a little slower for ages 6-9")
+    ap.add_argument("--speed", type=float, default=0.9, help="a little slower for ages 7-9")
     ap.add_argument("--force", action="store_true", help="regenerate clips that already exist")
     ap.add_argument("--list", action="store_true", help="only print the lines and their clip names")
     args = ap.parse_args()
@@ -74,11 +74,17 @@ def main():
     from kokoro import KPipeline
 
     OUT.mkdir(parents=True, exist_ok=True)
+    manifest = OUT / "manifest.csv"
+    # Clips the team has replaced with recorded VO keep source=recorded and are never overwritten.
+    recorded = set()
+    if manifest.exists():
+        with open(manifest, newline="", encoding="utf-8") as f:
+            recorded = {r["clip"] for r in csv.DictReader(f) if r.get("source") == "recorded"}
     pipe = KPipeline(lang_code="a")  # American English
     made = 0
     for s in lines:
         path = OUT / f"{clip_name(s)}.wav"
-        if path.exists() and not args.force:
+        if clip_name(s) in recorded or (path.exists() and not args.force):
             continue
         audio = [a for _, _, a in pipe(s, voice=args.voice, speed=args.speed)]
         wav = np.concatenate(audio)
@@ -88,11 +94,16 @@ def main():
         print("made", path.name, s)
 
     # Who-says-what list for the team and the credits.
-    with open(OUT / "manifest.csv", "w", newline="", encoding="utf-8") as f:
+    # source = kokoro (AI placeholder, replace later) or recorded (team VO: set by hand after dropping
+    # the recording in as <clip>.wav). Sort by source so the placeholders still to replace are on top.
+    with open(manifest, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow(["clip", "text", "voice", "speed"])
-        for s in lines:
-            w.writerow([clip_name(s), s, args.voice, args.speed])
+        w.writerow(["clip", "source", "text", "voice", "speed"])
+        rows = [[clip_name(s), "recorded" if clip_name(s) in recorded else "kokoro", s,
+                 "" if clip_name(s) in recorded else args.voice, "" if clip_name(s) in recorded else args.speed]
+                for s in lines]
+        for r in sorted(rows, key=lambda r: r[1] == "recorded"):
+            w.writerow(r)
     print(f"{made} new clips, {len(lines)} lines total -> {OUT}")
 
 

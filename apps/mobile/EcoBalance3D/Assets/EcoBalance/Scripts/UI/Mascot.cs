@@ -125,7 +125,17 @@ public class Mascot : MonoBehaviour
         return h.ToString("x8");
     }
 
-    static void Speak(string text)
+    // Leaving a screen (Mode Selection -> Guided intro, closing the journal...) cuts the line that was playing.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void HookScenes()
+    {
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;   // Enter Play Mode skips domain reload: never hook twice
+        SceneManager.sceneUnloaded += OnSceneUnloaded;
+    }
+    static void OnSceneUnloaded(Scene _) => StopVoice();
+
+    /// <summary>Plays the voice clip for a line shown outside the mascot panel (Guided intro / event / feedback cards).</summary>
+    public static void Speak(string text)
     {
         StopVoice();
         if (!VoiceOn || string.IsNullOrEmpty(text)) return;
@@ -144,7 +154,7 @@ public class Mascot : MonoBehaviour
         voice.Play();
     }
 
-    static void StopVoice() { if (voice != null) voice.Stop(); }
+    public static void StopVoice() { if (voice != null) voice.Stop(); }
 
     void Start()
     {
@@ -318,7 +328,7 @@ public class Mascot : MonoBehaviour
     }
 
     /// <summary>Closes the GE-M05 line when the event card closes.</summary>
-    public static void Hide() { if (current != null && Showing) current.Dismiss(); }
+    public static void Hide() { StopVoice(); if (current != null && Showing) current.Dismiss(); }
 
     public static void NoteJournalOpened() { if (current != null) current.journalOpened = true; }
     /// <summary>An animal was selected (Animal Inspection panel opens). Also completes a running discovery activity.</summary>
