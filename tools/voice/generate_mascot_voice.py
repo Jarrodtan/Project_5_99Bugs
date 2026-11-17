@@ -21,11 +21,30 @@ UNITY = ROOT / "apps/mobile/EcoBalance3D/Assets/EcoBalance"
 MASCOT_CS = UNITY / "Scripts/UI/Mascot.cs"
 OUT = UNITY / "Resources/MascotVoice"
 
-# Lines built at runtime that the string scan cannot see (Mascot.FindLine).
+# Other scripts whose lines the mascot says through Mascot.Announce / React:
+# season + weather news (SeasonWeather) and the Guided choice feedback (GuidedChallenge, feedback = "...").
+OTHER_SOURCES = [
+    (UNITY / "Scripts/EcoSim/SeasonWeather.cs", r'=>\s*"((?:[^"\\\n]|\\.)*)"|\?\s*"((?:[^"\\\n]|\\.)*)"|:\s*"((?:[^"\\\n]|\\.)*)"'),
+    (UNITY / "Scripts/Guided/GuidedChallenge.cs", r'feedback\s*=\s*"((?:[^"\\\n]|\\.)*)"'),
+]
+
+# Lines built at runtime that the string scan cannot see (Mascot.FindLine, AnimalBrain mating line).
 EXTRA = [
     "Can you find a Snow Leopard? Click on one when you spot it!",
     "Can you find a Blue Sheep? Click on one when you spot it!",
+    "Two blue sheep are starting a family! ♥",
+    "Two snow leopards are starting a family! ♥",
 ]
+
+
+def spoken(text: str) -> str:
+    """What the voice says: the on-screen text without symbols such as ♥."""
+    return re.sub(r"[♥]", "", text).strip()
+
+
+def is_sentence(s: str) -> bool:
+    # Spoken lines are sentences: have a space and end in . ! or ?  (skips object names, prefs, labels)
+    return " " in s and s.rstrip()[-1:] in ".!?" and "{" not in s and "}" not in s and s[:1].isalpha() and len(s) >= 15
 
 
 def clip_name(text: str) -> str:
@@ -43,9 +62,14 @@ def mascot_lines() -> list[str]:
     src = re.sub(r'\$"(?:[^"\\\n]|\\.)*"', "", src)  # interpolated strings: listed in EXTRA instead
     for m in re.finditer(r'"((?:[^"\\\n]|\\.)*)"', src):
         s = m.group(1)
-        # Spoken lines are sentences: have a space and end in . ! or ?  (skips object names, prefs, labels)
-        if " " in s and s.rstrip()[-1:] in ".!?" and "{" not in s and "}" not in s and s[:1].isalpha() and len(s) >= 15:
+        if is_sentence(s):
             found.append(s)
+    for path, pattern in OTHER_SOURCES:
+        other = re.sub(r"(?m)^\s*//.*$", "", path.read_text(encoding="utf-8"))
+        for m in re.finditer(pattern, other):
+            s = next(g for g in m.groups() if g is not None)
+            if is_sentence(s):
+                found.append(s)
     seen, lines = set(), []
     for s in found + EXTRA:
         if s not in seen:
@@ -86,7 +110,7 @@ def main():
         path = OUT / f"{clip_name(s)}.wav"
         if clip_name(s) in recorded or (path.exists() and not args.force):
             continue
-        audio = [a for _, _, a in pipe(s, voice=args.voice, speed=args.speed)]
+        audio = [a for _, _, a in pipe(spoken(s), voice=args.voice, speed=args.speed)]
         wav = np.concatenate(audio)
         wav = wav / max(1e-6, float(np.abs(wav).max())) * 0.9  # same loudness for every clip
         sf.write(path, wav, 24000)
