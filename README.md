@@ -2,7 +2,7 @@
 
 **Team:** 99 Bugs · CSD3401 / UXG3400, Fall 2026
 
-EcoBalance is an interactive, educational 3D ecosystem simulation for children aged 6–9, set in the
+EcoBalance is an interactive, educational 3D ecosystem simulation for children aged 7–9, set in the
 Himalayan Highlands (grass → blue sheep → snow leopard). Two modes:
 
 - **Free Exploration:** choose the starting blue sheep and snow leopards, run the ecosystem, observe, and discover investigations in the Field Journal.
@@ -21,6 +21,8 @@ Himalayan Highlands (grass → blue sheep → snow leopard). Two modes:
 | [`docs/data-pipeline.md`](docs/data-pipeline.md) | How content/data is authored, naming, folder rules |
 | [`docs/infra/gitea-rebuild.md`](docs/infra/gitea-rebuild.md) | Self-hosted Gitea server: security incident, rebuild, lessons learned |
 | [`docs/infra/ci.md`](docs/infra/ci.md) | CI/CD: what runs when, where APKs and results are, rubric mapping |
+| [`tools/README.md`](tools/README.md) | Dev tools: Unity scripts, CI checks, VM soak test, mascot voice generator |
+| [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Credits and licences: AI voice (Kokoro), map data, fonts, audio, art |
 
 ## Technology Stack
 
@@ -33,6 +35,7 @@ Himalayan Highlands (grass → blue sheep → snow leopard). Two modes:
 ```
 Project_5_99Bugs/
 ├── README.md
+├── THIRD_PARTY_NOTICES.md          # credits + licences of third-party assets/data
 ├── docs/
 │   ├── proposal.md
 │   ├── design/
@@ -51,7 +54,8 @@ Project_5_99Bugs/
 │   └── procanim/                  # Unity package com.99bugs.procanim: our procedural animation + tests
 ├── tools/
 │   ├── unity.sh                   # open / test / build / clean / zip (Ubuntu, macOS, Git Bash)
-│   └── unity.bat                  # same commands for Windows cmd
+│   ├── unity.bat                  # same commands for Windows cmd
+│   └── voice/                     # mascot voice clip generator (Kokoro TTS, offline)
 ├── tests/                         # test plans and manual checklists
 ├── .github/workflows/unity-ci.yml # CI: repo checks, EditMode tests, Android build (docs/infra/ci.md)
 ├── .gitignore  .gitattributes  .editorconfig

@@ -56,12 +56,8 @@ public static class ScreenFlow
             {
                 // Replace whatever the button did before (e.g. Start used to open the configuration screen).
                 // A brand-new click list, because switching the old Inspector actions off didn't always stick.
-                // Keep the click sound: replay any AudioSource.Play the old list had.
-                var sounds = new List<AudioSource>();
-                for (int i = 0; i < b.onClick.GetPersistentEventCount(); i++)
-                    if (b.onClick.GetPersistentMethodName(i) == "Play" && b.onClick.GetPersistentTarget(i) is AudioSource src) sounds.Add(src);
+                // Click sounds come from UIClickSound (every button), not from the click list.
                 b.onClick = new Button.ButtonClickedEvent();
-                foreach (var src in sounds) b.onClick.AddListener(src.Play);
                 b.onClick.AddListener(action);
             }
         }
