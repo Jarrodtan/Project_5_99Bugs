@@ -508,14 +508,10 @@ public class FieldJournalScreen : MonoBehaviour
         if (t != null && t.TryGetComponent(out Button b)) Rewire(b, action);
     }
 
-    // Same as ScreenFlow: a fresh click list (old Inspector actions don't always switch off), keeping any click sound.
+    // Same as ScreenFlow: a fresh click list (old Inspector actions don't always switch off) (UIClickSound adds the click sound).
     static void Rewire(Button b, UnityAction action)
     {
-        var sounds = new List<AudioSource>();
-        for (int i = 0; i < b.onClick.GetPersistentEventCount(); i++)
-            if (b.onClick.GetPersistentMethodName(i) == "Play" && b.onClick.GetPersistentTarget(i) is AudioSource src) sounds.Add(src);
         b.onClick = new Button.ButtonClickedEvent();
-        foreach (var src in sounds) b.onClick.AddListener(src.Play);
         b.onClick.AddListener(action);
     }
 

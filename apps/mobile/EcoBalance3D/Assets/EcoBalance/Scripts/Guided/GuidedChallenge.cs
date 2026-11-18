@@ -471,6 +471,7 @@ public class GuidedChallenge : MonoBehaviour
     {
         if (introMascot == null) return;
         SetText(introMascot, "DynamicTxt", Mascot.GuidedIntroScreenLine);
+        Mascot.Speak(Mascot.GuidedIntroScreenLine);
         var bubble = Find(introMascot, "SpeechBubble") as RectTransform;
         if (bubble != null && Find(bubble, "GotItBtn") == null)
         {
@@ -489,7 +490,7 @@ public class GuidedChallenge : MonoBehaviour
             }
         }
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): the card dims while the mascot speaks; Got It brings it back.
-        OnClick(introMascot, "GotItBtn", () => { Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); });
+        OnClick(introMascot, "GotItBtn", () => { Mascot.StopVoice(); Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); });
         introMascot.gameObject.SetActive(true);
         Spotlight.Show(introMascot);
     }
@@ -500,12 +501,12 @@ public class GuidedChallenge : MonoBehaviour
         if (eventMascot != null)
         {
             eventMascot.gameObject.SetActive(!feedback);
-            if (!feedback) SetText(eventMascot, "DynamicTxt", Mascot.EventLine);
+            if (!feedback) { SetText(eventMascot, "DynamicTxt", Mascot.EventLine); Mascot.Speak(Mascot.EventLine); }
         }
         if (feedbackMascot != null)
         {
             feedbackMascot.gameObject.SetActive(feedback);
-            if (feedback) SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine);
+            if (feedback) { SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine); Mascot.Speak(Mascot.DecisionLine); }
         }
     }
 
