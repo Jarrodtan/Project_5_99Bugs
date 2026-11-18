@@ -175,7 +175,7 @@ There is no server or database. EcoBalance is a single offline mobile app.
 | Unity Licensing (serial activation in CI) | Activating the Unity editor on CI runners |
 | Jira | Backlog, epics per feature/deliverable, individual task tracking |
 | Team VM soak test | Runs the Linux headless build weekly (`tools/vm/soak.sh`); reports to Gitea packages |
-| Self-hosted Gitea (team21 VM) | **Git LFS store** for binary assets, over HTTPS at `https://team21.dp-ext8.com/git/` (Caddy reverse proxy, sign-up off). Code and branches stay on GitHub; CI pulls LFS files with the `GITEA_LFS_TOKEN` secret. See [infra/gitea-rebuild.md](infra/gitea-rebuild.md) |
+| Self-hosted Gitea (team VM) | **Git LFS store** for binary assets, private, over HTTPS behind a reverse proxy. Code and branches stay on GitHub; CI pulls LFS files with a read-only token stored as a CI secret. See [infra/gitea-incident.md](infra/gitea-incident.md) |
 
 ## 6. Layers (detail)
 
