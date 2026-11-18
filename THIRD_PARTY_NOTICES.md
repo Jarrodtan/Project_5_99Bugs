@@ -17,7 +17,7 @@ Each item stays under its own licence. Rows marked **TODO** still need their sou
 | Rivers and lakes | © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, via the Overpass API | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/) | Water data shipped with the app for offline play. |
 | Species conservation status | [Wikidata](https://www.wikidata.org/) | CC0 1.0 | Queried at runtime. |
 | Species sightings | [GBIF.org](https://www.gbif.org/) occurrence search | Per dataset (CC0 / CC BY) | Queried at runtime; cite GBIF.org. |
-| Weather | [OpenWeather](https://openweathermap.org/) current weather API | [OpenWeather terms](https://openweathermap.org/terms) (data CC BY-SA 4.0) | Queried at runtime. |
+| Weather | [Open-Meteo.com](https://open-meteo.com/) forecast API | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (free, no API key) | Queried at runtime. Weather data by Open-Meteo.com. |
 
 ## Fonts
 

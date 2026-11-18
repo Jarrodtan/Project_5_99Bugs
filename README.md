@@ -80,10 +80,7 @@ Supported development environments: **Windows 11, macOS Tahoe, Ubuntu 24.04**.
    self-hosted Gitea** (`https://team21.dp-ext8.com/git/`), not on GitHub. The first LFS download or
    upload asks for your **Gitea** username and password; Windows remembers it after that.
    Accounts are created by the tech lead (sign-up is off).
-5. *(Optional, live weather)* Ask the tech lead for `ApiKeys.json` and put it in
-   `apps/mobile/EcoBalance3D/Assets/EcoBalance/Resources/Secrets/` (git-ignored, never commit it).
-   Without it the game runs normally and the weather label says "offline".
-6. Unity Hub → **Add → Add project from disk** → select **`apps/mobile/EcoBalance3D`**.
+5. Unity Hub → **Add → Add project from disk** → select **`apps/mobile/EcoBalance3D`**.
    The first open imports everything (a few minutes).
 
 ## Run

@@ -153,6 +153,6 @@ test-results.xml
 /EcoBalance3D/
 # [AI-GENERATED END]
 
-# API keys (never commit; ask the tech lead): {"openweather": "<key>"}
+# Local secrets (never commit). Not used now: weather comes from Open-Meteo, which needs no key.
 apps/mobile/EcoBalance3D/Assets/EcoBalance/Resources/Secrets/
 apps/mobile/EcoBalance3D/Assets/EcoBalance/Resources/Secrets.meta
