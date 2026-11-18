@@ -27,12 +27,12 @@ Food chains and population balance are usually taught as static diagrams. Learne
 
 ## 4. Target users
 
-**Children aged 6–9** being introduced to ecosystems and food chains, who take the role of a **young ecosystem researcher** on an **Android tablet**.
+**Children aged 7–9** (changed from 6–9 for M3, 17 Nov 2026) being introduced to ecosystems and food chains, who take the role of a **young ecosystem researcher** on an **Android tablet**.
 
 - **Intended experience:** curiosity → experimentation → discovery → understanding.
 - **Design priorities:** simple touch interactions, visible cause-and-effect, and safe experimentation with easy retry.
 
-User research was focused on understanding how children aged 6–9 engage with ecosystem simulations and interactive learning experiences. Research included reviewing comparable ecosystem simulation products and exploring how they communicate cause-and-effect, ecosystem relationships, and visual feedback. These findings informed the simulation’s interaction design, contextual questions, and learning experience.
+User research was focused on understanding how children aged 7–9 engage with ecosystem simulations and interactive learning experiences. Research included reviewing comparable ecosystem simulation products and exploring how they communicate cause-and-effect, ecosystem relationships, and visual feedback. These findings informed the simulation’s interaction design, contextual questions, and learning experience.
 
 ## 5. Core user journey
 

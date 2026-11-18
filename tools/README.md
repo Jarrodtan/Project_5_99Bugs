@@ -17,6 +17,8 @@ Close the Editor before `test` or `build`.
 
 `vm/soak.sh` runs on the team VM (weekly cron): downloads the Linux headless build CI published to Gitea, soak-tests it for 2,000 simulated days and uploads the report and history. Setup: `docs/infra/ci.md`.
 
+`voice/generate_mascot_voice.py` makes the mascot's placeholder voice clips offline with Kokoro-82M (Apache-2.0): `python tools/voice/generate_mascot_voice.py` (`--list` prints every line and its clip name). Each clip is named by a hash of its line (`Mascot.ClipName()`), so **editing a line's text in `Mascot.cs` needs a new clip**. `Resources/MascotVoice/manifest.csv` lists clip, source, text. **To replace a placeholder with recorded VO:** look up the line in `manifest.csv`, save the recording as `<clip>.wav` over the old file, and change its `source` to `recorded` (the script never overwrites recorded clips). Credits: `THIRD_PARTY_NOTICES.md`.
+
 Unity Editor tools (custom inspectors, windows) go in `apps/mobile/EcoBalance3D/Assets/EcoBalance/Scripts/Editor/`, because Unity only compiles code inside `Assets/`.
 
 ---
