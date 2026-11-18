@@ -80,7 +80,10 @@ Supported development environments: **Windows 11, macOS Tahoe, Ubuntu 24.04**.
    self-hosted Gitea** (`https://team21.dp-ext8.com/git/`), not on GitHub. The first LFS download or
    upload asks for your **Gitea** username and password; Windows remembers it after that.
    Accounts are created by the tech lead (sign-up is off).
-5. Unity Hub → **Add → Add project from disk** → select **`apps/mobile/EcoBalance3D`**.
+5. *(Optional, live weather)* Ask the tech lead for `ApiKeys.json` and put it in
+   `apps/mobile/EcoBalance3D/Assets/EcoBalance/Resources/Secrets/` (git-ignored, never commit it).
+   Without it the game runs normally and the weather label says "offline".
+6. Unity Hub → **Add → Add project from disk** → select **`apps/mobile/EcoBalance3D`**.
    The first open imports everything (a few minutes).
 
 ## Run
@@ -144,3 +147,9 @@ Generated files, IDE folders, build output, logs and secrets are excluded by `.g
 - **Access:** all 9 team members and the instructor are collaborators on the GitHub repository.
 - **Code freeze:** before each milestone, `main` is frozen (M1: Sat 3 Oct 2026, 5pm; M2: Fri 6 Nov 2026, 23:59, submission Sun 8 Nov). After the freeze, only bug fixes go in, through a reviewed pull request with passing tests. The submitted state is kept on a `M<n>-Submission` branch and a `v0.<n>-m<n>` tag.
 - **Submission build:** the milestone zip is made from frozen `main` with `tools\unity.bat zip` / `tools/unity.sh zip`, so it matches exactly what was reviewed.
+
+## Credits & Copyright
+
+© 2026 Team 99 Bugs (CSD3401 / UXG3400, DigiPen Institute of Technology Singapore). All rights reserved.
+Shown for portfolio purposes with the course lecturers' permission. Third-party assets, data and tools are
+credited in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

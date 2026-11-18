@@ -25,7 +25,18 @@ using UnityEngine.Networking;
 
 public class WeatherManager : MonoBehaviour
 {
-    public string api_key = "b0c376cfe1ec96717743554c9f4d5356";
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5) - reviewed by Tan Wei Leong
+    // The API key is NOT in git (the repo may go public). It is read from
+    // Resources/Secrets/ApiKeys.json (git-ignored): {"openweather": "<key>"}. Ask the tech lead for the file.
+    // No file (e.g. a fresh clone or CI) = the weather label says "offline" and the game runs normally.
+    [System.Serializable] class ApiKeys { public string openweather; }
+    static string LoadKey()
+    {
+        var file = Resources.Load<TextAsset>("Secrets/ApiKeys");
+        if (file == null) return null;
+        var keys = JsonUtility.FromJson<ApiKeys>(file.text);
+        return keys != null && !string.IsNullOrWhiteSpace(keys.openweather) ? keys.openweather.Trim() : null;
+    }
     private string lat = "27.9881";
     private string lon = "86.9250";
 
@@ -74,6 +85,12 @@ public class WeatherManager : MonoBehaviour
 
     IEnumerator FetchHimalayanWeather()
     {
+        string api_key = LoadKey();
+        if (api_key == null)
+        {
+            if (txt != null) txt.text = "Live Everest weather: offline (no API key)";
+            yield break;
+        }
         string url = $"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric";
 
         using (UnityWebRequest req = UnityWebRequest.Get(url))
