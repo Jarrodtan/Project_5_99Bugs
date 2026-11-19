@@ -1,5 +1,7 @@
 # EcoBalance
 
+**Status:** in development (Milestone 3, Nov 2026)
+
 **Team:** 99 Bugs · CSD3401 / UXG3400, Fall 2026
 
 EcoBalance is an interactive, educational 3D ecosystem simulation for children aged 7–9, set in the
