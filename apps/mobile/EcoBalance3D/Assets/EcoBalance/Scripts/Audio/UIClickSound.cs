@@ -51,8 +51,8 @@ public class UIClickSound : MonoBehaviour, IPointerClickHandler
 
     static void Play(bool forMascot)
     {
-        if (click == null) click = Resources.Load<AudioClip>("UISound/Click");
-        if (mascotClick == null) mascotClick = Resources.Load<AudioClip>("UISound/MascotClick");
+        if (click == null) click = Resources.Load<AudioClip>("UISound/UI Button Click Positive_2");
+        if (mascotClick == null) mascotClick = Resources.Load<AudioClip>("UISound/Mouth-Pop-Pick-up_SFX");
         var clip = forMascot && mascotClick != null ? mascotClick : click;
         if (clip == null) return;
         if (source == null)
