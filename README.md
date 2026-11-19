@@ -19,7 +19,7 @@ Himalayan Highlands (grass → blue sheep → snow leopard). Two modes:
 | [`docs/deliverables.md`](docs/deliverables.md) | Technical deliverables, ownership, M1/M2/M3 targets |
 | [`docs/toolchain.md`](docs/toolchain.md) | Technology stack and why |
 | [`docs/data-pipeline.md`](docs/data-pipeline.md) | How content/data is authored, naming, folder rules |
-| [`docs/infra/gitea-rebuild.md`](docs/infra/gitea-rebuild.md) | Self-hosted Gitea server: security incident, rebuild, lessons learned |
+| [`docs/infra/gitea-incident.md`](docs/infra/gitea-incident.md) | Case study: responding to a compromised self-hosted Git server |
 | [`docs/infra/ci.md`](docs/infra/ci.md) | CI/CD: what runs when, where APKs and results are, rubric mapping |
 | [`tools/README.md`](tools/README.md) | Dev tools: Unity scripts, CI checks, VM soak test, mascot voice generator |
 | [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Credits and licences: AI voice (Kokoro), map data, fonts, audio, art |
@@ -45,7 +45,7 @@ Project_5_99Bugs/
 │   ├── deliverables.md            # ownership + M1/M2/M3 targets
 │   ├── toolchain.md
 │   ├── data-pipeline.md
-│   └── infra/                    # gitea-rebuild.md (VM/Gitea), ci.md (CI/CD)
+│   └── infra/                    # gitea-incident.md (incident case study), ci.md (CI/CD)
 ├── apps/
 │   └── mobile/
 │       └── EcoBalance3D/          # Unity project (scenes, art, audio, prefabs, app scripts, app tests)
