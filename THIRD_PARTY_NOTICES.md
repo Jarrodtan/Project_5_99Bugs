@@ -1,8 +1,7 @@
 # Third-Party Notices and Credits
 
 EcoBalance (team 99 Bugs) uses the following third-party software, data, fonts and audio.
-Each item stays under its own licence. Rows marked **TODO** need the source and licence filled in by the
-person who added the asset before this repository is made public.
+Each item stays under its own licence. Rows marked **TODO** still need their source confirmed.
 
 ## AI voice (mascot placeholder VO)
 
@@ -18,7 +17,7 @@ person who added the asset before this repository is made public.
 | Rivers and lakes | © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, via the Overpass API | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/) | Water data shipped with the app for offline play. |
 | Species conservation status | [Wikidata](https://www.wikidata.org/) | CC0 1.0 | Queried at runtime. |
 | Species sightings | [GBIF.org](https://www.gbif.org/) occurrence search | Per dataset (CC0 / CC BY) | Queried at runtime; cite GBIF.org. |
-| Weather | [OpenWeather](https://openweathermap.org/) current weather API | [OpenWeather terms](https://openweathermap.org/terms) (data CC BY-SA 4.0) | Queried at runtime. |
+| Weather | [Open-Meteo.com](https://open-meteo.com/) forecast API | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (free, no API key) | Queried at runtime. Weather data by Open-Meteo.com. |
 
 ## Fonts
 
@@ -30,12 +29,11 @@ person who added the asset before this repository is made public.
 
 ## Audio
 
-| File / folder | Source | Licence |
+| File / folder | Source | Licence / terms |
 |---|---|---|
-| `Audio/BGM/JOHN_Company History_Loop_120bpm.wav` | **TODO** | **TODO** |
-| `Audio/BGM/GameAudio.mp3`, `StartingAudio.mp3`, `Audio/BGM/Ambience/` | **TODO** (team-made?) | **TODO** |
-| `Audio/SFX/` (BlueSheep, River, Sheep SFX, Snow Leopard SFX, SnowLeopard, UI) | **TODO** (incl. button SFX from Vuk) | **TODO** |
-| `Audio/Temp Assets/` (`beanfeast.wav`, `frozen_winter.wav`, `footstep_*.ogg`) | **TODO** | **TODO** |
+| Animal SFX (`Audio/SFX/BlueSheep`, `Sheep SFX`, `Snow Leopard SFX`, `SnowLeopard`), river loop, UI clicks (`Audio/SFX/UI`, `Resources/UISound`) | Sound library provided by DigiPen Institute of Technology Singapore (audio course) | Licensed to DigiPen for student projects. Used in the game only; not for reuse outside this project. |
+| Music and ambience (`Audio/BGM`), `Audio/Temp Assets` | Provided by DigiPen (audio course) or made by the team | As above |
+| Mascot voice (`Resources/MascotVoice`) | Generated with Kokoro-82M (see "AI voice" above); recorded team VO replaces clips marked `recorded` in `manifest.csv` | Apache-2.0 model; clips made by the team |
 
 ## Art and 3D models
 

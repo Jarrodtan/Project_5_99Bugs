@@ -148,3 +148,9 @@ Generated files, IDE folders, build output, logs and secrets are excluded by `.g
 - **Access:** all 9 team members and the instructor are collaborators on the GitHub repository.
 - **Code freeze:** before each milestone, `main` is frozen (M1: Sat 3 Oct 2026, 5pm; M2: Fri 6 Nov 2026, 23:59, submission Sun 8 Nov). After the freeze, only bug fixes go in, through a reviewed pull request with passing tests. The submitted state is kept on a `M<n>-Submission` branch and a `v0.<n>-m<n>` tag.
 - **Submission build:** the milestone zip is made from frozen `main` with `tools\unity.bat zip` / `tools/unity.sh zip`, so it matches exactly what was reviewed.
+
+## Credits & Copyright
+
+© 2026 Team 99 Bugs (CSD3401 / UXG3400, DigiPen Institute of Technology Singapore). All rights reserved.
+Shown for portfolio purposes with the course lecturers' permission. Third-party assets, data and tools are
+credited in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
