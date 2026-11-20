@@ -138,7 +138,7 @@ public static class ScreenFlow
         var canvasGo = new GameObject("[Leave Canvas]", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(LeaveMarker));
         var canvas = canvasGo.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 70;
+        canvas.sortingOrder = 85;   // above the Guided intro / event cards (80) so Leave works before Start; under the journal (90)
         var scaler = canvasGo.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1200);
@@ -146,7 +146,7 @@ public static class ScreenFlow
 
         var confirm = Rect(canvasGo.transform, "Confirm", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
         var card = Rect(confirm.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
-        Text(card.transform, GuidedMode ? "Leave the challenge?\n<size=70%>Your progress in this run will be lost.</size>" : "Leave the simulation?", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(820f, 200f));
+        Text(card.transform, GuidedMode ? "Leave the challenge?\n<size=70%>Your progress in this run will be lost.</size>" : "Leave the simulation?\n<size=70%>Your ecosystem in this run will be lost.</size>", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(820f, 200f));
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         bool wasRunning = false;
         Btn(card.transform, "Stay", new Vector2(-200f, -110f), new Color(0.3f, 0.62f, 0.38f), () => { confirm.SetActive(false); if (wasRunning && speed != null) speed.Play(); });

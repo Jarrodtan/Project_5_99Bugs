@@ -71,7 +71,11 @@ public class DramaDirector : MonoBehaviour
     public static void UpdateStatusVisibility()
     {
         if (instance == null || instance.status == null) return;
-        instance.status.transform.parent.gameObject.SetActive(!SimHud.Active && !ConfigurationScreen.Open);
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): also hidden while the HUD scene is still loading after Start,
+        // and once the run is being left for a menu (the old "Autumn" pill flashed on the right in both cases).
+        string active = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        bool inRun = active == ScreenFlow.Simulation || active == ScreenFlow.Configuration;
+        instance.status.transform.parent.gameObject.SetActive(inRun && !SimHud.Active && !SimHud.Loading && !ConfigurationScreen.Open);
     }
 
     void Offer(Moment moment, Transform target, string text)
