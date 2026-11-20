@@ -94,6 +94,11 @@ public static class GuidedScreens
         SetText(Find(root, "GrassCard"), "ValueTxt", $"{last.vegetation:0}%");
         SetText(Find(root, "AnimalCard01"), "ValueTxt", last.sheep.ToString());
         SetText(Find(root, "AnimalCard02"), "ValueTxt", last.leopards.ToString());
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): animal pictures (were empty green squares) and a one-line
+        // title, so "Thriving Highlands" no longer wraps onto the subtitle below it.
+        SimHud.SetIcon(Find(Find(root, "AnimalCard01"), "AnimalImage"), SimHud.AnimalIcon(false));
+        SimHud.SetIcon(Find(Find(root, "AnimalCard02"), "AnimalImage"), SimHud.AnimalIcon(true));
+        FitOneLine(Find(root, "EndingTitleTxt"));
         SetText(root, "ProgressTxt", Progress());
         OnClick(root, "ExploreAgainBtn", ScreenFlow.RestartGuided);
         OnClick(root, "ViewEndingGalleryBtn", OpenGallery);

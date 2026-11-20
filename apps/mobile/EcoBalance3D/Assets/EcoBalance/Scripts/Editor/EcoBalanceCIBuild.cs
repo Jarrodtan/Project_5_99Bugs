@@ -14,7 +14,7 @@ public static class EcoBalanceCIBuild
     public static void BuildAndroidDevelopment()
     {
         string[] scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
-        string output = Arg("-customBuildPath") ?? "build/Android/EcoBalance3D.apk";
+        string output = Arg("-customBuildPath") ?? "build/Android/EcoBalance.apk";
         Debug.Log($"[CIBuild] Development build of {scenes.Length} scenes -> {output}");
 
         BuildReport report = BuildPipeline.BuildPlayer(new BuildPlayerOptions

@@ -471,6 +471,7 @@ public class GuidedChallenge : MonoBehaviour
     {
         if (introMascot == null) return;
         SetText(introMascot, "DynamicTxt", Mascot.GuidedIntroScreenLine);
+        Mascot.Speak(Mascot.GuidedIntroScreenLine);
         var bubble = Find(introMascot, "SpeechBubble") as RectTransform;
         if (bubble != null && Find(bubble, "GotItBtn") == null)
         {
@@ -489,7 +490,7 @@ public class GuidedChallenge : MonoBehaviour
             }
         }
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): the card dims while the mascot speaks; Got It brings it back.
-        OnClick(introMascot, "GotItBtn", () => { Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); });
+        OnClick(introMascot, "GotItBtn", () => { Mascot.StopVoice(); Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); });
         introMascot.gameObject.SetActive(true);
         Spotlight.Show(introMascot);
     }
@@ -500,12 +501,12 @@ public class GuidedChallenge : MonoBehaviour
         if (eventMascot != null)
         {
             eventMascot.gameObject.SetActive(!feedback);
-            if (!feedback) SetText(eventMascot, "DynamicTxt", Mascot.EventLine);
+            if (!feedback) { SetText(eventMascot, "DynamicTxt", Mascot.EventLine); Mascot.Speak(Mascot.EventLine); }
         }
         if (feedbackMascot != null)
         {
             feedbackMascot.gameObject.SetActive(feedback);
-            if (feedback) SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine);
+            if (feedback) { SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine); Mascot.Speak(Mascot.DecisionLine); }
         }
     }
 
@@ -529,6 +530,7 @@ public class GuidedChallenge : MonoBehaviour
             SetText(box, "Option Title", c.label);
             SetText(box, "EffectDescriptionTxt (1)", c.feedback);
             if (box.TryGetComponent(out Image boxImage)) boxImage.color = Color.white;
+            SelectedDot.Set(Find(box, "SelectionBtn"), false);
             OnClick(box, "SelectionBtn", () =>
             {
                 picked = c;
@@ -536,6 +538,7 @@ public class GuidedChallenge : MonoBehaviour
                 {
                     var other = Find(eventCard, $"OptionBox0{j}");
                     if (other != null && other.TryGetComponent(out Image img)) img.color = other == box ? new Color(0.85f, 0.95f, 0.85f) : Color.white;
+                    if (other != null) SelectedDot.Set(Find(other, "SelectionBtn"), other == box);
                 }
                 if (confirmButton != null) confirmButton.interactable = true;
             });

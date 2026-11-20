@@ -358,6 +358,7 @@ public class ContextualQuestions : MonoBehaviour
     static void Highlight(Transform option, bool on)
     {
         if (option != null && option.TryGetComponent(out Image img)) img.color = on ? new Color(0.8f, 0.94f, 0.82f) : Color.white;
+        if (option != null) SelectedDot.Set(option.Find("Image"), on);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): dot in the circle
     }
 
     // Above the HUD, the season banner and the live weather line.
