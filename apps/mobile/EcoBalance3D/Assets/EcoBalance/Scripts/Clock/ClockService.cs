@@ -103,6 +103,14 @@ public class ClockService : MonoBehaviour, IClockProvider
         ApplyStartState();
     }
 
+    /// <summary>SCRUM-375: jump to a saved day and time of day (Guided Continue).</summary>
+    public void Restore(int day, float timeOfDay01)
+    {
+        _day = Mathf.Max(1, day);
+        _timeOfDay = Mathf.Clamp01(timeOfDay01);
+        OnDayChanged?.Invoke(_day);
+    }
+
     void ApplyStartState()
     {
         if (config == null)

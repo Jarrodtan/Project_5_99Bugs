@@ -77,7 +77,7 @@ public static class ScreenFlow
             case Modes:
                 Mascot.SetMenuLine(scene, Mascot.ModeSelectLine);
                 On("BackBtn", () => Load(Ecosystems));
-                On("StartGuidedBtn", () => StartSimulation(true));
+                On("StartGuidedBtn", () => { if (GuidedChallenge.HasSave) ShowResumeBox(); else StartSimulation(true); });
                 On("StartFreeBtn", () => StartSimulation(false));
                 On("FieldJournalBtn", OpenJournal);
                 break;
@@ -142,11 +142,16 @@ public static class ScreenFlow
 
         var confirm = Rect(canvasGo.transform, "Confirm", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
         var card = Rect(confirm.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
-        Text(card.transform, GuidedMode ? "Leave the challenge?\n<size=70%>Your progress in this run will be lost.</size>" : "Leave the simulation?\n<size=70%>Your ecosystem in this run will be lost.</size>", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(820f, 200f));
+        Text(card.transform, GuidedMode ? "Leave the story?\n<size=70%>Save & Exit to continue it later.</size>" : "Leave the simulation?\n<size=70%>Your ecosystem in this run will be lost.</size>", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(820f, 200f));
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         bool wasRunning = false;
-        Btn(card.transform, "Stay", new Vector2(-200f, -110f), new Color(0.3f, 0.62f, 0.38f), () => { confirm.SetActive(false); if (wasRunning && speed != null) speed.Play(); });
-        Btn(card.transform, "Leave", new Vector2(200f, -110f), new Color(0.55f, 0.55f, 0.55f), () => Load(Modes));
+        // SCRUM-375: Guided gets a third button, Save & Exit, and a wider card to fit it.
+        bool canSave = GuidedMode;
+        if (canSave) ((RectTransform)card.transform).sizeDelta = new Vector2(1160f, 420f);
+        float x = canSave ? 370f : 200f;
+        Btn(card.transform, "Stay", new Vector2(-x, -110f), new Color(0.3f, 0.62f, 0.38f), () => { confirm.SetActive(false); if (wasRunning && speed != null) speed.Play(); });
+        if (canSave) Btn(card.transform, "Save & Exit", new Vector2(0f, -110f), new Color(0.28f, 0.5f, 0.75f), () => { GuidedChallenge.SaveNow(); Load(Modes); });
+        Btn(card.transform, "Leave", new Vector2(x, -110f), new Color(0.55f, 0.55f, 0.55f), () => Load(Modes));
         StyleLikeShumin(card, "Leave");
         confirm.SetActive(false);
         openConfirm = () =>
@@ -373,9 +378,42 @@ public static class ScreenFlow
         foreach (var n in new[] { "SnowLeopard", "Snow Leopard" }) EcosystemSimulator.StartingPopulationOverrides[n] = 2;
     }
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5)
+    // SCRUM-375: Guided pressed with a saved story: Continue it, or start a New Story (the save is deleted).
+    static void ShowResumeBox()
+    {
+        var canvasGo = new GameObject("[Resume Canvas]", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvas = canvasGo.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 85;
+        var scaler = canvasGo.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1200);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        var dim = Rect(canvasGo.transform, "Resume", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
+        var card = Rect(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1160f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        Text(card.transform, $"Continue your story?\n<size=70%>You saved on Day {GuidedChallenge.SavedDay} of {GuidedChallenge.ChallengeDays}.</size>", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(1080f, 200f));
+        Btn(card.transform, "Continue", new Vector2(-370f, -110f), new Color(0.3f, 0.62f, 0.38f), () =>
+        {
+            if (!GuidedChallenge.PrepareResume(out int sheep, out int leopards)) { StartSimulation(true); return; }
+            GuidedMode = true;
+            UseGuidedStart();
+            foreach (var n in new[] { "BlueSheep", "Blue Sheep" }) EcosystemSimulator.StartingPopulationOverrides[n] = sheep;
+            foreach (var n in new[] { "SnowLeopard", "Snow Leopard" }) EcosystemSimulator.StartingPopulationOverrides[n] = leopards;
+            if (AudioManager.Instance != null) AudioManager.Instance.SwitchToSimu();
+            Load(Simulation);
+        });
+        Btn(card.transform, "New Story", new Vector2(0f, -110f), new Color(0.28f, 0.5f, 0.75f), () => { GuidedChallenge.DeleteSave(); StartSimulation(true); });
+        Btn(card.transform, "Back", new Vector2(370f, -110f), new Color(0.55f, 0.55f, 0.55f), () => Object.Destroy(canvasGo));
+        StyleLikeShumin(card, "Back");
+    }
+    // [AI-GENERATED END]
+
     /// <summary>Ending screen: start a fresh Guided challenge (unlocked endings stay in the gallery).</summary>
     public static void RestartGuided()
     {
+        GuidedChallenge.DeleteSave();
         GuidedMode = true;
         UseGuidedStart();
         Load(Simulation);
