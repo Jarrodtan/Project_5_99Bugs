@@ -486,10 +486,41 @@ public class AnimalBrain : MonoBehaviour
         Mother != null && Mother.isActiveAndEnabled && !Mother.IsCaught;
     // [AI-GENERATED END]
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    // Guided family (FamilyManager, SCRUM-380). All default to normal behaviour, so other animals are unchanged.
+    [Header("Guided family")]
+    [Tooltip("Off for dependent cubs: only their mother hunts (Snowy's story).")]
+    public bool canHunt = true;
+    [Tooltip("Off for Snowy's mother: her family has no new cubs during the story.")]
+    public bool canBreed = true;
+    /// <summary>Fullness (0-100) of this mother's hungriest dependent cub; she hunts when she or they need food. 100 = none.</summary>
+    [System.NonSerialized] public float dependentsHunger = 100f;
+
+    /// <summary>
+    /// Makes a spawned animal one of <paramref name="mother"/>'s young at the start of a story: young (follows her,
+    /// can't mate) for <paramref name="youngForDays"/> simulated days, already <paramref name="grownFraction"/> of the way grown.
+    /// </summary>
+    public void MakeYoung(AnimalBrain mother, float youngForDays, float grownFraction)
+    {
+        bool newborn = IsYoung;   // already a baby: keep the adult size MakeBaby saved
+        growUpSeconds = Mathf.Max(1f, youngForDays * AuthoredDaySeconds);
+        if (newborn) Mother = mother; else MakeBaby(mother);
+        age =Mathf.Clamp01(grownFraction) * growUpSeconds * DayScale;
+        GrowUp(0f);   // size for that age
+    }
+
+    /// <summary>A young animal whose mother died follows <paramref name="guardian"/> instead (a herd adult, or its sibling).</summary>
+    public void FollowInstead(AnimalBrain guardian) { if (IsYoung) Mother = guardian; }
+
+    /// <summary>Family roles need a set sex (Snowy and her mother are female, Milo is male).</summary>
+    public void SetSex(Sex sex) { AnimalSex = sex; sexChosen = true; sexBalanced = true; }
+    // [AI-GENERATED END]
+
     // Off cooldown, alive and well-fed enough to mate.
     public bool CanReproduce =>
         species_data != null &&
         !IsYoung &&
+        canBreed &&   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Guided family rule
         reproduce_cooldown <= 0f &&
         !IsCaught &&
         MatingReadiness > 0f;
@@ -1000,8 +1031,9 @@ public class AnimalBrain : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): a hunt already under way carries on from memory when the
         // prey goes out of sight (it only ever starts on a prey the predator can see).
         bool huntFromMemory = SearchingForPrey && CurrentAction == AnimalAction.Hunting;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): dependent cubs don't hunt; their mother hunts for them too.
         scores[(int)AnimalAction.Hunting] =
-            (prey != null || huntFromMemory) && curr_hunger < huntBelowHunger && huntRestTimer <= 0f
+            canHunt && (prey != null || huntFromMemory) && Mathf.Min(curr_hunger, dependentsHunger) < huntBelowHunger && huntRestTimer <= 0f
                 ? huntWeight * (0.4f + HungerNeed) *
                   DistanceFactor(prey != null ? prey.position : last_prey_position, VisionRange)
                 : 0f;

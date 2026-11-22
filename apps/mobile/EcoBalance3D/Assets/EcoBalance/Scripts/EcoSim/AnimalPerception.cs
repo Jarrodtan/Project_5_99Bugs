@@ -118,6 +118,9 @@ public class AnimalPerception : MonoBehaviour
 
             bool isPredator = other.species_data.HasRelationship(RelationshipType.Eats, ownBrain.species_data);
             bool isPrey = ownBrain.species_data.HasRelationship(RelationshipType.Eats, other.species_data);
+            // [AI-GENERATED] Claude Code (Claude Opus 5.5): Guided focal animal protection (SCRUM-381): Milo is not
+            // picked as prey while another Blue Sheep is alive, so predators never start a hunt on him.
+            if (isPrey && !FamilyManager.CanBeHunted(other)) isPrey = false;
             if (!isPredator && !isPrey)
                 continue;
 

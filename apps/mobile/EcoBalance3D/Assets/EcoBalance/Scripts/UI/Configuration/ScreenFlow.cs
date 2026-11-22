@@ -13,7 +13,7 @@ using UnityEngine.UI;
 /// Buttons are found by their object names in the scenes (StartBtn, ExploreBtn, StartGuidedBtn...),
 /// so the scenes need no setup; keep those names when restyling. Runs on its own at startup.
 /// </summary>
-public static class ScreenFlow
+public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude Opus 5.5): partial, the family picker is in Guided/Family/FamilyPicker.cs
 {
     public const string Home = "HomeScreen", Ecosystems = "EcosystemSelectionScreen", Modes = "ModeSelectionScreen",
         Journal = "FieldJournalScene", Configuration = "ConfigurationScreen", Simulation = "HimalayaSimulation";
@@ -77,7 +77,7 @@ public static class ScreenFlow
             case Modes:
                 Mascot.SetMenuLine(scene, Mascot.ModeSelectLine);
                 On("BackBtn", () => Load(Ecosystems));
-                On("StartGuidedBtn", () => StartSimulation(true));
+                On("StartGuidedBtn", ShowFamilyPicker);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): choose Milo or Snowy first (SCRUM-380)
                 On("StartFreeBtn", () => StartSimulation(false));
                 On("FieldJournalBtn", OpenJournal);
                 break;
@@ -365,12 +365,15 @@ public static class ScreenFlow
         Load(guided ? Simulation : Configuration);
     }
 
-    // Guided Exploration always starts from the same ecosystem (Shumin's research): 10 Blue Sheep, 2 Snow Leopards.
+    // Guided Exploration starts from the chosen story's fixed ecosystem (research doc, Starting Population
+    // Configuration): Milo's story 20 Blue Sheep + 1 Snow Leopard, Snowy's story 25 Blue Sheep + 3 Snow Leopards.
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): was 10 + 2 for every run; now set by FamilyManager.SelectedStory.
     static void UseGuidedStart()
     {
+        var (sheep, leopards) = FamilyManager.StartingPopulation(FamilyManager.SelectedStory);
         EcosystemSimulator.StartingPopulationOverrides.Clear();
-        foreach (var n in new[] { "BlueSheep", "Blue Sheep" }) EcosystemSimulator.StartingPopulationOverrides[n] = 10;
-        foreach (var n in new[] { "SnowLeopard", "Snow Leopard" }) EcosystemSimulator.StartingPopulationOverrides[n] = 2;
+        foreach (var n in new[] { "BlueSheep", "Blue Sheep" }) EcosystemSimulator.StartingPopulationOverrides[n] = sheep;
+        foreach (var n in new[] { "SnowLeopard", "Snow Leopard" }) EcosystemSimulator.StartingPopulationOverrides[n] = leopards;
     }
 
     /// <summary>Ending screen: start a fresh Guided challenge (unlocked endings stay in the gallery).</summary>
