@@ -115,7 +115,7 @@ public class SeasonWeather : MonoBehaviour
             float t = WeatherManager.ValleyTemperature;
             seasonOffset = t >= 8f ? (int)Season.Summer : t >= 0f ? (int)Season.Spring : t >= -10f ? (int)Season.Autumn : (int)Season.Winter;
         }
-        if (first && ForcedStartSeason.HasValue) seasonOffset = (int)ForcedStartSeason.Value;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Guided always starts in summer
+        if (first && ForcedStartSeason.HasValue) seasonOffset = (int)ForcedStartSeason.Value;   // Guided always starts in summer
         CurrentSeason = (Season)((seasonOffset + (Mathf.Max(1, day) - 1) / Mathf.Max(1, daysPerSeason)) % 4);
         CurrentWeather = first ? FromLive(WeatherManager.LiveCondition) : Roll(CurrentSeason);
         Temperature = first && WeatherManager.HasLiveData ? WeatherManager.ValleyTemperature : RollTemperature(CurrentSeason, CurrentWeather);
@@ -130,6 +130,13 @@ public class SeasonWeather : MonoBehaviour
         else if (CurrentWeather == Weather.Drought || CurrentWeather == Weather.Rain || CurrentWeather == Weather.Snow)
             DramaDirector.Announce(WeatherLine(CurrentWeather));
         lastSeason = CurrentSeason;
+
+        // --- ADD THIS HOOK RIGHT HERE ---
+        WeatherVisualController visualController = FindAnyObjectByType<WeatherVisualController>();
+        if (visualController != null)
+        {
+            visualController.SetWeather(CurrentSeason.ToString(), CurrentWeather.ToString());
+        }
     }
 
     void ApplyEffects()

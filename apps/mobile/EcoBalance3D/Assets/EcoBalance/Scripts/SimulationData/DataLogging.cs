@@ -79,4 +79,28 @@ public class DataLogging : MonoBehaviour
         Debug.Log($"[DATA LOG] Exported {temp.Count} ticks to: {filepath}");
 
     }
+
+    public int GetPeakBS()
+    {
+        int max = 0;
+        foreach (var data in temp)
+        {
+            if (data.blue_sheep > max) max = data.blue_sheep;
+        }
+        return max;
+    }
+
+    public int GetPeakSL()
+    {
+        int max = 0;
+        foreach (var data in temp) {
+            if (data.snow_leopard > max) max = data.snow_leopard;
+        }
+        return max;
+    }
+
+    public int GetTotalTicks()
+    {
+        return temp.Count;
+    }
 }
