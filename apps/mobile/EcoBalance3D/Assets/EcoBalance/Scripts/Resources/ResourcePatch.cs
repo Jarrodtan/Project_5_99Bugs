@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -32,10 +33,14 @@ public class ResourcePatch : MonoBehaviour
 
     float amount;
     Vector3 fullScale;
+    // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
+    bool isWater;
 
     public ResourceDefinition Resource => resource;
     public float Amount => amount;
     public bool IsEdible => amount >= minEdibleAmount;
+    // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
+    public bool IsWater => isWater;
     float MaxAmount => resource != null ? resource.maxAmount : 100f;
 
     void Awake()
@@ -43,6 +48,7 @@ public class ResourcePatch : MonoBehaviour
         if (visual == null) visual = transform;
         fullScale = visual.localScale;
         amount = MaxAmount * startFill;
+        RefreshIsWater();   // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
         UpdateVisual();
     }
 
@@ -57,7 +63,16 @@ public class ResourcePatch : MonoBehaviour
     {
         resource = value;
         amount = MaxAmount * startFill;
+        RefreshIsWater();   // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
         UpdateVisual();
+    }
+    // [AI-GENERATED END]
+
+    // [AI-GENERATED BEGIN] Cursor (Grok 4.7) - reviewed by Yande
+    void RefreshIsWater()
+    {
+        isWater = resource != null &&
+                  resource.name.IndexOf("water", StringComparison.OrdinalIgnoreCase) >= 0;
     }
     // [AI-GENERATED END]
 
@@ -68,8 +83,6 @@ public class ResourcePatch : MonoBehaviour
     // Season / weather effect on regrowth (set by SeasonWeather): 1 = normal, 0 = nothing grows.
     public static float PlantGrowthMultiplier = 1f;
     public static float WaterGrowthMultiplier = 1f;
-
-    bool IsWater => resource != null && resource.name.ToLowerInvariant().Contains("water");
     // [AI-GENERATED END]
 
     void Update()
