@@ -1756,7 +1756,7 @@ public class AnimalBrain : MonoBehaviour
     static float HeightFraction(Vector3 p)
     {
         var t = Terrain.activeTerrain;
-        if (t == null || t.terrainData.size.y <= 0f) return 0.5f;
+        if (t == null || t.terrainData == null || t.terrainData.size.y <= 0f) return 0.5f;
         return Mathf.Clamp01((p.y - t.GetPosition().y) / t.terrainData.size.y);
     }
 
