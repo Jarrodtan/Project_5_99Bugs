@@ -360,7 +360,7 @@ public partial class GuidedChallenge : MonoBehaviour
         var panel = Find(shuminRoot, "DayPanel");
         if (panel == null) return;
         if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
-        bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+        ScreenFlow.CreamPanel(bg);   // M3: same cream pill as the rest of Shu Min's HUD (was a dark pill)
         bg.raycastTarget = false;
         foreach (var name in new[] { "SeasonTxt", "Divider" })
         {
@@ -373,7 +373,7 @@ public partial class GuidedChallenge : MonoBehaviour
             var rt = t.rectTransform;
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
             rt.offsetMin = new Vector2(16f, 4f); rt.offsetMax = new Vector2(-16f, -4f);
-            t.color = Color.white;
+            t.color = ScreenFlow.InkColor;
             t.alignment = TextAlignmentOptions.Center;
             t.textWrappingMode = TextWrappingModes.NoWrap;
             t.enableAutoSizing = true;

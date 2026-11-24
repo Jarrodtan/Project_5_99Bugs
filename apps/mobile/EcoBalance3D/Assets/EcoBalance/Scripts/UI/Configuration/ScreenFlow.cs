@@ -302,7 +302,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
     // The Leave and Sound volume boxes are built in code: give them Shu Min's look (cream card with a brown
     // edge, her rounded green / red buttons and the Chewy font), borrowed from what is on screen right now.
-    static readonly string[] GreenButtons = { "Play/PauseBtn", "StartBtn", "StartGuidedBtn", "StartFreeBtn", "ExploreBtn" };
+    internal static readonly string[] GreenButtons = { "Play/PauseBtn", "StartBtn", "StartGuidedBtn", "StartFreeBtn", "ExploreBtn" };
     static readonly string[] RedButtons = { "ResetBtn", "QuitBtn" };
     static readonly Color Cream = new Color(0.98f, 0.94f, 0.84f), Brown = new Color(0.45f, 0.32f, 0.18f), Ink = new Color(0.22f, 0.16f, 0.1f);
 
@@ -332,7 +332,17 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         }
     }
 
-    static Sprite ShuminSprite(string[] names)
+    internal static Color InkColor => Ink;
+
+    /// <summary>M3 HUD consistency: Shu Min's cream pill (borrowed from the speed / Field Journal button) on an Image.</summary>
+    internal static void CreamPanel(Image img)
+    {
+        var s = ShuminSprite("SpeedBtn", "FieldJournalBtn");
+        if (s != null) { img.sprite = s; img.type = Image.Type.Sliced; img.color = Color.white; }
+        else img.color = new Color(Cream.r, Cream.g, Cream.b, 0.95f);
+    }
+
+    internal static Sprite ShuminSprite(params string[] names)
     {
         foreach (var n in names)
         {
@@ -342,7 +352,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         return null;
     }
 
-    static TMPro.TMP_FontAsset ShuminFont(string nameContains)
+    internal static TMPro.TMP_FontAsset ShuminFont(string nameContains)
     {
         foreach (var f in Resources.FindObjectsOfTypeAll<TMPro.TMP_FontAsset>())
             if (f != null && f.name.Contains(nameContains)) return f;
