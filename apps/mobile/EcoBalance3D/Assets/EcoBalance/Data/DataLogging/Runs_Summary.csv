@@ -9,3 +9,4 @@ RunId,Date,Mode,DaysSurvived,Outcome,PeakSheep,PeakLeopard,EndSheep,EndLeopard,E
 20261124_145513,2026-11-24T14:55:13,Guided,16,BothSurvived,11,2,11,2,0,0,2
 20261124_150351,2026-11-24T15:03:51,Guided,5,BothSurvived,13,2,12,2,0,0,2
 20261124_151021,2026-11-24T15:10:21,Guided,2,BothSurvived,11,2,11,2,0,0,0
+20261124_160600,2026-11-24T16:06:00,Guided,6,BothSurvived,21,1,21,1,0,0,1
