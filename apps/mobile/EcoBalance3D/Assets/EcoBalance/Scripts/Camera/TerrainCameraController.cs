@@ -147,6 +147,27 @@ public class TerrainCameraController : MonoBehaviour
         yawTarget = target.eulerAngles.y;
     }
 
+    // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
+    public void Follow(Transform target, float distance)
+    {
+        Follow(target);
+        distTarget = Mathf.Clamp(distance, minDistance, maxDistance);
+    }
+
+    // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
+    public void FrameOverview()
+    {
+        followTarget = null;
+        pov = false;
+        if (terrain == null) terrain = Terrain.activeTerrain;
+        if (terrain == null) return;
+        focusTarget = terrain.GetPosition() + terrain.terrainData.size * 0.5f;
+        focusTarget.y = GroundHeight(focusTarget);
+        yawTarget = startYaw;
+        pitchTarget = 50f;
+        distTarget = maxDistance;
+    }
+
     public void StopFollowing()
     {
         followTarget = null;
