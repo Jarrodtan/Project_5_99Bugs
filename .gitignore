@@ -156,3 +156,7 @@ test-results.xml
 # Local secrets (never commit). Not used now: weather comes from Open-Meteo, which needs no key.
 apps/mobile/EcoBalance3D/Assets/EcoBalance/Resources/Secrets/
 apps/mobile/EcoBalance3D/Assets/EcoBalance/Resources/Secrets.meta
+
+# Test-run logs written by DataLogging on every Play (cause merge conflicts)
+apps/mobile/EcoBalance3D/Assets/EcoBalance/Data/DataLogging/*.csv
+apps/mobile/EcoBalance3D/Assets/EcoBalance/Data/DataLogging/*.csv.meta
