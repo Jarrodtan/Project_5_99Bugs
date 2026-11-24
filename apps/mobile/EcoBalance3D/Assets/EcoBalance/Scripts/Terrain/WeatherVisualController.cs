@@ -110,12 +110,13 @@ public class WeatherVisualController : MonoBehaviour
         shape.rotation = new Vector3(90f, 0f, 0f);   // emit downward, not up
 
         // A slight slant, as if the wind is blowing.
+        // A slight slant, as if the wind is blowing. All three axes must use the same curve mode.
         var vel = rainSystem.velocityOverLifetime;
         vel.enabled = true;
         vel.space = ParticleSystemSimulationSpace.World;
         vel.x = new ParticleSystem.MinMaxCurve(2f, 4f);
-        vel.y = 0f;
-        vel.z = 0f;
+        vel.y = new ParticleSystem.MinMaxCurve(0f, 0f);
+        vel.z = new ParticleSystem.MinMaxCurve(0f, 0f);
 
         rainSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
