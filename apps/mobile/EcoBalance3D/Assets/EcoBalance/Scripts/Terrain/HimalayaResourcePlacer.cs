@@ -193,7 +193,11 @@ public class HimalayaResourcePlacer : MonoBehaviour
             if (m.HasProperty("_Cull")) m.SetFloat("_Cull", (float)CullMode.Off);
             return m;
         }
-        return new Material(shader) { name = "Grass (wind)" };
+        // M3 realism: alpine grass at 4,500 m is short, dry and olive, not bright lawn green.
+        var grassMat = new Material(shader) { name = "Grass (wind)" };
+        grassMat.SetColor("_BaseColor", new Color(0.18f, 0.25f, 0.11f, 1f));
+        grassMat.SetColor("_TipColor", new Color(0.55f, 0.56f, 0.30f, 1f));
+        return grassMat;
     }
     // [AI-GENERATED END]
 

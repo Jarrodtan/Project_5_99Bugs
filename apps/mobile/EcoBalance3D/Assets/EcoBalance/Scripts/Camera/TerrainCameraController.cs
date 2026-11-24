@@ -104,6 +104,8 @@ public class TerrainCameraController : MonoBehaviour
         followTarget = null;
         pov = false;
         if (terrain == null) terrain = Terrain.activeTerrain;
+        // M3 bigger map: the overview zoom grows with the map (80 at the old 400-wide map, 200 at 1000).
+        if (terrain != null && terrain.terrainData != null) maxDistance = Mathf.Max(maxDistance, terrain.terrainData.size.x * 0.2f);
         focusTarget = terrain != null && terrain.terrainData != null ? terrain.GetPosition() + terrain.terrainData.size * 0.5f : Vector3.zero;
         focusTarget.y = GroundHeight(focusTarget);
         yawTarget = startYaw;

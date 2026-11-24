@@ -197,6 +197,7 @@ public class Mascot : MonoBehaviour
         panel.SetActive(true);
         panel.transform.SetAsLastSibling();
         BehindControlBar();
+        PauseSimWhileTalking();
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): the introduction dims the rest of the screen until Got It / Skip.
         if (intro) Spotlight.Show(panel.transform, ControlBar()); else Spotlight.Hide(panel.transform);
         Refresh(intro);
@@ -260,8 +261,28 @@ public class Mascot : MonoBehaviour
         Dismiss();
     }
 
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): M3 feedback - the world stops while the mascot talks, so nothing is
+    // missed at 8x. Only resumes if the mascot was the one that paused it (a card or the player may have paused too).
+    bool pausedSim;
+    void PauseSimWhileTalking()
+    {
+        var sim = FindFirstObjectByType<SimulationSpeedController>();
+        if (sim == null || !sim.IsRunning) return;
+        sim.Pause();
+        pausedSim = true;
+    }
+
+    void ResumeSim()
+    {
+        if (!pausedSim) return;
+        pausedSim = false;
+        var sim = FindFirstObjectByType<SimulationSpeedController>();
+        if (sim != null && !sim.IsRunning && !ModalOpen()) sim.Play();
+    }
+
     void Dismiss()
     {
+        ResumeSim();
         Spotlight.Hide(panel.transform);
         StopVoice();
         panel.SetActive(false);

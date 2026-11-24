@@ -114,8 +114,10 @@ public class WeatherVisualController : MonoBehaviour
         vel.enabled = true;
         vel.space = ParticleSystemSimulationSpace.World;
         vel.x = new ParticleSystem.MinMaxCurve(2f, 4f);
-        vel.y = 0f;
-        vel.z = 0f;
+        // All three axes must use the same curve mode (x is "between two constants"), or Unity logs
+        // "Particle Velocity curves must all be in the same mode" every frame and the game stutters.
+        vel.y = new ParticleSystem.MinMaxCurve(0f, 0f);
+        vel.z = new ParticleSystem.MinMaxCurve(0f, 0f);
 
         rainSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     }

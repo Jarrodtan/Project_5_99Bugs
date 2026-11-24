@@ -184,14 +184,16 @@ public class CameraModeController : MonoBehaviour
         if (cam == null)
         {
             cam = FindAnyObjectByType<TerrainCameraController>();
-            SetBarVisible(cam != null);
-            if (cam == null) return;
+            if (cam == null) { SetBarVisible(false); return; }
         }
 
         // Hide the view bar while a Guided card is up (intro, chapter, event): it was drawn over them.
-        bool popup = GuidedChallenge.PopupOpen;
-        if (canvasRoot != null && canvasRoot.activeSelf == popup) SetBarVisible(!popup);
-        if (popup) return;
+        // PopupOpen is static and can stay true after leaving Guided mid-card, so only trust it in Guided.
+        // Free mode has no family story, so no view bar there (the player moves the camera freely).
+        bool popup = ScreenFlow.GuidedMode && GuidedChallenge.PopupOpen;
+        bool show = ScreenFlow.GuidedMode && !popup;
+        if (canvasRoot != null && canvasRoot.activeSelf != show) SetBarVisible(show);
+        if (!show) return;
 
         TryStyleLikeShumin();
         HandleHotkeys();
