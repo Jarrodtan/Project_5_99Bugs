@@ -272,6 +272,11 @@ public partial class GuidedChallenge : MonoBehaviour
 
     // ---------- Ending ----------
 
+    public void FinishForPresentation()
+    {
+        Finish();
+    }
+
     void Finish()
     {
         finished = true;

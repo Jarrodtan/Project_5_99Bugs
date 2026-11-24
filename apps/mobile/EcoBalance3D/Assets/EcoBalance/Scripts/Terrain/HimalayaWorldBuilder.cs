@@ -229,47 +229,27 @@ public class HimalayaWorldBuilder : MonoBehaviour
         return verts;
     }
 
+
     static int BakeFromTerrain(NavMeshSurface surface, Terrain terrain)
     {
         if (surface == null || terrain == null || terrain.terrainData == null)
             return 0;
 
-        var data = terrain.terrainData;
-        var sources = new List<NavMeshBuildSource>
-        {
-            new NavMeshBuildSource
-            {
-                shape = NavMeshBuildSourceShape.Terrain,
-                sourceObject = data,
-                transform = Matrix4x4.TRS(terrain.transform.position, terrain.transform.rotation, Vector3.one),
-                area = 0
-            }
-        };
+        // Collect all applicable scene geometry and NavMesh modifiers,
+        // including the river's NavMeshModifierVolume components.
+        surface.collectObjects = CollectObjects.All;
+        surface.useGeometry = NavMeshCollectGeometry.RenderMeshes;
+        surface.layerMask = ~0;
+        surface.defaultArea = 0;
 
-        var settings = surface.GetBuildSettings();
-        // Cliffs on the Himalaya cut were walkable at 60°, so animals climbed and slid.
-        settings.agentSlope = Mathf.Min(settings.agentSlope, 40f);
-        settings.minRegionArea = 0.1f;
+        Physics.SyncTransforms();
 
-        var worldCenter = terrain.transform.TransformPoint(data.size * 0.5f);
-        var localCenter = surface.transform.InverseTransformPoint(worldCenter);
-        var localSize = surface.transform.InverseTransformVector(data.size);
-        localSize = new Vector3(Mathf.Abs(localSize.x), Mathf.Abs(localSize.y), Mathf.Abs(localSize.z));
-        var localBounds = new Bounds(localCenter, localSize);
-        localBounds.Expand(2f);
+        // Build the NavMesh using the NavMeshSurface collection system.
+        surface.BuildNavMesh();
 
-        var mesh = NavMeshBuilder.BuildNavMeshData(
-            settings, sources, localBounds, surface.transform.position, surface.transform.rotation);
-        if (mesh == null)
-            return 0;
-
-        mesh.name = surface.gameObject.name;
-        surface.RemoveData();
-        surface.navMeshData = mesh;
-        if (surface.isActiveAndEnabled)
-            surface.AddData();
         return CountNavVerts();
     }
+
 
     static int CountNavVerts()
     {
