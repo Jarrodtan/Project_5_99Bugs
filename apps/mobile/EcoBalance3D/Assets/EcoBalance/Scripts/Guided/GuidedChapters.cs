@@ -107,6 +107,7 @@ public partial class GuidedChallenge
         chapterTitle = Label(card.transform, "", 60f, new Color(0.12f, 0.16f, 0.2f), 60f, 40f, 620f, TextAlignmentOptions.Top);
         chapterText = Label(card.transform, "", 36f, new Color(0.2f, 0.24f, 0.28f), 80f, 150f, 170f, TextAlignmentOptions.Top);
         Button(card.transform, "Continue", new Vector2(0f, 50f), new Color(0.3f, 0.62f, 0.38f), CloseChapter);
+        ScreenFlow.StyleLikeShumin(card, null);   // cream card, brown edge, Chewy font, Shu Min's green button
         chapterPanel.SetActive(false);
     }
 }

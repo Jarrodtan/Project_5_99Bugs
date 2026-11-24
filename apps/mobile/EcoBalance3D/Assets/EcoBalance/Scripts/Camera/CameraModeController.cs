@@ -24,8 +24,8 @@ public class CameraModeController : MonoBehaviour
     /// <summary>Species the player follows; Other Species watches the counterpart.</summary>
     public static string MainSpecies = "BlueSheep";
 
-    /// <summary>Bottom-left bar offset in canvas units; raise/lower if it covers the Play/speed controls.</summary>
-    public static readonly Vector2 BarAnchoredPosition = new Vector2(36f, 280f);
+    /// <summary>Top-left bar offset in canvas units, under the live weather text (bottom-left covered the mascot's speech bubble).</summary>
+    public static readonly Vector2 BarAnchoredPosition = new Vector2(36f, -420f);
 
     public CameraMode Mode { get; private set; } = CameraMode.Free;
     public event Action<CameraMode> ModeChanged;
@@ -82,6 +82,33 @@ public class CameraModeController : MonoBehaviour
         Mode = CameraMode.Free;
         SetBarVisible(false);
         RefreshHighlights();
+        UseFamilyStory();
+    }
+
+    // SCRUM-380 + SCRUM-384: in Guided, "Follow" is the chosen story's named family (Milo or Snowy, main animal
+    // first) and "Watch" is the other species. Free mode has no family, so it falls back to the whole species.
+    static readonly List<Transform> familyScratch = new List<Transform>(8);
+
+    void UseFamilyStory()
+    {
+        bool snowy = FamilyManager.SelectedStory == FamilyStory.SnowLeopard;
+        MainSpecies = snowy ? "SnowLeopard" : "BlueSheep";
+        FamilySource = FamilyTransforms;
+        if (modeLabels == null) return;
+        bool guided = ScreenFlow.GuidedMode;
+        modeLabels[0].text = guided ? (snowy ? "Follow Snowy" : "Follow Milo") : (snowy ? "Follow leopards" : "Follow sheep");
+        modeLabels[2].text = snowy ? "Watch sheep" : "Watch leopards";
+    }
+
+    static IReadOnlyList<Transform> FamilyTransforms()
+    {
+        if (!FamilyManager.Ready) return null;
+        familyScratch.Clear();
+        var main = FamilyManager.MainAnimal;
+        if (main != null) familyScratch.Add(main.transform);
+        foreach (var m in FamilyManager.Members)
+            if (m != null && m != main && m.IsAlive) familyScratch.Add(m.transform);
+        return familyScratch;
     }
 
     public void SetMode(CameraMode mode)
@@ -248,8 +275,7 @@ public class CameraModeController : MonoBehaviour
         if (FamilySource != null)
         {
             var fromHook = FamilySource();
-            if (fromHook == null || fromHook.Count == 0) return Array.Empty<Transform>();
-            return fromHook;
+            if (fromHook != null && fromHook.Count > 0) return fromHook;   // null/empty (Free mode, family not formed): fall back below
         }
         return CollectSpecies(MainSpecies, matchMain: true);
     }
@@ -336,7 +362,7 @@ public class CameraModeController : MonoBehaviour
         var bar = new GameObject("ModeBar", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         bar.transform.SetParent(canvasRoot.transform, false);
         var brt = (RectTransform)bar.transform;
-        brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0f, 0f);
+        brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0f, 1f);
         brt.anchoredPosition = BarAnchoredPosition;
         brt.sizeDelta = new Vector2(900f, 96f);
         var layout = bar.GetComponent<HorizontalLayoutGroup>();
@@ -349,7 +375,7 @@ public class CameraModeController : MonoBehaviour
 
         modeButtons = new Image[3];
         modeLabels = new TextMeshProUGUI[3];
-        string[] labels = { "Family", "Whole map", "Other animals" };
+        string[] labels = { "Follow family", "Overview", "Other animals" };
         CameraMode[] modes = { CameraMode.Family, CameraMode.Ecosystem, CameraMode.OtherSpecies };
         for (int i = 0; i < 3; i++)
         {
