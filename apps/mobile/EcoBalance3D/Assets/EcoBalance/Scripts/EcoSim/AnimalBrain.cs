@@ -98,6 +98,9 @@ public class AnimalBrain : MonoBehaviour
     public bool IsStalking { get; private set; }
     public bool IsFleeing => CurrentAction == AnimalAction.Fleeing;
     float sprintTimer, huntRestTimer;
+    bool presentationHunt;
+    bool presentationForage;
+    bool presentationDrink;
     // [AI-GENERATED END]
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
@@ -1048,6 +1051,28 @@ public class AnimalBrain : MonoBehaviour
 
     void Decide()
     {
+        if (presentationDrink && water_patch != null && water_patch.IsEdible)
+        {
+            CurrentAction = AnimalAction.DrinkingWater;
+            CurrentTargetName = "Water";
+            return;
+        }
+
+        if (presentationForage && food_patch != null && food_patch.IsEdible)
+        {
+            CurrentAction = AnimalAction.EatingGrass;
+            CurrentTargetName = "Grass";
+            return;
+        }
+
+        // Keep a presentation hunt active until the target is caught.
+        if (presentationHunt && prey_brain != null && !prey_brain.IsCaught)
+        {
+            CurrentAction = AnimalAction.Hunting;
+            CurrentTargetName = SpeciesLabel(prey_brain.species_data);
+            return;
+        }
+
         FindTargets();
 
         // Each score: weight x need x distance factor.
@@ -1429,6 +1454,79 @@ public class AnimalBrain : MonoBehaviour
     // ---------------------------------------------------------
     // FORAGE / EAT / DRINK
     // ---------------------------------------------------------
+    public bool ForcePresentationEating()
+    {
+        if (IsPredator || IsCaught || IsYoung)
+            return false;
+
+        ResourcePatch nearestGrass = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (ResourcePatch patch in ResourcePatch.All)
+        {
+            if (patch == null || patch.IsWater || !patch.IsEdible)
+                continue;
+
+            float distance = Vector3.Distance(
+                transform.position,
+                patch.transform.position
+            );
+
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                nearestGrass = patch;
+            }
+        }
+
+        if (nearestGrass == null)
+            return false;
+
+        food_patch = nearestGrass;
+        presentationForage = true;
+
+        CurrentAction = AnimalAction.EatingGrass;
+        CurrentTargetName = "Grass";
+
+        return true;
+    }
+
+    public bool ForcePresentationDrinking()
+    {
+        if (!HasThirst || IsCaught || IsYoung)
+            return false;
+
+        ResourcePatch nearestWater = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (ResourcePatch patch in ResourcePatch.All)
+        {
+            if (patch == null || !patch.IsWater || !patch.IsEdible)
+                continue;
+
+            float distance = Vector3.Distance(
+                transform.position,
+                patch.transform.position
+            );
+
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                nearestWater = patch;
+            }
+        }
+
+        if (nearestWater == null)
+            return false;
+
+        water_patch = nearestWater;
+        presentationDrink = true;
+
+        CurrentAction = AnimalAction.DrinkingWater;
+        CurrentTargetName = "Water";
+
+        return true;
+    }
 
     bool Forage(ResourcePatch patch, bool isWater, float speed)
     {
@@ -1463,6 +1561,10 @@ public class AnimalBrain : MonoBehaviour
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): Guided "give the grass a break" takes less grass per bite, same meal
             float requested = isWater ? biteSize : biteSize * GuidedEffects.Graze;
             float taken = patch.Consume(requested);
+            if (isWater)
+                presentationDrink = false;
+            if (!isWater)
+                presentationForage = false;
             float share = requested > 0f ? taken / requested : 1f;
 
             if (EventsMode)
@@ -1505,6 +1607,39 @@ public class AnimalBrain : MonoBehaviour
     // HUNT
     // ---------------------------------------------------------
 
+
+    /// <summary>
+    /// Starts a forced hunting demonstration against a selected prey animal.
+    /// </summary>
+    public bool ForcePresentationHunt(AnimalBrain target)
+    {
+        if (target == null || target == this)
+            return false;
+
+        if (!IsPredatorSpecies || target.IsPredatorSpecies)
+            return false;
+
+        if (IsCaught || target.IsCaught)
+            return false;
+
+        if (!EventsMode || simulator == null)
+            return false;
+
+        prey = target.transform;
+        prey_brain = target;
+
+        // Bypass the normal hunting success chance for this demonstration.
+        presentationHunt = true;
+        sprintTimer = 0f;
+        huntRestTimer = 0f;
+
+        CurrentAction = AnimalAction.Hunting;
+        CurrentTargetName = SpeciesLabel(target.species_data);
+
+        return true;
+    }
+
+
     bool Hunt(float speed)
     {
         if (prey == null)
@@ -1514,6 +1649,7 @@ public class AnimalBrain : MonoBehaviour
         if (prey_brain != null &&
             prey_brain.IsCaught)
         {
+            presentationHunt = false;
             return false;
         }
 
@@ -1521,7 +1657,8 @@ public class AnimalBrain : MonoBehaviour
         {
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): research: 70% of catches succeed (Guided can add or take
             // 15 points). A miss lets the sheep escape, and the leopard rests a simulated day before trying again.
-            if (Random.value > Mathf.Clamp01(huntSuccessRate + GuidedEffects.HuntSuccessBonus))
+            if (!presentationHunt &&
+            Random.value > Mathf.Clamp01(huntSuccessRate + GuidedEffects.HuntSuccessBonus))
             {
                 sprintTimer = 0f; SetCrouch(false);
                 huntRestTimer = huntCooldownSeconds * DayScale;
@@ -1532,6 +1669,7 @@ public class AnimalBrain : MonoBehaviour
             if (prey_brain != null)
             {
                 prey_brain.MarkCaught();
+                presentationHunt = false;
                 Caught?.Invoke(this, prey_brain);
                 DramaDirector.Report(DramaDirector.Moment.Catch, transform,   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
                     $"The {SpeciesLabel(species_data)} caught a {SpeciesLabel(prey_brain.species_data)}. Hunting is how it feeds its family.");
@@ -1576,7 +1714,7 @@ public class AnimalBrain : MonoBehaviour
         {
             SetCrouch(false);
             sprintTimer += Time.deltaTime * speed;
-            if (sprintTimer > maxSprintSeconds)
+            if (!presentationHunt && sprintTimer > maxSprintSeconds)
             {
                 // Out of breath: give up and rest before trying again.
                 sprintTimer = 0f;
@@ -1699,6 +1837,42 @@ public class AnimalBrain : MonoBehaviour
 
         return true;
     }
+
+
+    /// <summary>
+    /// Forces a breeding demonstration, bypassing normal breeding requirements.
+    /// Uses the existing birth pipeline so the population and baby model are updated.
+    /// </summary>
+    public bool ForcePresentationMating(AnimalBrain partner)
+    {
+        if (partner == null || partner == this)
+            return false;
+
+        if (species_data == null || partner.species_data != species_data)
+            return false;
+
+        if (IsCaught || partner.IsCaught || IsYoung || partner.IsYoung)
+            return false;
+
+        if (!EventsMode || !partner.EventsMode || simulator == null)
+            return false;
+
+        // Do not start a demonstration if the species cannot receive another birth.
+        if (!simulator.populations.TryGetValue(species_data, out float population))
+            return false;
+
+        if (population < 1f || population >= simulator.maxPopulationPerSpecies)
+            return false;
+
+        // The first animal is treated as the mother and records the single birth.
+        FinishMating(true, partner);
+
+        // The partner shows the mating action but does not record another birth.
+        partner.FinishMating(false, this);
+
+        return true;
+    }
+
 
     void FinishMating(bool recordBirth, AnimalBrain partner)
     {
