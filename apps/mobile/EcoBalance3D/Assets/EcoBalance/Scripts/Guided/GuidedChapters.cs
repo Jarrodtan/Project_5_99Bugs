@@ -51,6 +51,7 @@ public partial class GuidedChallenge
         StoryOverReason = null;   // statics survive Play without a domain reload
         snapshots.Clear();
         ResetFires();   // SCRUM-390
+        ResetPlanting();
     }
 
     ChapterSnapshot Snapshot() => new ChapterSnapshot { sheep = Sheep, leopards = Leopards, grass = Vegetation };
@@ -85,7 +86,7 @@ public partial class GuidedChallenge
             $"{text}\n\n<b>Since {prev}</b>\n" +
             $"Blue Sheep: {before.sheep} → {now.sheep}{Change(now.sheep - before.sheep)}\n" +
             $"Snow Leopards: {before.leopards} → {now.leopards}{Change(now.leopards - before.leopards)}\n" +
-            $"Grass: {before.grass:0}% → {now.grass:0}%" + FireRecap();
+            $"Grass: {before.grass:0}% → {now.grass:0}%" + FireRecap() + PlantRecap();
         chapterPanel.SetActive(true);
     }
 

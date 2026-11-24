@@ -5,8 +5,8 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// SCRUM-390 Player action: grass fire. Once in each chapter except Winter, on its third day, a fire starts on a
-/// grass patch. The mascot warns the player (with Watch). Tapping a fire puts it out. A fire left alone burns
-/// its patch's grass and spreads to nearby grass, so the sheep lose food. The chapter card shows the result.
+/// grass patch. The mascot warns the player (with Watch). Each tap sprays water on a fire; 3 sprays put it out. A fire left alone burns
+/// its patch's grass and spreads to nearby grass, so the sheep lose food. Burnt grass grows back slowly. The chapter card shows the result.
 /// </summary>
 public partial class GuidedChallenge
 {
@@ -35,7 +35,7 @@ public partial class GuidedChallenge
         if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
         {
             var p = GrassFire.PickStartPatch();
-            if (p != null) Mascot.Alert("Oh no! A fire in the grass! Tap the flames to put it out before it spreads!", GrassFire.Ignite(p).transform);
+            if (p != null) Mascot.Alert("Oh no! A fire in the grass! Tap the flames to spray water before it spreads!", GrassFire.Ignite(p).transform);
             return;
         }
         if (fireChapter == CurrentChapter || CurrentChapter == 3) return;   // one per chapter, none in Winter (snow)
@@ -46,7 +46,7 @@ public partial class GuidedChallenge
         var patch = GrassFire.PickStartPatch();
         if (patch == null) return;
         var fire = GrassFire.Ignite(patch);
-        Mascot.Alert("Oh no! A fire in the grass! Tap the flames to put it out before it spreads!", fire.transform);
+        Mascot.Alert("Oh no! A fire in the grass! Tap the flames to spray water before it spreads!", fire.transform);
     }
 
     string FireRecap() =>
@@ -54,7 +54,7 @@ public partial class GuidedChallenge
         $"\nFires put out: {FiresPutOut}   Grass burned: {PatchesBurned} patch{(PatchesBurned == 1 ? "" : "es")}";
 }
 
-/// <summary>One burning grass patch: particle flames and smoke, scares animals away, eats the grass, spreads, tap to put out.</summary>
+/// <summary>One burning grass patch: particle flames and smoke, scares animals away, eats the grass, spreads; tap to spray water (3 sprays put it out).</summary>
 public class GrassFire : MonoBehaviour
 {
     static readonly List<GrassFire> active = new List<GrassFire>();
@@ -65,13 +65,16 @@ public class GrassFire : MonoBehaviour
     const float BurnDays = 0.5f;       // a patch burns out in half a game day
     const float SpreadEveryDays = 0.25f;
     const float TapRadiusPx = 110f;    // at 1200 px screen height; generous for small fingers
+    const int SpraysToPutOut = 3;      // each tap = one water spray; flames shrink a third each time
 
     ResourcePatch patch;
     float spreadTimer;
     bool gone;
     Light glow;
     float scareTimer;
-    static Material fireMat, smokeMat;
+    int sprays;
+    ParticleSystem flames, smoke;
+    static Material fireMat, smokeMat, waterMat;
     static Texture2D softDot;
     static int lastTapFrame = -1;
 
@@ -83,7 +86,7 @@ public class GrassFire : MonoBehaviour
         return options.Count == 0 ? null : options[Random.Range(0, options.Count)];
     }
 
-    static bool IsBurning(ResourcePatch p)
+    public static bool IsBurning(ResourcePatch p)
     {
         foreach (var f in active) if (f != null && f.patch == p) return true;
         return false;
@@ -113,9 +116,9 @@ public class GrassFire : MonoBehaviour
         if (fireMat == null) fireMat = MakeMat(true);
         if (smokeMat == null) smokeMat = MakeMat(false);
 
-        Particles("Flames", fireMat, 70f, 0.5f, 1.0f, 1.0f, 2.2f, 1.5f, 3.5f, 2.5f,
+        flames = Particles("Flames", fireMat, 70f, 0.5f, 1.0f, 1.0f, 2.2f, 1.5f, 3.5f, 2.5f,
                   new Color(1f, 0.85f, 0.3f, 1f), new Color(0.9f, 0.15f, 0.02f, 0f), 0.3f);
-        Particles("Smoke", smokeMat, 18f, 2.5f, 4f, 2.5f, 5f, 1.5f, 3f, 2f,
+        smoke = Particles("Smoke", smokeMat, 18f, 2.5f, 4f, 2.5f, 5f, 1.5f, 3f, 2f,
                   new Color(0.25f, 0.23f, 0.22f, 0.55f), new Color(0.5f, 0.5f, 0.5f, 0f), 1.5f);
 
         var lightGo = new GameObject("Glow");
@@ -127,7 +130,7 @@ public class GrassFire : MonoBehaviour
         glow.range = 14f;
     }
 
-    void Particles(string name, Material mat, float rate, float lifeMin, float lifeMax, float sizeMin, float sizeMax,
+    ParticleSystem Particles(string name, Material mat, float rate, float lifeMin, float lifeMax, float sizeMin, float sizeMax,
                    float speedMin, float speedMax, float radius, Color start, Color end, float y)
     {
         var go = new GameObject(name);
@@ -156,6 +159,7 @@ public class GrassFire : MonoBehaviour
         r.material = mat;
         r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         ps.Play();
+        return ps;
     }
 
     static Material MakeMat(bool additive)
@@ -204,6 +208,7 @@ public class GrassFire : MonoBehaviour
         if (patch.Amount <= 0.5f)
         {
             GuidedChallenge.NoteBurned();
+            BurntPatch.Mark(patch);
             Remove();
             return;
         }
@@ -255,10 +260,61 @@ public class GrassFire : MonoBehaviour
         }
         if (hit == null) return;
 
+        hit.Spray();
+    }
+
+    // One water spray: a blue splash burst, and the fire gets smaller. The last spray puts it out.
+    void Spray()
+    {
+        sprays++;
+        Splash();
+        if (sprays < SpraysToPutOut)
+        {
+            float left = 1f - (float)sprays / SpraysToPutOut;   // 2/3, then 1/3
+            SetStrength(flames, 70f * left, left);
+            SetStrength(smoke, 18f * (left + 0.5f), 1f);         // more steam/smoke while it is being put out
+            if (glow != null) glow.range = 14f * left;
+            return;
+        }
         GuidedChallenge.NotePutOut();
-        hit.Remove();
+        BurntPatch.Mark(patch);
+        Remove();
         if (active.Count == 0)
-            Mascot.Alert("You put out the fire! Well done, the grass can grow back now.", null);
+            Mascot.Alert("You put out the fire! Well done! The burnt grass will grow back slowly.", null);
+    }
+
+    static void SetStrength(ParticleSystem ps, float rate, float size)
+    {
+        if (ps == null) return;
+        var em = ps.emission; em.rateOverTime = rate;
+        var main = ps.main; main.startSizeMultiplier = size;
+    }
+
+    // Water splash burst made in code: blue drops thrown up that fall back down, removed after 2 s.
+    void Splash()
+    {
+        if (waterMat == null) waterMat = MakeMat(false);
+        var go = new GameObject("WaterSplash");
+        go.transform.position = transform.position + Vector3.up * 3f;
+        go.transform.rotation = Quaternion.Euler(-90f, 0f, 0f);
+        var ps = go.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        var main = ps.main;
+        main.loop = false;
+        main.duration = 0.3f;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.1f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.4f, 0.9f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(4f, 8f);
+        main.startColor = new Color(0.55f, 0.8f, 1f, 0.9f);
+        main.gravityModifier = 1.5f;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        var em = ps.emission; em.rateOverTime = 0f; em.SetBursts(new[] { new ParticleSystem.Burst(0f, 60) });
+        var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Cone; sh.angle = 35f; sh.radius = 1.5f;
+        var r = go.GetComponent<ParticleSystemRenderer>();
+        r.material = waterMat;
+        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        ps.Play();
+        Destroy(go, 2f);
     }
 
     void Remove()
@@ -266,5 +322,38 @@ public class GrassFire : MonoBehaviour
         gone = true;
         active.Remove(this);
         if (this != null) Destroy(gameObject);
+    }
+}
+
+/// <summary>
+/// Burnt ground: after a fire, the patch regrows at a quarter of its normal speed for BurnRecoverDays game days,
+/// then goes back to normal (like real grassland recovering after a fire).
+/// </summary>
+public class BurntPatch : MonoBehaviour
+{
+    const float SlowFactor = 0.25f;
+    const float BurnRecoverDays = 3f;
+
+    ResourcePatch patch;
+    float normalRegrow;
+    float timer;
+
+    public static void Mark(ResourcePatch p)
+    {
+        if (p == null) return;
+        var b = p.GetComponent<BurntPatch>();
+        if (b != null) { b.timer = 0f; return; }   // burnt again: restart the slow time
+        b = p.gameObject.AddComponent<BurntPatch>();
+        b.patch = p;
+        b.normalRegrow = p.RegrowPerSecond;
+        p.RegrowPerSecond = b.normalRegrow * SlowFactor;
+    }
+
+    void Update()
+    {
+        timer += Time.deltaTime;   // scaled time: stops while paused
+        if (timer < BurnRecoverDays * Mathf.Max(1f, ClockService.DaySeconds)) return;
+        if (patch != null) patch.RegrowPerSecond = normalRegrow;
+        Destroy(this);
     }
 }
