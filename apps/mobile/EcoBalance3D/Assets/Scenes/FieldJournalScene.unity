@@ -1456,7 +1456,7 @@ GameObject:
   - component: {fileID: 517382353}
   - component: {fileID: 517382352}
   m_Layer: 5
-  m_Name: MyRunsBtn
+  m_Name: RunsBtn
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

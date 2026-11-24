@@ -20,11 +20,20 @@ using UnityEngine.UI;
 /// </summary>
 public class FieldJournalScreen : MonoBehaviour
 {
-    public enum Page { Ecosystem, Investigations, Observations, Facts }
-    const int PageCount = 4;
+    public enum Page { Ecosystem, Investigations, Observations, Runs, Facts }
+    const int PageCount = 5;
 
     static Page? requestedPage;
     static string requestedCaseKey;
+
+    // My Runs
+    GameObject runsPage;
+    List<MyRuns> pastRuns = new();      // newest first
+    int selectedRun;
+    RectTransform runsContent;
+    TextMeshProUGUI runsSub, runTitle, runBody, runLegend;
+    RawImage runGraph;
+    Texture2D runTex;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() { requestedPage = null; requestedCaseKey = null; }   // domain reload is off
@@ -169,6 +178,7 @@ public class FieldJournalScreen : MonoBehaviour
         Tab("DYKBtn", Page.Facts);
         Wire("PreviousBtn", () => Show(Previous(current)));
         Wire("NextBtn", () => Show(Next(current)));
+        Tab("RunsBtn", Page.Runs);   // optional: does nothing if the scene has no RunsBtn
         // The arrows are blank squares in the scene: label them with the page they lead to.
         previousCaption = ButtonCaption.Ensure(Find("PreviousBtn")?.GetComponent<Button>(), "", 30f);
         nextCaption = ButtonCaption.Ensure(Find("NextBtn")?.GetComponent<Button>(), "", 30f);
@@ -177,6 +187,7 @@ public class FieldJournalScreen : MonoBehaviour
         BuildInvestigations();
         BuildObservations();
         BuildFacts();
+        BuildRuns();      // new
 
         selected = cases.PickInitial(seen, requestedCaseKey);
         // Inside a run the journal is mostly for watching that run, so open on its graph.
@@ -188,6 +199,7 @@ public class FieldJournalScreen : MonoBehaviour
     void OnDestroy()
     {
         if (cases?.Detector != null) cases.Detector.CaseUnlocked -= OnCaseUnlocked;
+        if (runTex != null) Destroy(runTex);
     }
 
     void OnCaseUnlocked(InvestigationCase _)
@@ -202,11 +214,13 @@ public class FieldJournalScreen : MonoBehaviour
         foreach (var go in ecosystemPage) if (go != null) go.SetActive(page == Page.Ecosystem);
         if (investigationsPage != null) investigationsPage.SetActive(page == Page.Investigations);
         if (observationsPage != null) observationsPage.SetActive(page == Page.Observations);
+        if (runsPage != null) runsPage.SetActive(page == Page.Runs);
         if (factsPage != null) factsPage.SetActive(page == Page.Facts);
         foreach (var kv in tabs) kv.Value.image.color = kv.Key == page ? TabSelected : kv.Value.normal;
         if (previousCaption != null) previousCaption.text = $"<size=220%>‹</size>\n{titles[Previous(page)]}";
         if (nextCaption != null) nextCaption.text = $"<size=220%>›</size>\n{titles[Next(page)]}";
         if (page == Page.Investigations) RefreshInvestigations();
+        if (page == Page.Runs) RefreshRuns();
         RefreshBadge();
     }
 
@@ -460,6 +474,187 @@ public class FieldJournalScreen : MonoBehaviour
         }
         summary.text = sb.ToString();
     }
+
+
+    // ---------- My Runs ----------
+
+    void BuildRuns()
+    {
+        runsPage = PageRoot("RunsPage");
+        var p = runsPage.transform;
+        Header(p, "My Runs");
+        runsSub = Sub(p, "");
+
+        // Left: scrolling list of saved runs (same setup as the case list).
+        var view = Box(p, "RunList", new Vector2(-640f, -60f), new Vector2(980f, 880f), new Color(1f, 1f, 1f, 0f));
+        view.gameObject.AddComponent<RectMask2D>();
+        runsContent = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
+        runsContent.SetParent(view, false);
+        runsContent.anchorMin = new Vector2(0f, 1f); runsContent.anchorMax = Vector2.one; runsContent.pivot = new Vector2(0.5f, 1f);
+        runsContent.sizeDelta = Vector2.zero;
+        var v = runsContent.gameObject.AddComponent<VerticalLayoutGroup>();
+        v.spacing = 20f; v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+        runsContent.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        var scroll = view.gameObject.AddComponent<ScrollRect>();
+        scroll.content = runsContent; scroll.viewport = view; scroll.horizontal = false;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+
+        // Right: the selected run.
+        var detail = Box(p, "RunDetail", new Vector2(450f, -60f), new Vector2(980f, 880f), Card);
+        runTitle = Text(detail, "", 52f, Ink, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        Place(runTitle.rectTransform, new Vector2(56f, -40f), new Vector2(868f, 80f));
+
+        var go = new GameObject("RunGraph", typeof(RectTransform), typeof(RawImage));
+        go.transform.SetParent(detail, false);
+        runGraph = go.GetComponent<RawImage>();
+        runGraph.raycastTarget = false;
+        Place(runGraph.rectTransform, new Vector2(56f, -130f), new Vector2(868f, 300f));
+
+        runLegend = Text(detail, "", 30f, Body, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        Place(runLegend.rectTransform, new Vector2(56f, -440f), new Vector2(868f, 50f));
+        runBody = Text(detail, "", 36f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        Place(runBody.rectTransform, new Vector2(56f, -510f), new Vector2(868f, 340f));
+    }
+
+    void RefreshRuns()
+    {
+        if (runsContent == null) return;
+        pastRuns = RunHist.Load().runs;
+        pastRuns.Reverse();                                   // newest first
+        selectedRun = Mathf.Clamp(selectedRun, 0, Mathf.Max(0, pastRuns.Count - 1));
+
+        runsSub.text = pastRuns.Count == 0
+            ? "No runs saved yet. Finish a run and it will show up here."
+            : $"Your last {pastRuns.Count} runs. Tap one to see how it went.";
+
+        // The longest run gets the BEST tag (the newest one if there is a tie).
+        int best = -1;
+        for (int i = 0; i < pastRuns.Count; i++)
+            if (best < 0 || pastRuns[i].days_survived > pastRuns[best].days_survived) best = i;
+
+        foreach (Transform c in runsContent) { c.gameObject.SetActive(false); Destroy(c.gameObject); }
+        for (int i = 0; i < pastRuns.Count; i++) RunRow(i, i == best);
+        ShowRunDetail();
+    }
+
+    static string RunDate(MyRuns r) =>
+        System.DateTime.TryParse(r.start, out var dt)
+            ? dt.ToString("d MMM, HH:mm", System.Globalization.CultureInfo.InvariantCulture)
+            : r.id;
+
+    void RunRow(int index, bool isBest)
+    {
+        var r = pastRuns[index];
+        var row = Box(runsContent, $"Run_{index + 1}", Vector2.zero, Vector2.zero, index == selectedRun ? RowSelected : Row);
+        row.gameObject.AddComponent<LayoutElement>().preferredHeight = 150f;
+        int i = index;
+        row.gameObject.AddComponent<Button>().onClick.AddListener(() => { selectedRun = i; RefreshRuns(); });
+
+        var title = Text(row, RunDate(r), 40f, Ink, FontStyles.Bold, TextAlignmentOptions.MidlineLeft);
+        title.rectTransform.anchorMin = Vector2.zero; title.rectTransform.anchorMax = Vector2.one;
+        title.rectTransform.offsetMin = new Vector2(40f, 50f); title.rectTransform.offsetMax = new Vector2(-230f, -16f);
+
+        var sub = Text(row, $"{r.mode} · lasted {r.days_survived} days", 28f, Muted, FontStyles.Normal, TextAlignmentOptions.MidlineLeft);
+        sub.rectTransform.anchorMin = Vector2.zero; sub.rectTransform.anchorMax = new Vector2(1f, 0f);
+        sub.rectTransform.pivot = new Vector2(0.5f, 0f);
+        sub.rectTransform.offsetMin = new Vector2(40f, 16f); sub.rectTransform.offsetMax = new Vector2(-230f, 60f);
+
+        var pill = Box(row, "Pill", Vector2.zero, new Vector2(180f, 56f), isBest ? Orange : Green);
+        pill.anchorMin = pill.anchorMax = pill.pivot = new Vector2(1f, 0.5f);
+        pill.anchoredPosition = new Vector2(-32f, 0f);
+        Fill(Text(pill, isBest ? "BEST" : $"{r.stars} / 3 stars", 28f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center).rectTransform);
+    }
+
+    void ShowRunDetail()
+    {
+        if (pastRuns.Count == 0)
+        {
+            runTitle.text = "No runs yet";
+            runBody.text = "Play an exploration. When you leave it, the run is saved here so you can compare it next time.";
+            runLegend.text = "";
+            runGraph.gameObject.SetActive(false);
+            return;
+        }
+        runGraph.gameObject.SetActive(true);
+        var r = pastRuns[selectedRun];
+        var before = selectedRun + 1 < pastRuns.Count ? pastRuns[selectedRun + 1] : null;   // the run just before this one
+
+        runTitle.text = $"{RunDate(r)} · {r.mode}";
+        DrawRunGraph(r);
+        runLegend.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Blue)}>Blue sheep</color>    " +
+                         $"<color=#{ColorUtility.ToHtmlStringRGB(Orange)}>Snow leopards</color>    " +
+                         $"<color=#{ColorUtility.ToHtmlStringRGB(Green)}>Trees</color>";
+
+        var sb = new StringBuilder();
+        sb.Append("<b>").Append(CompareRuns(r, before)).Append("</b>\n\n");
+        sb.Append(OutcomeText(r.outcome)).Append("\n\n");
+        sb.Append("Most blue sheep: ").Append(r.peaksheep).Append('\n');
+        sb.Append("Most snow leopards: ").Append(r.peakleopard).Append('\n');
+        sb.Append("At the end: ").Append(r.endsheep).Append(" sheep, ").Append(r.endleopard).Append(" leopards, ").Append(r.endtrees).Append(" trees");
+        if (r.cases != null && r.cases.Count > 0) sb.Append("\nCases found: ").Append(r.cases.Count);
+        runBody.text = sb.ToString();
+    }
+
+    static string CompareRuns(MyRuns now, MyRuns before)
+    {
+        if (before == null) return "This was your first saved run. Come back and beat it!";
+        int diff = now.days_survived - before.days_survived;
+        string head = $"Run before: {before.days_survived} days. This run: {now.days_survived} days.";
+        return diff > 0 ? $"{head}\nYou lasted {diff} days longer!"
+             : diff < 0 ? $"{head}\nSo close! Can you beat {before.days_survived} days?"
+             : $"{head}\nSame as last time. Try something different!";
+    }
+
+    static string OutcomeText(string outcome) => outcome switch
+    {
+        "BothSurvived" => "Both animals made it to the end!",
+        "SheepDied" => "The blue sheep ran out. What could help them next time?",
+        "LeopardDied" => "The snow leopards ran out. What could help them next time?",
+        _ => ""
+    };
+
+    // Small line graph drawn straight into a texture, so it doesn't depend on PopulationGraph.
+    void DrawRunGraph(MyRuns r)
+    {
+        const int W = 868, H = 300;
+        if (runTex != null) Destroy(runTex);
+        runTex = new Texture2D(W, H, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        var px = new Color32[W * H];
+        for (int i = 0; i < px.Length; i++) px[i] = new Color32(255, 255, 255, 255);
+
+        int max = 1;
+        foreach (var v in r.sheep) max = Mathf.Max(max, v);
+        foreach (var v in r.leopard) max = Mathf.Max(max, v);
+        foreach (var v in r.trees) max = Mathf.Max(max, v);
+
+        PlotLine(px, W, H, r.trees, max, Green);
+        PlotLine(px, W, H, r.sheep, max, Blue);
+        PlotLine(px, W, H, r.leopard, max, Orange);
+
+        runTex.SetPixels32(px);
+        runTex.Apply();
+        runGraph.texture = runTex;
+    }
+
+    static void PlotLine(Color32[] px, int W, int H, List<int> s, int max, Color color)
+    {
+        int n = s.Count;
+        if (n == 0) return;
+        Color32 c = color;
+        int prevY = -1;
+        for (int x = 0; x < W; x++)
+        {
+            float f = n == 1 ? 0f : x * (n - 1f) / (W - 1f);
+            int i0 = (int)f, i1 = Mathf.Min(i0 + 1, n - 1);
+            float val = Mathf.Lerp(s[i0], s[i1], f - i0);
+            int y = 6 + Mathf.RoundToInt(val / max * (H - 12));
+            int a = prevY < 0 ? y : Mathf.Min(prevY, y);
+            int b = prevY < 0 ? y : Mathf.Max(prevY, y);
+            for (int yy = Mathf.Max(0, a - 2); yy <= Mathf.Min(H - 1, b + 2); yy++) px[yy * W + x] = c;
+            prevY = y;
+        }
+    }
+
 
     // ---------- Did You Know? ----------
 
