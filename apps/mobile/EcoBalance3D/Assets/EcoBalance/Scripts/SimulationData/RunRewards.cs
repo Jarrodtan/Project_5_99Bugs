@@ -2,16 +2,16 @@ using UnityEngine;
 
 public static class RunRewards
 {
-    // 1 to 3 stars, each easy to explain to a child.
+    public const int SeasonDays = 5;     // 1 star: lasted a season
+    public const int FullRunDays = 20;   // 3 stars: finished the whole Guided story
+
     public static int Stars(MyRuns r)
     {
-        int stars = 0;
-        if (r.outcome == "BothSurvived") stars++;          // both animals still alive at the end
-        if (r.endtrees > 0) stars++;                        // the trees survived too
+        if (r.days_survived < SeasonDays) return 0;
 
-        var before = RunHist.previous();                    // the last saved run (this one isn't saved yet)
-        if (before != null && r.days_survived > before.days_survived) stars++;   // beat the last run
-
+        int stars = 1;
+        if (r.outcome == "BothSurvived" && r.endsheep >= 2 && r.endleopard >= 2) stars++;
+        if (r.days_survived >= FullRunDays) stars++;
         return stars;
     }
 }

@@ -34,6 +34,7 @@ public class FieldJournalScreen : MonoBehaviour
     TextMeshProUGUI runsSub, runTitle, runBody, runLegend;
     RawImage runGraph;
     Texture2D runTex;
+    TextMeshProUGUI starsHint;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() { requestedPage = null; requestedCaseKey = null; }   // domain reload is off
@@ -513,7 +514,13 @@ public class FieldJournalScreen : MonoBehaviour
         runLegend = Text(detail, "", 30f, Body, FontStyles.Bold, TextAlignmentOptions.TopLeft);
         Place(runLegend.rectTransform, new Vector2(56f, -440f), new Vector2(868f, 50f));
         runBody = Text(detail, "", 36f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
-        Place(runBody.rectTransform, new Vector2(56f, -510f), new Vector2(868f, 340f));
+        Place(runBody.rectTransform, new Vector2(56f, -510f), new Vector2(868f, 270f));
+
+        starsHint = Text(detail,
+            $"<b>How to earn stars</b>\n" +
+            $"1 star: last {RunRewards.SeasonDays} days  ·  2 stars: both animals still alive at the end  ·  3 stars: last all {RunRewards.FullRunDays} days",
+            28f, Muted, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        Place(starsHint.rectTransform, new Vector2(56f, -790f), new Vector2(868f, 80f));
     }
 
     void RefreshRuns()
