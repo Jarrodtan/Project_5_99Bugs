@@ -104,7 +104,7 @@ public class TerrainCameraController : MonoBehaviour
         followTarget = null;
         pov = false;
         if (terrain == null) terrain = Terrain.activeTerrain;
-        focusTarget = terrain != null ? terrain.GetPosition() + terrain.terrainData.size * 0.5f : Vector3.zero;
+        focusTarget = terrain != null && terrain.terrainData != null ? terrain.GetPosition() + terrain.terrainData.size * 0.5f : Vector3.zero;
         focusTarget.y = GroundHeight(focusTarget);
         yawTarget = startYaw;
         pitchTarget = startPitch;
@@ -145,6 +145,27 @@ public class TerrainCameraController : MonoBehaviour
         distTarget = followDistance;
         pitchTarget = followPitch;
         yawTarget = target.eulerAngles.y;
+    }
+
+    // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
+    public void Follow(Transform target, float distance)
+    {
+        Follow(target);
+        distTarget = Mathf.Clamp(distance, minDistance, maxDistance);
+    }
+
+    // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
+    public void FrameOverview()
+    {
+        followTarget = null;
+        pov = false;
+        if (terrain == null) terrain = Terrain.activeTerrain;
+        if (terrain == null) return;
+        focusTarget = terrain.GetPosition() + terrain.terrainData.size * 0.5f;
+        focusTarget.y = GroundHeight(focusTarget);
+        yawTarget = startYaw;
+        pitchTarget = 50f;
+        distTarget = maxDistance;
     }
 
     public void StopFollowing()
@@ -406,7 +427,7 @@ public class TerrainCameraController : MonoBehaviour
 
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): the camera itself stays over the terrain, not just the point
         // it looks at, so zooming out never shows the empty edge of the world.
-        if (terrain != null)
+        if (terrain != null && terrain.terrainData != null)
         {
             Vector3 tMin = terrain.GetPosition(), tMax = tMin + terrain.terrainData.size;
             pos.x = Mathf.Clamp(pos.x, tMin.x + 2f, tMax.x - 2f);
@@ -427,7 +448,7 @@ public class TerrainCameraController : MonoBehaviour
     // How much higher the camera must be so the line down to the focus clears every hill on the way.
     float LiftToSee(Vector3 from, Vector3 to)
     {
-        if (terrain == null) return 0f;
+        if (terrain == null || terrain.terrainData == null) return 0f;
         const int Steps = 20;
         const float Clearance = 1.5f;
         float need = 0f;
@@ -445,5 +466,5 @@ public class TerrainCameraController : MonoBehaviour
     Quaternion YawRotation() => Quaternion.Euler(0f, yaw, 0f);
 
     float GroundHeight(Vector3 p) =>
-        terrain != null ? terrain.SampleHeight(p) + terrain.GetPosition().y : p.y;
+        terrain != null && terrain.terrainData != null ? terrain.SampleHeight(p) + terrain.GetPosition().y : p.y;
 }

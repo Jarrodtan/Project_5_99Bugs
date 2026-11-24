@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 995966ac76ded464aa6e2e5f3f377d4b, type: 3}
   m_Name: HimalayaConfig
   m_EditorClassIdentifier: Assembly-CSharp::HimalayaConfig
-  west: 86.72
-  south: 27.78
-  east: 86.97
-  north: 28.03
+  west: 86.595
+  south: 27.64
+  east: 87.095
+  north: 28.14
   tileZoom: 11
   heightmapResolution: 513
-  worldWidth: 200
+  worldWidth: 400
   verticalExaggeration: 1
-  areaSizeKm: 25
-  landCover: {fileID: 0}
+  areaSizeKm: 50
+  landCover: {fileID: 2800000, guid: f6d98535ab794042979f0ae6f3694e82, type: 3}
   treeLineMeters: 4200
   treeFadeMeters: 800
   maxTreeSlope: 35

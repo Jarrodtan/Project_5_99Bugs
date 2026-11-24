@@ -48,6 +48,14 @@ public class HimalayaConfig : ScriptableObject
     [Header("Terrain painting")]
     public float snowLineMeters = 5200f;
     public float rockSlope = 38f;
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    [Tooltip("Snow line moves up/down by up to this many metres from place to place, so it isn't a flat ring. 0 = off.")]
+    [Min(0f)] public float snowLineNoiseMeters = 300f;
+    [Tooltip("Rock slope angle varies by up to this many degrees from place to place, so rock edges break into patches. 0 = off.")]
+    [Min(0f)] public float rockSlopeNoise = 6f;
+    [Tooltip("Rough size (world units) of the patches the noise above makes.")]
+    [Min(1f)] public float paintNoiseScale = 25f;
+    // [AI-GENERATED END]
 
     [Header("Resource patches (ResourcePatch)")]
     public int[] grassClasses = { 30, 20 };       // ESA: 30 grassland, 20 shrubland

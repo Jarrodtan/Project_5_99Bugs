@@ -13,7 +13,7 @@ using UnityEngine.UI;
 /// ecosystem's real state at the end of Day 20, or early if both species die out. Endings are kept in an
 /// Ending Gallery across restarts. Starts on its own when the simulation scene opens in Guided mode.
 /// </summary>
-public class GuidedChallenge : MonoBehaviour
+public partial class GuidedChallenge : MonoBehaviour
 {
     public const int ChallengeDays = 20;
     const float QuietSecondsBetweenEvents = 12f;   // real seconds of watching between two popups
@@ -178,6 +178,8 @@ public class GuidedChallenge : MonoBehaviour
     void Awake()
     {
         PopupOpen = false;   // statics survive Play without a domain reload
+        ResetChapters();
+        instance = this;
         // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
         var sim = FindFirstObjectByType<EcosystemSimulator>();
         if (sim != null) sim.mode = EcosystemSimulator.SimulationMode.Events;
@@ -197,13 +199,22 @@ public class GuidedChallenge : MonoBehaviour
         if (finished) return;
         int day = Day;
         if (day != lastDay) { lastDay = day; GuidedEffects.NewDay(day); }
-        if (!started) { started = Sheep > 0 || Leopards > 0; UpdatePill(); return; }   // wait for the animals to spawn
+        if (!started)   // wait for the animals to spawn
+        {
+            started = Sheep > 0 || Leopards > 0;
+            if (started) ApplyResume();   // SCRUM-375: Continue a saved story
+            UpdatePill();
+            return;
+        }
         UpdatePill();
 
         if (Sheep == 0 && Leopards == 0) { Finish(); return; }       // early collapse
         if (day > ChallengeDays) { Finish(); return; }               // end of Day 20
 
+        if (!string.IsNullOrEmpty(StoryOverReason)) { Finish(); return; }   // SCRUM-374: e.g. main animal died
+
         if (!introDone) { ShowIntro(); return; }
+        if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
         if (showing || Time.unscaledTime < quietUntil) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
@@ -262,6 +273,7 @@ public class GuidedChallenge : MonoBehaviour
     void Finish()
     {
         finished = true;
+        DeleteSave();   // SCRUM-375: an ended story can't be continued
         if (speed != null) speed.Pause();
         int i = PickEnding();
         int mask = PlayerPrefs.GetInt(GalleryKey, 0);
@@ -348,7 +360,7 @@ public class GuidedChallenge : MonoBehaviour
         var panel = Find(shuminRoot, "DayPanel");
         if (panel == null) return;
         if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
-        bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+        ScreenFlow.CreamPanel(bg);   // M3: same cream pill as the rest of Shu Min's HUD (was a dark pill)
         bg.raycastTarget = false;
         foreach (var name in new[] { "SeasonTxt", "Divider" })
         {
@@ -361,7 +373,7 @@ public class GuidedChallenge : MonoBehaviour
             var rt = t.rectTransform;
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
             rt.offsetMin = new Vector2(16f, 4f); rt.offsetMax = new Vector2(-16f, -4f);
-            t.color = Color.white;
+            t.color = ScreenFlow.InkColor;
             t.alignment = TextAlignmentOptions.Center;
             t.textWrappingMode = TextWrappingModes.NoWrap;
             t.enableAutoSizing = true;
@@ -618,6 +630,8 @@ public class GuidedChallenge : MonoBehaviour
             choiceLabels[i] = Label(b.transform, "", 36f, Color.white);
         }
         popup.SetActive(false);
+
+        BuildChapterUI(root);   // SCRUM-374
 
         // Ending screen.
         endPanel = Dim(root, "Ending");
