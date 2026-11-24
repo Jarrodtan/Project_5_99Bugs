@@ -20,7 +20,7 @@ using UnityEngine.UI;
 /// </summary>
 public class FieldJournalScreen : MonoBehaviour
 {
-    public enum Page { Ecosystem, Investigations, Observations, Runs, Facts }
+    public enum Page { Ecosystem, Investigations, Observations, Facts, Runs}
     const int PageCount = 5;
 
     static Page? requestedPage;
@@ -176,9 +176,9 @@ public class FieldJournalScreen : MonoBehaviour
         Tab("InvestigationBtn", Page.Investigations);
         Tab("ObservationBtn", Page.Observations);
         Tab("DYKBtn", Page.Facts);
+        Tab("RunsBtn", Page.Runs);
         Wire("PreviousBtn", () => Show(Previous(current)));
         Wire("NextBtn", () => Show(Next(current)));
-        Tab("RunsBtn", Page.Runs);   // optional: does nothing if the scene has no RunsBtn
         // The arrows are blank squares in the scene: label them with the page they lead to.
         previousCaption = ButtonCaption.Ensure(Find("PreviousBtn")?.GetComponent<Button>(), "", 30f);
         nextCaption = ButtonCaption.Ensure(Find("NextBtn")?.GetComponent<Button>(), "", 30f);
@@ -693,7 +693,8 @@ public class FieldJournalScreen : MonoBehaviour
         if (b.TryGetComponent(out Image img)) tabs[page] = (img, img.color);
         var label = b.GetComponentInChildren<TMP_Text>(true);
         if (label != null && !string.IsNullOrWhiteSpace(label.text))
-            titles[page] = label.text.Trim().Trim('\'', '"').Replace(" Facts", "").Trim();
+            titles[page] = label.text.Replace("\n", " ").Replace("\r", " ")
+                               .Trim().Trim('\'', '"').Replace(" Facts", "").Trim();
         Rewire(b, () => Show(page));
     }
 

@@ -17,6 +17,8 @@ public class WeatherVisualController : MonoBehaviour
     public Color rainLightColor = new Color(0.75f, 0.8f, 0.85f);    // Overcast grey-blue
     public Color heatwaveLightColor = new Color(1f, 0.9f, 0.75f); // Warm golden sun
 
+    SimulationSpeedController speedController;
+
     void Awake()
     {
         if (enableWeatherParticles)
@@ -101,24 +103,33 @@ public class WeatherVisualController : MonoBehaviour
 
     public void SetWeather(string season, string condition)
     {
-        isSnowActive = (season != null && season.ToLower().Contains("winter")) ||
-                       (condition != null && condition.ToLower().Contains("snow"));
+        string s = season != null ? season.ToLowerInvariant() : "";
+        string c = condition != null ? condition.ToLowerInvariant() : "";
 
-        isRainActive = condition != null && condition.ToLower().Contains("rain");
-        bool isHeatwave = condition != null && condition.ToLower().Contains("drought");
+        bool isWinter = s.Contains("winter");
+        bool hasCondition = c.Length > 0;
+
+        // Snow only when the condition says so. A winter day with no condition set still snows;
+        // a winter day that is "clear" does not.
+        isSnowActive = c.Contains("snow") || (isWinter && !hasCondition);
+        isRainActive = c.Contains("rain");
+        bool isHeatwave = c.Contains("drought");
+
+        Debug.Log($"[WEATHER] season='{season}' condition='{condition}' -> snow={isSnowActive} rain={isRainActive}");
 
         if (directionalLight != null)
         {
             if (isSnowActive) directionalLight.color = winterLightColor;
             else if (isRainActive) directionalLight.color = rainLightColor;
             else if (isHeatwave) directionalLight.color = heatwaveLightColor;
+            else if (isWinter) directionalLight.color = winterLightColor;   // cold light, no snow
             else directionalLight.color = normalLightColor;
         }
     }
 
     void Update()
     {
-        SimulationSpeedController speedController = FindAnyObjectByType<SimulationSpeedController>();
+        if (speedController == null) speedController = FindAnyObjectByType<SimulationSpeedController>();
         bool isPaused = speedController != null && !speedController.IsRunning;
 
         // Control Snow
