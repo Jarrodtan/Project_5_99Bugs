@@ -179,6 +179,7 @@ public partial class GuidedChallenge : MonoBehaviour
     {
         PopupOpen = false;   // statics survive Play without a domain reload
         ResetChapters();
+        instance = this;
         // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
         var sim = FindFirstObjectByType<EcosystemSimulator>();
         if (sim != null) sim.mode = EcosystemSimulator.SimulationMode.Events;
@@ -198,7 +199,13 @@ public partial class GuidedChallenge : MonoBehaviour
         if (finished) return;
         int day = Day;
         if (day != lastDay) { lastDay = day; GuidedEffects.NewDay(day); }
-        if (!started) { started = Sheep > 0 || Leopards > 0; UpdatePill(); return; }   // wait for the animals to spawn
+        if (!started)   // wait for the animals to spawn
+        {
+            started = Sheep > 0 || Leopards > 0;
+            if (started) ApplyResume();   // SCRUM-375: Continue a saved story
+            UpdatePill();
+            return;
+        }
         UpdatePill();
 
         if (Sheep == 0 && Leopards == 0) { Finish(); return; }       // early collapse
@@ -266,6 +273,7 @@ public partial class GuidedChallenge : MonoBehaviour
     void Finish()
     {
         finished = true;
+        DeleteSave();   // SCRUM-375: an ended story can't be continued
         if (speed != null) speed.Pause();
         int i = PickEnding();
         int mask = PlayerPrefs.GetInt(GalleryKey, 0);
