@@ -60,16 +60,17 @@ public class DataLogging : MonoBehaviour
         recording = false;
 
         MyRuns run = BuildRecord(runMode);
-        RunHist.Add(run);
-        WriteCsvFiles(run);
+        RunHist.Add(run);          // for the Field Journal, saved first
+        try { WriteCsvFiles(run); }
+        catch (System.Exception e) { Debug.LogWarning($"[DATA LOG] CSV not saved: {e.Message}"); }
     }
 
     void WriteCsvFiles(MyRuns r)
     {
         string folder = Application.isEditor
-            ? Path.Combine(Application.dataPath, "EcoBalance/Data/DataLogging")
-            : Path.Combine(Application.persistentDataPath, "DataLogging");
-        Directory.CreateDirectory(folder);
+       ? Path.GetFullPath(Path.Combine(Application.dataPath, "../DataLogging"))
+       : Path.Combine(Application.persistentDataPath, "DataLogging");
+        Directory.CreateDirectory(folder);   
 
         var csv = new StringBuilder();
         csv.AppendLine("RunId,Mode,Tick,Day,BlueSheep,SnowLeopard,Trees,TotalAnimals");
