@@ -13,7 +13,7 @@ using UnityEngine.UI;
 /// Buttons are found by their object names in the scenes (StartBtn, ExploreBtn, StartGuidedBtn...),
 /// so the scenes need no setup; keep those names when restyling. Runs on its own at startup.
 /// </summary>
-public static class ScreenFlow
+public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude Opus 5.5): partial, the family picker is in Guided/Family/FamilyPicker.cs
 {
     public const string Home = "HomeScreen", Ecosystems = "EcosystemSelectionScreen", Modes = "ModeSelectionScreen",
         Journal = "FieldJournalScene", Configuration = "ConfigurationScreen", Simulation = "HimalayaSimulation";
@@ -77,7 +77,8 @@ public static class ScreenFlow
             case Modes:
                 Mascot.SetMenuLine(scene, Mascot.ModeSelectLine);
                 On("BackBtn", () => Load(Ecosystems));
-                On("StartGuidedBtn", () => { if (GuidedChallenge.HasSave) ShowResumeBox(); else StartSimulation(true); });
+                // SCRUM-375 + SCRUM-380: a saved story offers Continue / New Story; a new story picks Milo or Snowy first.
+                On("StartGuidedBtn", () => { if (GuidedChallenge.HasSave) ShowResumeBox(); else ShowFamilyPicker(); });
                 On("StartFreeBtn", () => StartSimulation(false));
                 On("FieldJournalBtn", OpenJournal);
                 break;
@@ -370,12 +371,15 @@ public static class ScreenFlow
         Load(guided ? Simulation : Configuration);
     }
 
-    // Guided Exploration always starts from the same ecosystem (Shumin's research): 10 Blue Sheep, 2 Snow Leopards.
+    // Guided Exploration starts from the chosen story's fixed ecosystem (research doc, Starting Population
+    // Configuration): Milo's story 20 Blue Sheep + 1 Snow Leopard, Snowy's story 25 Blue Sheep + 3 Snow Leopards.
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): was 10 + 2 for every run; now set by FamilyManager.SelectedStory.
     static void UseGuidedStart()
     {
+        var (sheep, leopards) = FamilyManager.StartingPopulation(FamilyManager.SelectedStory);
         EcosystemSimulator.StartingPopulationOverrides.Clear();
-        foreach (var n in new[] { "BlueSheep", "Blue Sheep" }) EcosystemSimulator.StartingPopulationOverrides[n] = 10;
-        foreach (var n in new[] { "SnowLeopard", "Snow Leopard" }) EcosystemSimulator.StartingPopulationOverrides[n] = 2;
+        foreach (var n in new[] { "BlueSheep", "Blue Sheep" }) EcosystemSimulator.StartingPopulationOverrides[n] = sheep;
+        foreach (var n in new[] { "SnowLeopard", "Snow Leopard" }) EcosystemSimulator.StartingPopulationOverrides[n] = leopards;
     }
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5)
@@ -404,7 +408,7 @@ public static class ScreenFlow
             if (AudioManager.Instance != null) AudioManager.Instance.SwitchToSimu();
             Load(Simulation);
         });
-        Btn(card.transform, "New Story", new Vector2(0f, -110f), new Color(0.28f, 0.5f, 0.75f), () => { GuidedChallenge.DeleteSave(); StartSimulation(true); });
+        Btn(card.transform, "New Story", new Vector2(0f, -110f), new Color(0.28f, 0.5f, 0.75f), () => { GuidedChallenge.DeleteSave(); Object.Destroy(canvasGo); ShowFamilyPicker(); });
         Btn(card.transform, "Back", new Vector2(370f, -110f), new Color(0.55f, 0.55f, 0.55f), () => Object.Destroy(canvasGo));
         StyleLikeShumin(card, "Back");
     }
