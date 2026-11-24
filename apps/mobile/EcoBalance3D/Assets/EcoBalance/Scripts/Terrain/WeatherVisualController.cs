@@ -9,6 +9,10 @@ public class WeatherVisualController : MonoBehaviour
 
     private bool isSnowActive = false;
     private bool isRainActive = false;
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): M3 - every weather has its own particles.
+    private ParticleSystem leafSystem, pollenSystem;
+    private bool isLeavesActive, isSunnyActive;
+    private ClockService clock;
 
     [Header("Lighting & Environment Shifts")]
     public Light directionalLight;
@@ -27,6 +31,8 @@ public class WeatherVisualController : MonoBehaviour
         {
             if (snowSystem == null) CreateProceduralSnowSystem();
             if (rainSystem == null) CreateProceduralRainSystem();
+            if (leafSystem == null) CreateLeafSystem();
+            if (pollenSystem == null) CreatePollenSystem();
         }
 
         if (directionalLight == null)
@@ -155,6 +161,9 @@ public class WeatherVisualController : MonoBehaviour
         isSnowActive = c.Contains("snow") || (isWinter && !hasCondition);
         isRainActive = c.Contains("rain");
         bool isHeatwave = c.Contains("drought");
+        // Autumn without rain/snow: leaves blowing in the wind. Clear or dry Spring/Summer: floating pollen in the sun.
+        isLeavesActive = s.Contains("autumn") && !isSnowActive && !isRainActive;
+        isSunnyActive = !isWinter && !s.Contains("autumn") && !isSnowActive && !isRainActive;
 
         Debug.Log($"[WEATHER] season='{season}' condition='{condition}' -> snow={isSnowActive} rain={isRainActive}");
 
@@ -172,6 +181,22 @@ public class WeatherVisualController : MonoBehaviour
     {
         if (speedController == null) speedController = FindAnyObjectByType<SimulationSpeedController>();
         bool isPaused = speedController != null && !speedController.IsRunning;
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): the map is now about 5x bigger than the 400-wide weather boxes,
+        // so the weather follows the camera instead of staying over the map centre.
+        var cam = Camera.main;
+        if (cam != null)
+        {
+            Vector3 c = cam.transform.position;
+            Follow(snowSystem, c, 40f); Follow(rainSystem, c, 40f);
+            Follow(leafSystem, c, 15f); Follow(pollenSystem, c, 2f);
+        }
+        if (clock == null) clock = FindAnyObjectByType<ClockService>();
+        Toggle(leafSystem, isLeavesActive && (clock == null || clock.IsDaytime) && !isPaused);   // unlit too: would glow at night
+        // Pollen only while the sun is up: the particles are unlit, so at night they showed as yellow dots.
+        if (clock == null) clock = FindAnyObjectByType<ClockService>();
+        bool daytime = clock == null || clock.IsDaytime;
+        Toggle(pollenSystem, isSunnyActive && daytime && !isPaused);
 
         // Control Snow
         if (snowSystem != null)
@@ -206,6 +231,100 @@ public class WeatherVisualController : MonoBehaviour
                 }
             }
         }
+    }
+
+    static void Follow(ParticleSystem ps, Vector3 cam, float height)
+    {
+        if (ps != null) ps.transform.position = new Vector3(cam.x, cam.y + height, cam.z);
+    }
+
+    static void Toggle(ParticleSystem ps, bool on)
+    {
+        if (ps == null) return;
+        if (on) { if (!ps.isPlaying) ps.Play(); }
+        else if (ps.isPlaying) ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);   // let them drift away
+    }
+
+    // Autumn: orange, red and brown leaves tumbling sideways in the wind.
+    void CreateLeafSystem()
+    {
+        var go = new GameObject("ProceduralLeafSystem");
+        go.transform.SetParent(transform);
+        leafSystem = go.AddComponent<ParticleSystem>();
+        leafSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        var r = go.GetComponent<ParticleSystemRenderer>();
+        r.material = new Material(Shader.Find("Sprites/Default")) { mainTexture = LeafTexture() };
+
+        var main = leafSystem.main;
+        main.startLifetime = 9f;
+        main.startSpeed = 0f;
+        main.gravityModifier = 0.03f;
+        main.startSize = new ParticleSystem.MinMaxCurve(0.35f, 0.7f);
+        main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+        main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.85f, 0.45f, 0.12f), new Color(0.55f, 0.28f, 0.1f));
+        main.maxParticles = 400;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        var em = leafSystem.emission; em.rateOverTime = 35f;
+        var sh = leafSystem.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(140f, 20f, 140f);
+        var vel = leafSystem.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
+        vel.x = new ParticleSystem.MinMaxCurve(3f, 6f);   // the wind
+        vel.y = new ParticleSystem.MinMaxCurve(-1.2f, -0.4f);
+        vel.z = new ParticleSystem.MinMaxCurve(-1f, 1f);
+        var rot = leafSystem.rotationOverLifetime; rot.enabled = true; rot.z = new ParticleSystem.MinMaxCurve(-3f, 3f);
+        var noise = leafSystem.noise; noise.enabled = true; noise.strength = 1.2f; noise.frequency = 0.4f;
+        var col = leafSystem.colorOverLifetime; col.enabled = true;
+        var g = new Gradient();
+        g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                  new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.1f), new GradientAlphaKey(1f, 0.85f), new GradientAlphaKey(0f, 1f) });
+        col.color = g;
+    }
+
+    // Sunny Spring / Summer: a few warm specks of pollen floating near the camera, catching the light.
+    void CreatePollenSystem()
+    {
+        var go = new GameObject("ProceduralPollenSystem");
+        go.transform.SetParent(transform);
+        pollenSystem = go.AddComponent<ParticleSystem>();
+        pollenSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        var r = go.GetComponent<ParticleSystemRenderer>();
+        r.material = new Material(Shader.Find("Sprites/Default")) { mainTexture = SoftDot() };
+
+        var main = pollenSystem.main;
+        main.startLifetime = 6f;
+        main.startSpeed = 0f;
+        main.gravityModifier = 0f;
+        main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.14f);
+        main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.95f, 0.7f, 0.9f), new Color(1f, 0.85f, 0.5f, 0.6f));
+        main.maxParticles = 250;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        var em = pollenSystem.emission; em.rateOverTime = 30f;
+        var sh = pollenSystem.shape; sh.shapeType = ParticleSystemShapeType.Sphere; sh.radius = 25f;
+        var noise = pollenSystem.noise; noise.enabled = true; noise.strength = 0.6f; noise.frequency = 0.3f;
+        var col = pollenSystem.colorOverLifetime; col.enabled = true;
+        var g = new Gradient();
+        g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                  new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.3f), new GradientAlphaKey(0f, 1f) });
+        col.color = g;
+    }
+
+    static Texture2D leafTex;
+    // A small pointed leaf shape (white, tinted per particle).
+    static Texture2D LeafTexture()
+    {
+        if (leafTex != null) return leafTex;
+        const int n = 32;
+        leafTex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float u = (x + 0.5f) / n * 2f - 1f, v = (y + 0.5f) / n * 2f - 1f;
+                float width = 0.55f * (1f - v * v);            // pointed at both ends
+                float a = Mathf.Clamp01((width - Mathf.Abs(u)) * 8f);
+                if (Mathf.Abs(u) < 0.05f && Mathf.Abs(v) < 0.8f) a *= 0.7f;   // midrib
+                leafTex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+        leafTex.Apply();
+        return leafTex;
     }
 
     static Texture2D SoftDot()

@@ -191,8 +191,30 @@ public class TerrainCameraController : MonoBehaviour
         yawVel = pitchVel = 0f;
     }
 
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): M3 3D audio. The camera sits 30-200 units up, so every 3D sound
+    // (river, animals) was out of range. Hear from the point the camera looks at (or the animal it follows) instead.
+    Transform ear;
+    void UpdateEar()
+    {
+        if (ear == null)
+        {
+            var own = GetComponentInChildren<AudioListener>();
+            if (own == null) own = FindFirstObjectByType<AudioListener>();
+            if (own != null && own.transform == transform) own.enabled = false;
+            else if (own != null) { ear = own.transform; ear.SetParent(null); }
+            if (ear == null) ear = new GameObject("[Ears]", typeof(AudioListener)).transform;
+        }
+        // Zoomed in: hear from the ground. Zoomed out (Overview / god view): the ears rise towards the camera, so
+        // nearby sounds fade and the world sounds far away, like looking down from the sky.
+        Vector3 ground = (followTarget != null ? followTarget.position : focus) + Vector3.up * 2f;
+        float zoom = Mathf.InverseLerp(minDistance, maxDistance, dist);
+        ear.position = Vector3.Lerp(ground, transform.position, zoom * 0.75f);
+        ear.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);   // left/right still match the screen
+    }
+
     void LateUpdate()
     {
+        UpdateEar();
         // Terrain may be created after Start (it's built at runtime).
         if (terrain == null && Terrain.activeTerrain != null) { terrain = Terrain.activeTerrain; ResetView(); }
         if (followTarget != null && !followTarget.gameObject.activeInHierarchy) StopFollowing();
