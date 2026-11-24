@@ -373,6 +373,19 @@ public class Mascot : MonoBehaviour
         return true;
     }
 
+    /// <summary>[AI-GENERATED] Claude Code (Claude Opus 5.5): SCRUM-390 urgent line (fire) with Watch when a subject is given.
+    /// Waits in the queue while a card is open. Falls back to the top banner when there is no mascot.</summary>
+    public static void Alert(string text, Transform subject)
+    {
+        if (current == null || current.line == null)
+        {
+            if (subject != null) DramaDirector.Report(DramaDirector.Moment.Hunt, subject, text); else DramaDirector.Announce(text);
+            return;
+        }
+        if (ModalOpen()) { current.queuedNews = text; return; }
+        current.Say(new[] { text }, false, subject, ReactionSeconds * 2f);
+    }
+
     /// <summary>FE-M09, the first time the Terrain Editor opens in a run.</summary>
     public static void NoteTerrainEditor()
     {

@@ -215,6 +215,7 @@ public partial class GuidedChallenge : MonoBehaviour
 
         if (!introDone) { ShowIntro(); return; }
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
+        if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
         if (showing || Time.unscaledTime < quietUntil) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
