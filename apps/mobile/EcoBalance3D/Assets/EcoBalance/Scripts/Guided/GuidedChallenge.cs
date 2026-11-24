@@ -13,7 +13,7 @@ using UnityEngine.UI;
 /// ecosystem's real state at the end of Day 20, or early if both species die out. Endings are kept in an
 /// Ending Gallery across restarts. Starts on its own when the simulation scene opens in Guided mode.
 /// </summary>
-public class GuidedChallenge : MonoBehaviour
+public partial class GuidedChallenge : MonoBehaviour
 {
     public const int ChallengeDays = 20;
     const float QuietSecondsBetweenEvents = 12f;   // real seconds of watching between two popups
@@ -178,6 +178,7 @@ public class GuidedChallenge : MonoBehaviour
     void Awake()
     {
         PopupOpen = false;   // statics survive Play without a domain reload
+        ResetChapters();
         // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
         var sim = FindFirstObjectByType<EcosystemSimulator>();
         if (sim != null) sim.mode = EcosystemSimulator.SimulationMode.Events;
@@ -203,7 +204,10 @@ public class GuidedChallenge : MonoBehaviour
         if (Sheep == 0 && Leopards == 0) { Finish(); return; }       // early collapse
         if (day > ChallengeDays) { Finish(); return; }               // end of Day 20
 
+        if (!string.IsNullOrEmpty(StoryOverReason)) { Finish(); return; }   // SCRUM-374: e.g. main animal died
+
         if (!introDone) { ShowIntro(); return; }
+        if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
         if (showing || Time.unscaledTime < quietUntil) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
@@ -618,6 +622,8 @@ public class GuidedChallenge : MonoBehaviour
             choiceLabels[i] = Label(b.transform, "", 36f, Color.white);
         }
         popup.SetActive(false);
+
+        BuildChapterUI(root);   // SCRUM-374
 
         // Ending screen.
         endPanel = Dim(root, "Ending");
