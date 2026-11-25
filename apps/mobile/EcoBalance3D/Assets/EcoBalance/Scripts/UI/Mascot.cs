@@ -91,6 +91,17 @@ public class Mascot : MonoBehaviour
     /// <summary>Static mascot line on a menu screen (Mode Selection, Configuration).</summary>
     public static void SetMenuLine(Scene scene, string text)
     {
+        // Free: the world builds behind Configuration. Hide the mascot and keep its line until the loading card is gone.
+        if (LoadingOverlay.Active)
+        {
+            pendingScene = scene; pendingText = text;
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var hide = Find(root.transform, "IntroMascotPanel");
+                if (hide != null) hide.gameObject.SetActive(false);
+            }
+            return;
+        }
         foreach (var root in scene.GetRootGameObjects())
         {
             var p = Find(root.transform, "IntroMascotPanel");
@@ -99,7 +110,93 @@ public class Mascot : MonoBehaviour
             var t = Find(p, "DynamicTxt");
             if (t != null && t.TryGetComponent(out TMP_Text tmp)) tmp.text = text;
         }
+        Speak(text);
     }
+
+    static Scene pendingScene;
+    static string pendingText;
+
+    /// <summary>A menu mascot already showing goes quiet and hides (LoadingOverlay opening, Family Picker opening) until ShowPendingMenuLine.</summary>
+    public static void HoldForLoading()
+    {
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            var scene = SceneManager.GetSceneAt(i);
+            if (!scene.isLoaded) continue;
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var p = Find(root.transform, "IntroMascotPanel");
+                if (p == null || !p.gameObject.activeSelf) continue;
+                var t = Find(p, "DynamicTxt");
+                if (t != null && t.TryGetComponent(out TMP_Text tmp) && !string.IsNullOrEmpty(tmp.text))
+                { pendingScene = scene; pendingText = tmp.text; }
+                p.gameObject.SetActive(false);
+            }
+        }
+        StopVoice();
+    }
+
+    /// <summary>Called by LoadingOverlay when it closes: shows and speaks the menu line it held back.</summary>
+    public static void ShowPendingMenuLine()
+    {
+        if (pendingText == null) return;
+        string t = pendingText; pendingText = null;
+        if (pendingScene.isLoaded) SetMenuLine(pendingScene, t);
+    }
+
+    // ---------- Voice ----------
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): pre-recorded voice lines. tools/voice/generate_mascot_voice.py
+    // makes one clip per line into Resources/MascotVoice, named by ClipName(text). A line without a clip
+    // (or with the voice switched off) just shows its text, so new lines never break anything.
+
+    public const string VoicePref = "EcoBalance.MascotVoice";
+    static AudioSource voice;
+
+    /// <summary>Mascot voice on/off (saved). Off stops the current line.</summary>
+    public static bool VoiceOn
+    {
+        get => PlayerPrefs.GetInt(VoicePref, 1) == 1;
+        set { PlayerPrefs.SetInt(VoicePref, value ? 1 : 0); if (!value) StopVoice(); }
+    }
+
+    /// <summary>Clip file name for a line: FNV-1a 32-bit of the trimmed UTF-8 text (same as the Python script).</summary>
+    public static string ClipName(string text)
+    {
+        uint h = 2166136261;
+        foreach (byte b in System.Text.Encoding.UTF8.GetBytes(text.Trim())) { h ^= b; h *= 16777619; }
+        return h.ToString("x8");
+    }
+
+    // Leaving a screen (Mode Selection -> Guided intro, closing the journal...) cuts the line that was playing.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void HookScenes()
+    {
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;   // Enter Play Mode skips domain reload: never hook twice
+        SceneManager.sceneUnloaded += OnSceneUnloaded;
+    }
+    static void OnSceneUnloaded(Scene _) => StopVoice();
+
+    /// <summary>Plays the voice clip for a line shown outside the mascot panel (Guided intro / event / feedback cards).</summary>
+    public static void Speak(string text)
+    {
+        StopVoice();
+        if (!VoiceOn || string.IsNullOrEmpty(text)) return;
+        var clip = Resources.Load<AudioClip>("MascotVoice/" + ClipName(text));
+        if (clip == null) return;
+        if (voice == null)
+        {
+            var go = new GameObject("MascotVoice");
+            DontDestroyOnLoad(go);
+            voice = go.AddComponent<AudioSource>();
+            voice.playOnAwake = false;
+            voice.spatialBlend = 0f;
+            voice.ignoreListenerPause = true;   // keeps talking while the run is paused
+        }
+        voice.clip = clip;
+        voice.Play();
+    }
+
+    public static void StopVoice() { if (voice != null) voice.Stop(); }
 
     void Start()
     {
@@ -125,7 +222,7 @@ public class Mascot : MonoBehaviour
         if (!ScreenFlow.GuidedMode) Invoke(nameof(PlayFreeIntro), 1f);
     }
 
-    void OnDestroy() { if (panel != null) Spotlight.Hide(panel.transform); if (current == this) current = null; }
+    void OnDestroy() { if (panel != null) Spotlight.Hide(panel.transform); if (current == this) { current = null; StopVoice(); } }
 
     // ---------- Showing lines ----------
 
@@ -142,6 +239,7 @@ public class Mascot : MonoBehaviour
         panel.SetActive(true);
         panel.transform.SetAsLastSibling();
         BehindControlBar();
+        PauseSimWhileTalking();
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): the introduction dims the rest of the screen until Got It / Skip.
         if (intro) Spotlight.Show(panel.transform, ControlBar()); else Spotlight.Hide(panel.transform);
         Refresh(intro);
@@ -174,6 +272,10 @@ public class Mascot : MonoBehaviour
     {
         intro = isIntro;
         line.text = sequence[index];
+        Speak(sequence[index]);
+        // A line that closes by itself stays up until its voice has finished.
+        if (hideAt > 0f && voice != null && voice.isPlaying)
+            hideAt = Mathf.Max(hideAt, Time.unscaledTime + voice.clip.length + 0.5f);
         bool last = index == sequence.Length - 1;
         if (watchTarget != null) { SetLabel(nextLabel, "Watch"); SetLabel(skipLabel, "Dismiss"); skipBtn?.SetActive(true); }
         else if (altLabel != null && last) { SetLabel(nextLabel, "Got It"); SetLabel(skipLabel, altLabel); skipBtn?.SetActive(true); }
@@ -201,9 +303,30 @@ public class Mascot : MonoBehaviour
         Dismiss();
     }
 
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): M3 feedback - the world stops while the mascot talks, so nothing is
+    // missed at 8x. Only resumes if the mascot was the one that paused it (a card or the player may have paused too).
+    bool pausedSim;
+    void PauseSimWhileTalking()
+    {
+        var sim = FindFirstObjectByType<SimulationSpeedController>();
+        if (sim == null || !sim.IsRunning) return;
+        sim.Pause();
+        pausedSim = true;
+    }
+
+    void ResumeSim()
+    {
+        if (!pausedSim) return;
+        pausedSim = false;
+        var sim = FindFirstObjectByType<SimulationSpeedController>();
+        if (sim != null && !sim.IsRunning && !ModalOpen()) sim.Play();
+    }
+
     void Dismiss()
     {
+        ResumeSim();
         Spotlight.Hide(panel.transform);
+        StopVoice();
         panel.SetActive(false);
         watchTarget = null;
         altLabel = null;
@@ -220,7 +343,7 @@ public class Mascot : MonoBehaviour
     void Update()
     {
         if (Showing && hideAt > 0f && Time.unscaledTime >= hideAt) Dismiss();
-        if (queuedNews != null && !Showing && !ModalOpen()) { string n = queuedNews; queuedNews = null; Say(new[] { n }, false, null, ReactionSeconds); }
+        if (queuedNews != null && !Showing && !ModalOpen() && (introPlayed || ScreenFlow.GuidedMode)) { string n = queuedNews; queuedNews = null; Say(new[] { n }, false, null, ReactionSeconds); }
 
         // Any tap or click counts as activity (inspecting, playback, camera moves...).
         var touch = Touchscreen.current;
@@ -248,6 +371,7 @@ public class Mascot : MonoBehaviour
     void PlayFreeIntro()
     {
         if (introPlayed) return;
+        if (LoadingOverlay.Active) { Invoke(nameof(PlayFreeIntro), 0.5f); return; }   // wait: no talking over "Building the Himalayas"
         introPlayed = true;
         Say(FreeIntro, true);
     }
@@ -268,7 +392,7 @@ public class Mascot : MonoBehaviour
     }
 
     /// <summary>Closes the GE-M05 line when the event card closes.</summary>
-    public static void Hide() { if (current != null && Showing) current.Dismiss(); }
+    public static void Hide() { StopVoice(); if (current != null && Showing) current.Dismiss(); }
 
     public static void NoteJournalOpened() { if (current != null) current.journalOpened = true; }
     /// <summary>An animal was selected (Animal Inspection panel opens). Also completes a running discovery activity.</summary>
@@ -308,9 +432,24 @@ public class Mascot : MonoBehaviour
     {
         if (current == null || current.line == null) return false;
         // Busy (welcome, a card, Watch, the discovery game): keep the newest line and say it when free.
-        if (ModalOpen() || (Showing && (current.intro || current.watchTarget != null || current.findLeopard != null))) { current.queuedNews = text; return true; }
+        // Free: the season news ("Winter...") came before the welcome and was cut off by it. Hold it until after the welcome.
+        bool welcomeComing = !ScreenFlow.GuidedMode && !current.introPlayed;
+        if (welcomeComing || ModalOpen() || (Showing && (current.intro || current.watchTarget != null || current.findLeopard != null))) { current.queuedNews = text; return true; }
         current.Say(new[] { text }, false, null, ReactionSeconds);
         return true;
+    }
+
+    /// <summary>[AI-GENERATED] Claude Code (Claude Opus 5.5): SCRUM-390 urgent line (fire) with Watch when a subject is given.
+    /// Waits in the queue while a card is open. Falls back to the top banner when there is no mascot.</summary>
+    public static void Alert(string text, Transform subject)
+    {
+        if (current == null || current.line == null)
+        {
+            if (subject != null) DramaDirector.Report(DramaDirector.Moment.Hunt, subject, text); else DramaDirector.Announce(text);
+            return;
+        }
+        if (ModalOpen()) { current.queuedNews = text; return; }
+        current.Say(new[] { text }, false, subject, ReactionSeconds * 2f);
     }
 
     /// <summary>FE-M09, the first time the Terrain Editor opens in a run.</summary>

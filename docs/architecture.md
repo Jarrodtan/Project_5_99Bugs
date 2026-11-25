@@ -1,4 +1,4 @@
-# EcoBalance — System Architecture (v0.2)
+# EcoBalance — System Architecture (v0.3)
 
 **Owner of this document:** Tan Wei Leong (Tech Lead)
 **Status:** v0.2 for Milestone 2 (v0.1 was Milestone 1). It describes what is built and what is planned. Anything planned is marked *(planned)*.
@@ -121,14 +121,14 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Procedural animation (M2) | `packages/procanim`: `ProcAnimator`, `MotionStateMachine`, `SpringFloat`, `LegLayout`, `Appendage`, `BodyDeformer`; app: `AnimalMotionBridge`, `Resources/Motion/*` | SCRUM-267 (TI-10) | Wei Leong | Done: our own animation instead of Unity's Animator; 13 motions incl. legs/head/tail found in the static meshes, child-friendly death; data-driven; 36 tests, 0.085 ms per frame for 500 animals |
 | Spatial grid (M2) | `packages/ecosim/Runtime/EcoRegistry.cs`; debug view `DevTools/SpatialGridView` | SCRUM-264–266 (TI-16) | Wei Leong | Done: 8 m hash grid with ring search; same answers as a full scan (500-animal test); 20 vs 500 animals benchmark in the perf history |
 | Selection & Inspection | `Selection/*`, `Inspection/*`, `InspectorPanel` | F09 | Yan De | Tap-to-select + inspector panel framework |
-| Audio | `Audio/AudioManager`, `Audio/AnimalAudio`, `Terrain/RiverAudioTracker`, BGM + species SFX | — | Li Juan | Done: BGM/ambience, sheep and leopard sounds, river sound that follows the camera, pop on the animal card; volume slider (`ScreenFlow`). Stream audio still in progress |
+| Audio | `Audio/AudioManager`, `Audio/AnimalAudio`, `Terrain/RiverAudioTracker`, BGM + species SFX | — | Li Juan | Done: BGM/ambience, sheep and leopard sounds, river sound that follows the camera, pop on the animal card; volume slider (`ScreenFlow`). M3: `Audio/UIClickSound` gives every button the same click (mascot buttons their own); mascot voice clips in `Resources/MascotVoice` (`UI/Mascot.Speak`). Stream audio still in progress |
 | Population history (M2) | `packages/ecosim/Runtime/History`: `PopulationHistory`, `PopulationHistoryRecorder` | T05 / F05 | Wei Leong | Done: per-day species and resource values, read by the graph and the case detector; tested |
 | Investigation cases (M2, Free Exploration) | `packages/ecosim/Runtime/Cases`: `InvestigationCase`, `CaseEvaluator`, `CaseJournal`, `CaseDetector`; case assets in `Assets/EcoBalance/Resources/Cases` | F07 / Field Journal | Wei Leong (engine), Dillon (UI), design (case content) | Engine done and tested; journal UI done (see Field Journal row) |
 | Balance model (M2) | `packages/ecosim/Runtime/Balance`: `BalanceModel`, `BalanceParameters` | T03 | Wei Leong | Headless agent model of design's simulation spec; proves cases are reachable; tested |
 | Dev overlay (M2) | `Assets/EcoBalance/Scripts/DevTools/SimDebugOverlay` | — | Wei Leong | Editor and development builds only: day, populations, case status |
 | Headless soak test (M2/M3) | `Assets/EcoBalance/Scripts/DevTools/HeadlessSoakRunner`, `EcoBalanceCIBuild.BuildLinuxHeadless`, `tools/vm/soak.sh` | — | Wei Leong | Linux headless build from CI, run weekly on the team VM for 2,000 simulated days; report + history on Gitea ([details](infra/ci.md)) |
 | Himalaya terrain (M2) | `Scripts/Terrain`: `HimalayaWorldBuilder`, `HimalayaTerrainBuilder`, `HimalayaSplatPainter`, `HimalayaTreePlacer`, `HimalayaSightings` | — | Yusuf (generator), Li Juan (terrain data, `TerrainConfig`) | Done: real Everest-area heightmap, textures, trees, GBIF sightings |
-| Live data (M2) | `IslandPlatform/WeatherManager`, `TerrainConfig` (Wikidata), bundled terrain tiles + OpenStreetMap water in `Resources/HimalayaData` (works offline; weather shows "offline") | — | Li Juan | Done: live Everest temperature + condition (valley temperature derived), terrain counts |
+| Live data (M2) | `IslandPlatform/WeatherManager`, `TerrainConfig` (Wikidata), bundled terrain tiles + OpenStreetMap water in `Resources/HimalayaData` (works offline; weather shows "offline"). live weather from Open-Meteo, no API key needed (M3; was OpenWeatherMap) | — | Li Juan | Done: live Everest temperature + condition (valley temperature derived), terrain counts |
 | Utility AI + reproduction (M2) | `EcoSim/AnimalBrain` (utility scoring: flee, hunt, eat, drink, mate, roam) | T07 | Zhi Jie, Reginald | Done: per-animal hunger/thirst, pair mating; tuning by Wei Leong (spec timings, senses for the big map, fear beats hunger) |
 | Integration build (M2) | branch `M2-Integration` | — | Wei Leong | Merges everyone's work into one playable build; merged into `main` at the milestone |
 | Realistic world (M2) | `Terrain/HimalayaConfig` (Khumbu valleys box), `HimalayaRiver`, `WaterMeshBuilder`, `HimalayaResourcePlacer` (meadows), `GrassTuftMesh`, shaders `GrassWind`, `WaterFlow`; `CreatureSpawner` habitats | SCRUM-286 | Wei Leong | Done: real Khumbu heights (tree line 4,200 m, snow line 5,200 m), main river from the north mountain edge to the south edge (NavMesh-blocked except fords every 30 m; NavMesh area `Ford`, used only by fleeing or hunting animals via `EcoSim/FordAccess`; animals in the water swim and the card says Swimming), up to 5 glacier streams with fords, meadows kept off the water, 5 sheep herds + solitary leopard territories by habitat height |
@@ -151,6 +151,16 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Metrics export (CSV) | `SimulationData/DataLogging`, logged from `SimulationClock` each tick | T05 (optional) | Li Juan | Done: one row per tick (tick, Blue Sheep, Snow Leopards, trees), saved when the run ends (Editor: `Assets/EcoBalance/Data/DataLogging/`; device: app data folder). Tree count still 0 on the Khumbu terrain |
 | CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/*/Tests/Editor/*`, `Assets/EcoBalance/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks + unit / smoke / performance tests on PRs into `main` (perf history per PR); tag/manual Android APK to Gitea ([details](infra/ci.md)) |
 | UI/UX design | Figma / `docs/design/ui-ux`, `Assets/Scenes/UI.unity` | — | Nomitha, Shu Min (Design) | 16 M2 wireframes in `docs/design/ui-ux/wireframes`; menu screens and the simulation HUD built in Unity by Shu Min and wired up |
+
+## 3b. M3 additions (Nov 2026)
+
+| Component | Key scripts | Owner(s) | Status |
+|---|---|---|---|
+| Player actions (Guided) | `Guided/GuidedFire.cs` (grass fire: 3 water sprays put it out, spreads, burnt grass regrows slowly via `BurntPatch`), `Guided/GuidedPlant.cs` (tap a brown patch to plant grass, 3 helps per chapter) | Wei Leong | Done |
+| Weather look | `Terrain/WeatherVisualController.cs` (fog, sun brightness, grass dries to straw in a heatwave, blends over 4 s), `Clock/DayNightLighting.cs` (sun x weather) | Li Juan (particles), Wei Leong (look) | Done |
+| Water + river | `Terrain/HimalayaResourcePlacer.cs` (drinking spots spread along the whole river, cap 160), `Terrain/HimalayaRiver.cs` (river 4-12 m, streams 3-6 m) | Wei Leong | Done: fixes animals dying of thirst downstream |
+| Demo hotkeys | `SimulationHotkeys.cs` 1-5 (Reginald); B fire, P plant, Y weather, 7/8/9 camera views, G grid, ` overlay | Reginald, Wei Leong | Done |
+| Mascot timing | `UI/Mascot.cs`: waits for the loading card and the family picker; season news waits for the welcome | Wei Leong | Done |
 
 ## 4. Data stores
 
@@ -175,7 +185,7 @@ There is no server or database. EcoBalance is a single offline mobile app.
 | Unity Licensing (serial activation in CI) | Activating the Unity editor on CI runners |
 | Jira | Backlog, epics per feature/deliverable, individual task tracking |
 | Team VM soak test | Runs the Linux headless build weekly (`tools/vm/soak.sh`); reports to Gitea packages |
-| Self-hosted Gitea (team21 VM) | **Git LFS store** for binary assets, over HTTPS at `https://team21.dp-ext8.com/git/` (Caddy reverse proxy, sign-up off). Code and branches stay on GitHub; CI pulls LFS files with the `GITEA_LFS_TOKEN` secret. See [infra/gitea-rebuild.md](infra/gitea-rebuild.md) |
+| Self-hosted Gitea (team VM) | **Git LFS store** for binary assets, private, over HTTPS behind a reverse proxy. Code and branches stay on GitHub; CI pulls LFS files with a read-only token stored as a CI secret. See [infra/gitea-incident.md](infra/gitea-incident.md) |
 
 ## 6. Layers (detail)
 

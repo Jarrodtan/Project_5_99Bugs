@@ -2985,6 +2985,7 @@ GameObject:
   m_Component:
   - component: {fileID: 571728215}
   - component: {fileID: 571728216}
+  - component: {fileID: 571728217}
   m_Layer: 0
   m_Name: WeatherManager
   m_TagString: Untagged
@@ -3019,8 +3020,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e38db66fb561fc948ad70c00eb8b7b6f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeatherManager
-  api_key: b0c376cfe1ec96717743554c9f4d5356
   txt: {fileID: 187847739}
+--- !u!114 &571728217
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 571728214}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9385714047ec9284f8be64045aab1285, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeatherVisualController
+  enableSnowParticles: 1
+  directionalLight: {fileID: 410087040}
+  winterLightColor: {r: 0.85, g: 0.92, b: 1, a: 1}
+  normalLightColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &668416963
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,8 +1,10 @@
 # EcoBalance
 
+**Status:** in development (Milestone 3, Nov 2026)
+
 **Team:** 99 Bugs · CSD3401 / UXG3400, Fall 2026
 
-EcoBalance is an interactive, educational 3D ecosystem simulation for children aged 6–9, set in the
+EcoBalance is an interactive, educational 3D ecosystem simulation for children aged 7–9, set in the
 Himalayan Highlands (grass → blue sheep → snow leopard). Two modes:
 
 - **Free Exploration:** choose the starting blue sheep and snow leopards, run the ecosystem, observe, and discover investigations in the Field Journal.
@@ -19,8 +21,10 @@ Himalayan Highlands (grass → blue sheep → snow leopard). Two modes:
 | [`docs/deliverables.md`](docs/deliverables.md) | Technical deliverables, ownership, M1/M2/M3 targets |
 | [`docs/toolchain.md`](docs/toolchain.md) | Technology stack and why |
 | [`docs/data-pipeline.md`](docs/data-pipeline.md) | How content/data is authored, naming, folder rules |
-| [`docs/infra/gitea-rebuild.md`](docs/infra/gitea-rebuild.md) | Self-hosted Gitea server: security incident, rebuild, lessons learned |
+| [`docs/infra/gitea-incident.md`](docs/infra/gitea-incident.md) | Case study: responding to a compromised self-hosted Git server |
 | [`docs/infra/ci.md`](docs/infra/ci.md) | CI/CD: what runs when, where APKs and results are, rubric mapping |
+| [`tools/README.md`](tools/README.md) | Dev tools: Unity scripts, CI checks, VM soak test, mascot voice generator |
+| [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Credits and licences: AI voice (Kokoro), map data, fonts, audio, art |
 
 ## Technology Stack
 
@@ -33,6 +37,7 @@ Himalayan Highlands (grass → blue sheep → snow leopard). Two modes:
 ```
 Project_5_99Bugs/
 ├── README.md
+├── THIRD_PARTY_NOTICES.md          # credits + licences of third-party assets/data
 ├── docs/
 │   ├── proposal.md
 │   ├── design/
@@ -42,7 +47,7 @@ Project_5_99Bugs/
 │   ├── deliverables.md            # ownership + M1/M2/M3 targets
 │   ├── toolchain.md
 │   ├── data-pipeline.md
-│   └── infra/                    # gitea-rebuild.md (VM/Gitea), ci.md (CI/CD)
+│   └── infra/                    # gitea-incident.md (incident case study), ci.md (CI/CD)
 ├── apps/
 │   └── mobile/
 │       └── EcoBalance3D/          # Unity project (scenes, art, audio, prefabs, app scripts, app tests)
@@ -51,7 +56,8 @@ Project_5_99Bugs/
 │   └── procanim/                  # Unity package com.99bugs.procanim: our procedural animation + tests
 ├── tools/
 │   ├── unity.sh                   # open / test / build / clean / zip (Ubuntu, macOS, Git Bash)
-│   └── unity.bat                  # same commands for Windows cmd
+│   ├── unity.bat                  # same commands for Windows cmd
+│   └── voice/                     # mascot voice clip generator (Kokoro TTS, offline)
 ├── tests/                         # test plans and manual checklists
 ├── .github/workflows/unity-ci.yml # CI: repo checks, EditMode tests, Android build (docs/infra/ci.md)
 ├── .gitignore  .gitattributes  .editorconfig
@@ -144,3 +150,9 @@ Generated files, IDE folders, build output, logs and secrets are excluded by `.g
 - **Access:** all 9 team members and the instructor are collaborators on the GitHub repository.
 - **Code freeze:** before each milestone, `main` is frozen (M1: Sat 3 Oct 2026, 5pm; M2: Fri 6 Nov 2026, 23:59, submission Sun 8 Nov). After the freeze, only bug fixes go in, through a reviewed pull request with passing tests. The submitted state is kept on a `M<n>-Submission` branch and a `v0.<n>-m<n>` tag.
 - **Submission build:** the milestone zip is made from frozen `main` with `tools\unity.bat zip` / `tools/unity.sh zip`, so it matches exactly what was reviewed.
+
+## Credits & Copyright
+
+© 2026 Team 99 Bugs (CSD3401 / UXG3400, DigiPen Institute of Technology Singapore). All rights reserved.
+Shown for portfolio purposes with the course lecturers' permission. Third-party assets, data and tools are
+credited in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

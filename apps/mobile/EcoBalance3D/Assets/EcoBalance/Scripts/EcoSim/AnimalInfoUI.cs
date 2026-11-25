@@ -4,6 +4,8 @@ using UnityEngine;
 public class AnimalInfoUI : MonoBehaviour
 {
     public static AnimalInfoUI Instance { get; private set; }
+    /// <summary>True while the Animal Inspection card is showing (the camera view bar hides so it does not cover its title).</summary>
+    public static bool IsOpen => Instance != null && Instance.panel != null && Instance.panel.activeSelf;
 
     [Header("Panel")]
     public GameObject panel;
@@ -14,6 +16,9 @@ public class AnimalInfoUI : MonoBehaviour
     public TMP_Text thirstText;
     public TMP_Text actionText;
     public TMP_Text targetText;
+    // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
+    TMP_Text thoughtText;
+    string lastThoughtLine;
 
     // [AI-GENERATED BEGIN] Claude (Claude Sonnet 5.5, claude.ai chat) - not yet reviewed
     [Header("Sound")]
@@ -91,10 +96,13 @@ public class AnimalInfoUI : MonoBehaviour
         foreach (var t in panel.GetComponentsInChildren<TMP_Text>(true))
             if (t.name == "DidYouKnow") { fact = t; break; }
         factText = fact;
+        // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
+        thoughtText = EnsureThoughtRow();
         var rows = new (TMP_Text text, float height, float size)[]
         {
             (nameText, 90f, 52f), (hungerText, 70f, 38f), (thirstText, 70f, 38f),
-            (actionText, 70f, 38f), (targetText, 70f, 38f), (fact, 330f, 32f),
+            (actionText, 70f, 38f), (targetText, 70f, 38f),
+            (thoughtText, 90f, 36f), (fact, 280f, 32f),
         };
 
         float y = -40f;
@@ -147,6 +155,21 @@ public class AnimalInfoUI : MonoBehaviour
     }
     // [AI-GENERATED END]
 
+    // [AI-GENERATED BEGIN] Cursor (Grok 4.7) - reviewed by Yande
+    TMP_Text EnsureThoughtRow()
+    {
+        foreach (var t in panel.GetComponentsInChildren<TMP_Text>(true))
+            if (t.name == "ThoughtLine") return t;
+
+        var go = new GameObject("ThoughtLine", typeof(RectTransform));
+        go.transform.SetParent(panel.transform, false);
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.color = new Color(0.2f, 0.25f, 0.35f, 1f);
+        tmp.fontStyle = FontStyles.Italic;
+        return tmp;
+    }
+    // [AI-GENERATED END]
+
     public void ShowAnimal(AnimalBrain animal)
     {
         if (animal == null)
@@ -179,6 +202,7 @@ public class AnimalInfoUI : MonoBehaviour
     public void HidePanel()
     {
         selectedAnimal = null;
+        lastThoughtLine = null;   // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
 
         if (panel != null)
         {
@@ -257,6 +281,18 @@ public class AnimalInfoUI : MonoBehaviour
                     $"Target: {selectedAnimal.CurrentTargetName}";
             }
         }
+
+        // [AI-GENERATED BEGIN] Cursor (Grok 4.7) - reviewed by Yande
+        if (thoughtText != null)
+        {
+            string line = AnimalThought.Line(selectedAnimal);
+            if (!ReferenceEquals(line, lastThoughtLine))
+            {
+                lastThoughtLine = line;
+                thoughtText.text = line;
+            }
+        }
+        // [AI-GENERATED END]
     }
 
 
