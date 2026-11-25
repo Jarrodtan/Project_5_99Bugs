@@ -11,7 +11,7 @@ using UnityEngine.UI;
 /// </summary>
 public class LoadingOverlay : MonoBehaviour
 {
-    const float MaxSeconds = 30f, FadeSeconds = 0.4f;
+    const float MaxSeconds = 30f, FadeSeconds = 0.4f, ShowAfterSeconds = 1f;
 
     HimalayaWorldBuilder builder;
     CanvasGroup group;
@@ -86,7 +86,13 @@ public class LoadingOverlay : MonoBehaviour
             shown = Mathf.Min(shown, 0.99f);
             dots.text = (shown < 0.5f ? "Growing grass" : shown < 0.8f ? "Filling the rivers" : "Waking up the animals") + new string('.', n);
             if (bar != null) bar.sizeDelta = new Vector2(760f * shown, 0f);
-            if (builder == null || builder.IsReady || t - started > MaxSeconds) fadeFrom = t;
+            // Quick builds: don't flash the card at all; only show it if the map takes longer than this.
+            group.alpha = t - started < ShowAfterSeconds ? 0f : 1f;
+            if (builder == null || builder.IsReady || t - started > MaxSeconds)
+            {
+                if (t - started < ShowAfterSeconds) { Destroy(gameObject); return; }   // never shown: just go
+                fadeFrom = t;
+            }
             return;
         }
         group.alpha = 1f - (t - fadeFrom) / FadeSeconds;

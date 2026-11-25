@@ -130,9 +130,13 @@ public class HimalayaWorldBuilder : MonoBehaviour
         building = true;
         IsReady = false;
         Progress = 0.05f;
+        // Load timing per step (Console: "[Himalaya] Load ms"), to find what makes the tablet wait.
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        long tTerrain = 0, tPaint = 0, tGrass = 0, tTrees = 0;
         try
         {
             yield return terrainBuilder.Build();
+            tTerrain = sw.ElapsedMilliseconds;
             Progress = 0.45f;
             if (!terrainBuilder.IsBuilt) yield break;
 
@@ -145,6 +149,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
             else Debug.Log("[Himalaya] No land-cover image set; using elevation and slope rules only.");
 
             if (splatPainter != null) splatPainter.Paint(terrainBuilder, landCover);
+            tPaint = sw.ElapsedMilliseconds;
             Progress = 0.55f;
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): maxTrees 0 in the config = no trees at all (not wanted for M2)
 
@@ -156,11 +161,13 @@ public class HimalayaWorldBuilder : MonoBehaviour
                 if (PlaceGrassPatches)
                     resourcePlacer.PlaceGrass(terrainBuilder, landCover);
             }
+            tGrass = sw.ElapsedMilliseconds;
             // Trees after the river exists, so none are placed on the water.
             if (PlaceTrees && treePlacer != null && config.maxTrees > 0) treePlacer.Place(terrainBuilder, landCover, treeCap);
 
             // (Yande) Bake before water and sightings, and check the NavMesh really has triangles before
             // animals are spawned; an empty bake used to leave them unable to move.
+            tTrees = sw.ElapsedMilliseconds;
             Progress = 0.8f;
             yield return null;                       // let the TerrainCollider pick up the new heights
             yield return null;
@@ -170,6 +177,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
                 yield return null;
                 vertCount = CountNavVerts();
             }
+            Debug.Log($"[Himalaya] Load ms: terrain {tTerrain}, paint {tPaint - tTerrain}, river+grass {tGrass - tPaint}, trees {tTrees - tGrass}, navmesh {sw.ElapsedMilliseconds - tTrees}, total {sw.ElapsedMilliseconds}");
             if (vertCount > 0)
                 Debug.Log($"[Himalaya] NavMesh baked: {vertCount} verts.", navSurface);
             else
@@ -231,6 +239,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
             navSurface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
             navSurface.layerMask = ~(1 << 2);   // skip "Ignore Raycast" (decor trees)
             navSurface.defaultArea = 0;
+            Coarse(navSurface);
             navSurface.BuildNavMesh();
             verts = CountNavVerts();
         }
@@ -238,6 +247,16 @@ public class HimalayaWorldBuilder : MonoBehaviour
         return verts;
     }
 
+
+    // The default NavMesh detail (voxel = agent radius / 3) gave 205k verts and 1.7 s of the 2.1 s load on PC
+    // (more on a tablet). Animals don't need that: coarser voxels and bigger tiles bake several times faster.
+    static void Coarse(NavMeshSurface surface)
+    {
+        surface.overrideVoxelSize = true;
+        surface.voxelSize = 0.35f;
+        surface.overrideTileSize = true;
+        surface.tileSize = 128;
+    }
 
     static int BakeFromTerrain(NavMeshSurface surface, Terrain terrain)
     {
@@ -250,6 +269,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
         surface.useGeometry = NavMeshCollectGeometry.RenderMeshes;
         surface.layerMask = ~(1 << 2);   // skip "Ignore Raycast" (decor trees)
         surface.defaultArea = 0;
+        Coarse(surface);
 
         Physics.SyncTransforms();
 
