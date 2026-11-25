@@ -24,6 +24,55 @@ public class WeatherVisualController : MonoBehaviour
     SimulationSpeedController speedController;
     static Texture2D softDot;
 
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): M3 realism - each weather changes the air and the land, not only particles.
+    //   Clear:    light haze far away (mountain air)
+    //   Rain:     grey fog closes in, sun dimmed by cloud
+    //   Snow:     white-out fog, sun softened
+    //   Heatwave: warm dusty haze, bright sun, grass dries from olive to straw
+    // Everything blends over BlendSeconds so a weather change is a visible shift, not a cut.
+    const float BlendSeconds = 4f;
+    struct Look { public Color fog; public float fogStart, fogEnd, sun, dry; }
+    static readonly Look ClearLook = new Look { fog = new Color(0.72f, 0.80f, 0.88f), fogStart = 250f, fogEnd = 1400f, sun = 1f,    dry = 0f };
+    static readonly Look RainLook  = new Look { fog = new Color(0.52f, 0.56f, 0.60f), fogStart = 30f,  fogEnd = 320f,  sun = 0.55f, dry = 0f };
+    static readonly Look SnowLook  = new Look { fog = new Color(0.88f, 0.91f, 0.95f), fogStart = 20f,  fogEnd = 260f,  sun = 0.75f, dry = 0f };
+    static readonly Look HeatLook  = new Look { fog = new Color(0.90f, 0.80f, 0.62f), fogStart = 120f, fogEnd = 750f,  sun = 1.2f,  dry = 1f };
+    Look target = ClearLook, now = ClearLook;
+    bool lookStarted;
+
+    /// <summary>Multiplier for the sun's brightness from the weather (read by DayNightLighting).</summary>
+    public static float SunScale { get; private set; } = 1f;
+
+    static readonly Color GrassBase = new Color(0.18f, 0.25f, 0.11f), GrassTip = new Color(0.55f, 0.56f, 0.30f);
+    static readonly Color StrawBase = new Color(0.36f, 0.30f, 0.15f), StrawTip = new Color(0.80f, 0.70f, 0.42f);
+
+    void OnDestroy() => SunScale = 1f;   // other scenes use DayNightLighting too: leave the sun normal
+
+    void BlendLook()
+    {
+        if (!lookStarted) { lookStarted = true; now = target; }
+        float k = 1f - Mathf.Exp(-Time.unscaledDeltaTime * 3f / BlendSeconds);
+        now.fog = Color.Lerp(now.fog, target.fog, k);
+        now.fogStart = Mathf.Lerp(now.fogStart, target.fogStart, k);
+        now.fogEnd = Mathf.Lerp(now.fogEnd, target.fogEnd, k);
+        now.sun = Mathf.Lerp(now.sun, target.sun, k);
+        now.dry = Mathf.Lerp(now.dry, target.dry, k);
+
+        RenderSettings.fog = true;
+        RenderSettings.fogMode = FogMode.Linear;
+        float night = clock != null && !clock.IsDaytime ? 0.35f : 1f;   // fog goes dark at night, not glowing
+        RenderSettings.fogColor = now.fog * night;
+        RenderSettings.fogStartDistance = now.fogStart;
+        RenderSettings.fogEndDistance = now.fogEnd;
+        SunScale = now.sun;
+
+        var grass = HimalayaResourcePlacer.GrassMaterial;
+        if (grass != null)
+        {
+            grass.SetColor("_BaseColor", Color.Lerp(GrassBase, StrawBase, now.dry));
+            grass.SetColor("_TipColor", Color.Lerp(GrassTip, StrawTip, now.dry));
+        }
+    }
+
 
     void Awake()
     {
@@ -161,6 +210,9 @@ public class WeatherVisualController : MonoBehaviour
         isSnowActive = c.Contains("snow") || (isWinter && !hasCondition);
         isRainActive = c.Contains("rain");
         bool isHeatwave = c.Contains("drought");
+        // A cold drought (below 5 °C) is dry and clear, not a heatwave: no straw grass or dust haze.
+        bool hot = isHeatwave && SeasonWeather.Temperature >= 5f;
+        target = isSnowActive ? SnowLook : isRainActive ? RainLook : hot ? HeatLook : ClearLook;
         // Autumn without rain/snow: leaves blowing in the wind. Clear or dry Spring/Summer: floating pollen in the sun.
         isLeavesActive = s.Contains("autumn") && !isSnowActive && !isRainActive;
         isSunnyActive = !isWinter && !s.Contains("autumn") && !isSnowActive && !isRainActive;
@@ -192,6 +244,7 @@ public class WeatherVisualController : MonoBehaviour
             Follow(leafSystem, c, 15f); Follow(pollenSystem, c, 2f);
         }
         if (clock == null) clock = FindAnyObjectByType<ClockService>();
+        BlendLook();
         Toggle(leafSystem, isLeavesActive && (clock == null || clock.IsDaytime) && !isPaused);   // unlit too: would glow at night
         // Pollen only while the sun is up: the particles are unlit, so at night they showed as yellow dots.
         if (clock == null) clock = FindAnyObjectByType<ClockService>();

@@ -33,7 +33,7 @@ MonoBehaviour:
   rockSlope: 38
   grassClasses: 1e00000014000000i
   grassPatches: 100
-  maxWaterPatches: 60
+  maxWaterPatches: 160
   waterPatchSpacing: 12
   overpassUrl: https://overpass-api.de/api/interpreter
   useCache: 1

@@ -227,6 +227,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         journalWasRunning = speed != null && speed.IsRunning;
         if (speed != null) speed.Pause();
+        OverlayAudio.Hush();   // same as the Ending Gallery: music on, river and animals quiet (restored when it closes)
         SceneManager.LoadSceneAsync(Journal, LoadSceneMode.Additive);
     }
 

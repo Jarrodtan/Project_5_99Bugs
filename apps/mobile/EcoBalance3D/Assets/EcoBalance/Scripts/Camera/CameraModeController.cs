@@ -191,7 +191,7 @@ public class CameraModeController : MonoBehaviour
         // PopupOpen is static and can stay true after leaving Guided mid-card, so only trust it in Guided.
         // Free mode has no family story, so no view bar there (the player moves the camera freely).
         bool popup = ScreenFlow.GuidedMode && GuidedChallenge.PopupOpen;
-        bool show = ScreenFlow.GuidedMode && !popup;
+        bool show = ScreenFlow.GuidedMode && !popup && !AnimalInfoUI.IsOpen && !SimHud.InspectionOpen;   // the view bar covered the inspection card's title
         if (canvasRoot != null && canvasRoot.activeSelf != show) SetBarVisible(show);
         if (!show) return;
 
@@ -246,9 +246,10 @@ public class CameraModeController : MonoBehaviour
     {
         var kb = Keyboard.current;
         if (kb == null) return;
-        if (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame) SetMode(CameraMode.Family);
-        if (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame) SetMode(CameraMode.Ecosystem);
-        if (kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame) SetMode(CameraMode.OtherSpecies);
+        // 7/8/9 (not 1/2/3: those are the demo hotkeys in SimulationHotkeys). Numpad 1/2/3 still work.
+        if (kb.digit7Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame) SetMode(CameraMode.Family);
+        if (kb.digit8Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame) SetMode(CameraMode.Ecosystem);
+        if (kb.digit9Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame) SetMode(CameraMode.OtherSpecies);
     }
 
     void ApplyEcosystem()

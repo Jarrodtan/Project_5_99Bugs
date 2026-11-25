@@ -600,7 +600,7 @@ public partial class GuidedChallenge : MonoBehaviour
         if (FindShuminUI())   // Shumin's DayPanel: "Day 12 / 20 | Summer" in the mock-up
         {
             // One line across the whole panel: the season box alone was too narrow to read on a tablet.
-            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");
+            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");   // weather word dropped: the icon beside the pill shows it
             if (!dayPanelStyled) StyleDayPanel();
         }
         if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it

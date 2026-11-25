@@ -32,7 +32,7 @@ public partial class GuidedChallenge
     {
         if (helpChapter != CurrentChapter) { helpChapter = CurrentChapter; HelpsLeft = HelpsPerChapter; }
 
-        // Demo / test key: P makes a grass patch brown now and points the camera at it (like F for fire).
+        // Demo / test key: P makes a grass patch brown now and points the camera at it (like B for fire).
         if (Keyboard.current != null && Keyboard.current.pKey.wasPressedThisFrame)
         {
             var p = GrassFire.PickStartPatch();

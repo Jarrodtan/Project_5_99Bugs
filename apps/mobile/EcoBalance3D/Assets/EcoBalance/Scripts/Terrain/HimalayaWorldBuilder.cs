@@ -42,6 +42,8 @@ public class HimalayaWorldBuilder : MonoBehaviour
     public HimalayaTerrainBuilder TerrainBuilder => terrainBuilder;
     public HimalayaSightings Sightings => sightings;
     public bool IsReady { get; private set; }
+    /// <summary>0-1, how far the world build has got (shown as % on the loading card).</summary>
+    public float Progress { get; private set; }
 
     /// <summary>Raised when the terrain, grass and NavMesh are ready (online water/sightings may still be loading).</summary>
     public event Action Built;
@@ -127,9 +129,11 @@ public class HimalayaWorldBuilder : MonoBehaviour
     {
         building = true;
         IsReady = false;
+        Progress = 0.05f;
         try
         {
             yield return terrainBuilder.Build();
+            Progress = 0.45f;
             if (!terrainBuilder.IsBuilt) yield break;
 
             if (navSurface == null)
@@ -141,9 +145,11 @@ public class HimalayaWorldBuilder : MonoBehaviour
             else Debug.Log("[Himalaya] No land-cover image set; using elevation and slope rules only.");
 
             if (splatPainter != null) splatPainter.Paint(terrainBuilder, landCover);
+            Progress = 0.55f;
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): maxTrees 0 in the config = no trees at all (not wanted for M2)
             if (PlaceTrees && treePlacer != null && config.maxTrees > 0) treePlacer.Place(terrainBuilder, landCover, treeCap);
 
+            Progress = 0.65f;
             if (resourcePlacer != null)
             {
                 resourcePlacer.Clear();
@@ -154,6 +160,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
 
             // (Yande) Bake before water and sightings, and check the NavMesh really has triangles before
             // animals are spawned; an empty bake used to leave them unable to move.
+            Progress = 0.8f;
             yield return null;                       // let the TerrainCollider pick up the new heights
             yield return null;
             var vertCount = BakeWalkSurface();
@@ -171,6 +178,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
             {
                 foreach (var held in heldClocks) if (held != null) held.enabled = true;
                 heldClocks.Clear();
+                Progress = 1f;
                 IsReady = true;
                 if (GetComponent<SeasonWeather>() == null) gameObject.AddComponent<SeasonWeather>();   // [AI-GENERATED] Claude Code (Claude Opus 5.5): seasons start with the world
                 if (enableTerrainEditor)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): in-game terrain/grass editor

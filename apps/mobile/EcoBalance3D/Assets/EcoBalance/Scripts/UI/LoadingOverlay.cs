@@ -17,6 +17,15 @@ public class LoadingOverlay : MonoBehaviour
     CanvasGroup group;
     TextMeshProUGUI dots;
     float started, fadeFrom = -1f;
+    TextMeshProUGUI title;
+    RectTransform bar;
+    float shown;
+
+    /// <summary>True while the loading card is up (the mascot waits until it is gone).</summary>
+    public static bool Active { get; private set; }
+
+    void OnEnable() { Active = true; Mascot.HoldForLoading(); }
+    void OnDestroy() { Active = false; Mascot.ShowPendingMenuLine(); }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Hook()
@@ -51,9 +60,16 @@ public class LoadingOverlay : MonoBehaviour
 
         // Same look as the Leave / Continue boxes: dimmed screen, cream card, brown edge, Chewy font, dark ink.
         var dim = Panel(transform, "Dim", Vector2.zero, Vector2.one, Vector2.zero, new Color(0f, 0f, 0f, 0.8f));
-        var card = Panel(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(1160f, 340f), Color.white);
-        Label(card.transform, "Building the Himalayas", 56f, new Vector2(0f, 50f));
-        dots = Label(card.transform, "Growing grass and finding paths for the animals", 32f, new Vector2(0f, -55f));
+        // A filling bar says "wait" without reading (ages 7-9); the line under the title is short and changes as it builds.
+        var card = Panel(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(1000f, 380f), Color.white);
+        title = Label(card.transform, "Building the Himalayas", 56f, new Vector2(0f, 85f));
+        dots = Label(card.transform, "Growing grass", 34f, new Vector2(0f, 5f));
+        var track = Panel(card.transform, "BarTrack", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(760f, 36f), new Color(0.85f, 0.80f, 0.68f));
+        ((RectTransform)track.transform).anchoredPosition = new Vector2(0f, 80f);
+        var fill = Panel(track.transform, "BarFill", Vector2.zero, new Vector2(0f, 1f), Vector2.zero, new Color(0.24f, 0.51f, 0.30f));
+        bar = (RectTransform)fill.transform;
+        bar.pivot = new Vector2(0f, 0.5f);
+        bar.anchoredPosition = Vector2.zero;
         ScreenFlow.StyleLikeShumin(card, null);
     }
 
@@ -63,7 +79,13 @@ public class LoadingOverlay : MonoBehaviour
         if (fadeFrom < 0f)
         {
             int n = (int)(t * 2f) % 4;
-            dots.text = "Growing grass and finding paths for the animals" + new string('.', n);
+            float target = builder != null ? builder.Progress : 0f;
+            // The build moves in big steps (the terrain is one long step), so creep slowly past the last one: never looks frozen.
+            shown = Mathf.Max(shown, Mathf.Min(target + 0.15f, shown + Time.unscaledDeltaTime * 0.02f));
+            shown = Mathf.MoveTowards(shown, Mathf.Max(shown, target), Time.unscaledDeltaTime * 0.8f);
+            shown = Mathf.Min(shown, 0.99f);
+            dots.text = (shown < 0.5f ? "Growing grass" : shown < 0.8f ? "Filling the rivers" : "Waking up the animals") + new string('.', n);
+            if (bar != null) bar.sizeDelta = new Vector2(760f * shown, 0f);
             if (builder == null || builder.IsReady || t - started > MaxSeconds) fadeFrom = t;
             return;
         }

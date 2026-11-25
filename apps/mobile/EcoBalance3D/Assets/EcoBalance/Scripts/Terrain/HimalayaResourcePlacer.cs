@@ -42,8 +42,8 @@ public class HimalayaResourcePlacer : MonoBehaviour
     [SerializeField] float riverWidth = 5f;
     [Tooltip("One traced river from a mountain down the valleys, dividing the map in two. Off = scattered map streams instead.")]
     [SerializeField] bool useRiver = true;
-    [SerializeField] float riverSourceWidth = 2f;
-    [SerializeField] float riverMouthWidth = 7f;
+    [SerializeField] float riverSourceWidth = 4f;   // M3: wider so the river reads as a real river next to bigger animals
+    [SerializeField] float riverMouthWidth = 12f;
     [Tooltip("River drinking spots refill this fast (a full spot is 100): meltwater keeps coming down the mountain.")]
     [SerializeField] float riverRefillPerSecond = 40f;
     // [AI-GENERATED END]
@@ -184,6 +184,9 @@ public class HimalayaResourcePlacer : MonoBehaviour
         return tb.SlopeDegrees(u, v) <= maxPatchSlope;
     }
 
+    /// <summary>The shared wind-grass material (null until the meadows are placed).</summary>
+    public static Material GrassMaterial { get; private set; }
+
     Material MakeGrassMaterial()
     {
         var shader = Shader.Find("EcoBalance/GrassWind");
@@ -197,6 +200,7 @@ public class HimalayaResourcePlacer : MonoBehaviour
         var grassMat = new Material(shader) { name = "Grass (wind)" };
         grassMat.SetColor("_BaseColor", new Color(0.18f, 0.25f, 0.11f, 1f));
         grassMat.SetColor("_TipColor", new Color(0.55f, 0.56f, 0.30f, 1f));
+        GrassMaterial = grassMat;   // the weather dries it to straw in a heatwave (WeatherVisualController)
         return grassMat;
     }
     // [AI-GENERATED END]
@@ -221,9 +225,13 @@ public class HimalayaResourcePlacer : MonoBehaviour
         ClearTreesFromRiver(tb);
         var spotMat = MakeMaterial(waterColor);
         int placed = 0;
-        foreach (var p in banks)
+        // The 5x map has ~200 bank spots but the cap is lower. Taking the first N left only the top of the river
+        // (near the glacier) with drinking spots, so animals downstream died of thirst. Spread the cap evenly instead.
+        int cap = Mathf.Max(1, config.maxWaterPatches);
+        float step = banks.Count > cap ? banks.Count / (float)cap : 1f;
+        for (float k = 0f; k < banks.Count && placed < cap; k += step)
         {
-            if (placed >= config.maxWaterPatches) break;
+            var p = banks[(int)k];
             Spawn(water, p, waterSize, spotMat, $"Water Patch {placed + 1}");
             if (spawned[spawned.Count - 1].TryGetComponent(out Renderer r)) r.enabled = false;   // invisible drinking spot
             if (spawned[spawned.Count - 1].TryGetComponent(out ResourcePatch spot))

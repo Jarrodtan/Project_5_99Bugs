@@ -26,6 +26,9 @@ public static class GuidedScreens
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;
+        SceneManager.sceneUnloaded += OnSceneUnloaded;
+        AudioListener.pause = false;   // Play mode may start with it left on from a stopped session
     }
 
     /// <summary>Opens the ending screen for this result. False when the scene is not in the build.</summary>
@@ -44,6 +47,9 @@ public static class GuidedScreens
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         galleryPausedRun = speed != null && speed.IsRunning;
         if (galleryPausedRun) speed.Pause();
+        // The river and animal sounds kept playing behind the gallery. Pause the world audio; the music, the click sound
+        // and the mascot voice ignore this pause.
+        OverlayAudio.Hush();
         SceneManager.LoadSceneAsync(GalleryScene, LoadSceneMode.Additive);
     }
 
@@ -54,6 +60,12 @@ public static class GuidedScreens
         SceneManager.UnloadSceneAsync(GalleryScene);
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         if (galleryPausedRun && speed != null) speed.Play();
+    }
+
+    // However the gallery closes (Back to the run, or Home from the ending), world sound comes back.
+    static void OnSceneUnloaded(Scene scene)
+    {
+        if (scene.name == GalleryScene || scene.name == ScreenFlow.Journal) OverlayAudio.Restore();
     }
 
     static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -122,7 +134,7 @@ public static class GuidedScreens
             bool got = (mask & (1 << i)) != 0;
             var box = Find(detail, "GalleryDetailBox");
             SetText(box, "EndingTitleTxt", got ? GuidedChallenge.Endings[i].title : "???");
-            SetText(box, "EndingDescriptionTxt", got ? GuidedChallenge.Endings[i].text : "Not discovered yet. Try different choices!");
+            SetText(box, "EndingDescriptionTxt", got ? GuidedChallenge.Endings[i].text : $"Ending {shown + 1} of {GalleryOrder.Length}. Not discovered yet. Try different choices!");   // locked pages looked the same, so the arrows seemed dead
             SetText(Find(box, "ExplanationBox01"), "WhatThisMeansTxt (1)", got ? GuidedChallenge.Endings[i].lesson : "");
             SetText(Find(box, "ExplanationBox02"), "WhatThisMeansTxt (1)", got ? "Play again and try different choices to find the other endings." : "");
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): "Ecosystem Collapse" wrapped onto two lines over the
@@ -159,13 +171,26 @@ public static class GuidedScreens
                 OnClick(card, null, () => ShowDetail(s));
             }
             OnClick(overview, "BackBtn", CloseOrLeave);
+            // Same as the detail page: keep Back and the arrows above the cards so every tap reaches them.
+            foreach (var n in new[] { "BackBtn", "LArrowBtn", "RArrowBtn" }) OnTop(Find(overview, n));
             SetUpScroll(overview);
         }
         if (detail != null)
         {
             OnClick(detail, "BackBtn", ShowOverview);
-            OnClick(detail, "LArrowBtn", () => ShowDetail(shown - 1));
-            OnClick(detail, "RArrowBtn", () => ShowDetail(shown + 1));
+            // The big detail box was drawn over the Back / arrow buttons, so taps never reached them: bring them to the front.
+            foreach (var n in new[] { "BackBtn", "LArrowBtn", "RArrowBtn" }) OnTop(Find(detail, n));
+            // Something else on screen swallowed taps on the left arrow (the right one worked). The arrows now check the
+            // tap position themselves, so nothing drawn on top can block them. Their Button clicks are cleared so a tap
+            // never counts twice.
+            OnClick(detail, "LArrowBtn", () => { });
+            OnClick(detail, "RArrowBtn", () => { });
+            var tap = detail.gameObject.GetComponent<TapZones>() ?? detail.gameObject.AddComponent<TapZones>();
+            tap.zones.Clear();
+            tap.zones.Add((Find(detail, "LArrowBtn") as RectTransform, () => { UIClickSound.PlayClick(); ShowDetail(shown - 1); }));
+            tap.zones.Add((Find(detail, "RArrowBtn") as RectTransform, () => { UIClickSound.PlayClick(); ShowDetail(shown + 1); }));
+            foreach (var n in new[] { "LArrowBtn", "RArrowBtn" })   // their own click above, so the automatic one stays quiet
+            { var a = Find(detail, n); if (a != null && !a.TryGetComponent(out NoAutoClick _)) a.gameObject.AddComponent<NoAutoClick>(); }
         }
         ShowOverview();
     }
@@ -221,6 +246,9 @@ public static class GuidedScreens
             }
             for (int n = 0; n < dots.Count; n++)
                 dots[n].color = n == first ? new Color(0.3f, 0.62f, 0.38f) : Color.white;
+            // At the start / end there is nothing more that way: hide that arrow so it does not look broken.
+            var la = Find(overview, "LArrowBtn"); if (la != null) la.gameObject.SetActive(first > 0);
+            var ra = Find(overview, "RArrowBtn"); if (ra != null) ra.gameObject.SetActive(first < last);
         }
         void Move(int step) { first = Mathf.Clamp(first + step, 0, last); Show(); }
         OnClick(overview, "LArrowBtn", () => Move(-1));
@@ -231,6 +259,20 @@ public static class GuidedScreens
         bg.raycastTarget = true;
         overview.gameObject.AddComponent<Swipe>().onSwipe = Move;
         Show();
+    }
+
+    // Last sibling was not enough for the detail page's left arrow (still under the big box). Its own sorted canvas
+    // + raycaster puts it above everything in the gallery, so taps always reach it.
+    static void OnTop(Transform b)
+    {
+        if (b == null) return;
+        b.SetAsLastSibling();
+        var root = b.parent != null ? b.parent.GetComponentInParent<Canvas>() : null;
+        int above = root != null ? root.rootCanvas.sortingOrder + 1 : 1;   // just above the gallery's own canvas
+        if (!b.TryGetComponent(out Canvas c)) c = b.gameObject.AddComponent<Canvas>();
+        c.overrideSorting = true;
+        c.sortingOrder = above;
+        if (!b.TryGetComponent(out GraphicRaycaster _)) b.gameObject.AddComponent<GraphicRaycaster>();
     }
 
     static void CloseOrLeave()
@@ -290,5 +332,49 @@ public static class GuidedScreens
         if (!t.TryGetComponent(out Button b)) b = t.gameObject.AddComponent<Button>();
         b.onClick = new Button.ButtonClickedEvent();
         b.onClick.AddListener(action);
+    }
+}
+
+/// <summary>
+/// Full-screen pages over the run (Ending Gallery, Field Journal): the world (river, animals, wind) goes quiet,
+/// the music keeps playing. The click sound and the mascot voice ignore the pause, so buttons still click.
+/// </summary>
+public static class OverlayAudio
+{
+    public static void Hush()
+    {
+        AudioListener.pause = true;
+        var am = AudioManager.Instance;
+        if (am != null && am.bgm != null) am.bgm.ignoreListenerPause = true;
+    }
+
+    public static void Restore()
+    {
+        AudioListener.pause = false;
+        var am = AudioManager.Instance;
+        if (am != null && am.bgm != null) am.bgm.ignoreListenerPause = false;
+    }
+}
+
+/// <summary>Marks a button whose click sound is played by its own code, so UIClickSound does not play a second one.</summary>
+public class NoAutoClick : MonoBehaviour { }
+
+/// <summary>Calls an action when a tap lands inside a RectTransform, whatever UI is drawn over it (gallery arrows).</summary>
+public class TapZones : MonoBehaviour
+{
+    public readonly List<(RectTransform rect, System.Action action)> zones = new List<(RectTransform, System.Action)>();
+
+    void Update()
+    {
+        var pointer = UnityEngine.InputSystem.Pointer.current;
+        if (pointer == null || !pointer.press.wasPressedThisFrame) return;
+        Vector2 pos = pointer.position.ReadValue();
+        foreach (var (rect, action) in zones)
+        {
+            if (rect == null || !rect.gameObject.activeInHierarchy) continue;
+            var canvas = rect.GetComponentInParent<Canvas>();
+            Camera cam = canvas != null && canvas.rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.rootCanvas.worldCamera : null;
+            if (RectTransformUtility.RectangleContainsScreenPoint(rect, pos, cam)) { action?.Invoke(); return; }
+        }
     }
 }

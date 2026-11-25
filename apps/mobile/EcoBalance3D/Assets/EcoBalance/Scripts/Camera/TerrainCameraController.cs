@@ -309,7 +309,7 @@ public class TerrainCameraController : MonoBehaviour
         }
 
         if (mouse.middleButton.isPressed) Pan(delta);
-        if (mouse.rightButton.isPressed) Pan(delta);
+        if (mouse.rightButton.isPressed) Orbit(delta);   // right drag = spin + tilt (was Pan, so the mouse had no rotation)
     }
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong

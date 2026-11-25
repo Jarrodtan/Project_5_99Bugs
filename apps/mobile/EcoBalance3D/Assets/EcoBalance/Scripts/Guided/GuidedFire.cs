@@ -31,8 +31,8 @@ public partial class GuidedChallenge
     /// <summary>Called from Update when no card is open.</summary>
     void UpdateFire(int day)
     {
-        // Demo / test key: F starts a fire now (for the M3 presentation; SCRUM-378 dev hotkeys).
-        if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
+        // Demo / test key: B ("blaze") starts a fire now (for the M3 presentation; SCRUM-378 dev hotkeys). F is camera tilt.
+        if (Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame)
         {
             var p = GrassFire.PickStartPatch();
             if (p != null) Mascot.Alert("Oh no! A fire in the grass! Tap the flames to spray water before it spreads!", GrassFire.Ignite(p).transform);

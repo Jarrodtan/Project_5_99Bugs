@@ -73,6 +73,9 @@ public class SimHud : MonoBehaviour
     ClockService clock;
 
     GameObject inspection, expanded, overview;
+    static GameObject inspectionPanel;
+    /// <summary>True while Shu Min's Animal Inspection panel is showing (the camera view bar hides so it does not overlap).</summary>
+    public static bool InspectionOpen => inspectionPanel != null && inspectionPanel.activeInHierarchy;
     AnimalBrain shown;
     AnimalBrain factAnimal;   // the animal the current fun fact was picked for
     string fact;
@@ -117,6 +120,7 @@ public class SimHud : MonoBehaviour
         SeeThrough();
 
         inspection = Find("AnimalInspectionPanel")?.gameObject;
+        inspectionPanel = inspection;
         current = this;
         expanded = Find("ExpandedOverviewPanel")?.gameObject;
         overview = Find("EcosystemOverviewPanel")?.gameObject;
@@ -333,6 +337,7 @@ public class SimHud : MonoBehaviour
     void RefreshOverview()
     {
         int day = clock != null ? clock.Day : 1;
+        // Weather icon beside the day pill (its text is unchanged): sun, rain, snow or heatwave at a glance.
         if (!ScreenFlow.GuidedMode)   // Guided's day panel is filled by GuidedChallenge
         {
             StyleFreeDayPanel();

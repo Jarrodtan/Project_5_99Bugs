@@ -54,8 +54,12 @@ public class UIClickSound : MonoBehaviour, IPointerClickHandler
     {
         if (e.button != PointerEventData.InputButton.Left) return;
         if (!TryGetComponent(out Button b) || !b.IsInteractable()) return;
+        if (TryGetComponent(out NoAutoClick _)) return;   // plays its own click (e.g. gallery arrows via TapZones)
         Play(mascot);
     }
+
+    /// <summary>The normal button click, for taps handled outside a Button (gallery arrows).</summary>
+    public static void PlayClick() => Play(false);
 
     static void Play(bool forMascot)
     {
