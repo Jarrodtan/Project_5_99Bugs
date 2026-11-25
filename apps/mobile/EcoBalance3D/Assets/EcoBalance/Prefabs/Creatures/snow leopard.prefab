@@ -34,7 +34,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
+  m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1008758892905887109}
@@ -99,8 +99,6 @@ MonoBehaviour:
   curr_hunger: 100
   curr_thirst: 100
   audio: {fileID: 0}
-  huntRadius: 35
-  fleeRadius: 20
   catchDistance: 1.5
   eatDuration: 2
   chaseSpeedMultiplier: 1.9
@@ -113,13 +111,11 @@ MonoBehaviour:
   huntSuccessRate: 0.7
   huntCooldownSeconds: 120
   giveUpRestSeconds: 20
-  senseAnywayDistance: 10
-  spotStalkerDistance: 9
+  preyMemorySeconds: 15
   visibilityOnGrass: 1.4
   visibilityOnRock: 0.75
   visibilityOnSnow: 0.45
   snowPreference: 2
-  grazingAlertness: 0.6
   alarmFleeSeconds: 2.5
   dangerMemorySeconds: 60
   dangerRadius: 25
@@ -162,11 +158,18 @@ MonoBehaviour:
   roamScore: 0.2
   commitmentBonus: 0.1
   decisionInterval: 0.25
+  herdSeparationRadius: 6
+  herdCohesionRadius: 25
+  herdPreferredDistance: 12
+  herdCohesionWeight: 0.35
+  herdSeparationWeight: 0.5
+  herdAlignmentWeight: 0.2
   fitAgentRadiusToModel: 1
   growUpSeconds: 60
   babyScale: 0.45
   followMotherDistance: 2.5
-  showSightLines: 1
+  canHunt: 1
+  canBreed: 1
   predatorTerritoryScale: 3
   patrolMinDistance: 25
   patrolMaxDistance: 60
@@ -386,11 +389,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85f865a1c25e9204d8c597a0acfe2a3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimalPerception
-  visionRange: 20
-  visionAngle: 120
-  scanInterval: 0.2
+  visionRange: 40
+  visionAngle: 160
+  senseAnywayDistance: 10
+  spotStalkerDistance: 9
+  grazingAlertness: 0.6
   eyeHeight: 1.5
   targetHeight: 1.2
+  groundClearance: 0.25
+  ignoreNearEnds: 1
   showVisionGizmo: 1
   showDetectionLines: 1
 --- !u!1001 &753629060257976942

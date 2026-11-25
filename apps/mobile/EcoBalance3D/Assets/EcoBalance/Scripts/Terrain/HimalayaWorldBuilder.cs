@@ -42,6 +42,8 @@ public class HimalayaWorldBuilder : MonoBehaviour
     public HimalayaTerrainBuilder TerrainBuilder => terrainBuilder;
     public HimalayaSightings Sightings => sightings;
     public bool IsReady { get; private set; }
+    /// <summary>0-1, how far the world build has got (shown as % on the loading card).</summary>
+    public float Progress { get; private set; }
 
     /// <summary>Raised when the terrain, grass and NavMesh are ready (online water/sightings may still be loading).</summary>
     public event Action Built;
@@ -127,9 +129,11 @@ public class HimalayaWorldBuilder : MonoBehaviour
     {
         building = true;
         IsReady = false;
+        Progress = 0.05f;
         try
         {
             yield return terrainBuilder.Build();
+            Progress = 0.45f;
             if (!terrainBuilder.IsBuilt) yield break;
 
             if (navSurface == null)
@@ -141,9 +145,11 @@ public class HimalayaWorldBuilder : MonoBehaviour
             else Debug.Log("[Himalaya] No land-cover image set; using elevation and slope rules only.");
 
             if (splatPainter != null) splatPainter.Paint(terrainBuilder, landCover);
+            Progress = 0.55f;
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): maxTrees 0 in the config = no trees at all (not wanted for M2)
             if (PlaceTrees && treePlacer != null && config.maxTrees > 0) treePlacer.Place(terrainBuilder, landCover, treeCap);
 
+            Progress = 0.65f;
             if (resourcePlacer != null)
             {
                 resourcePlacer.Clear();
@@ -154,6 +160,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
 
             // (Yande) Bake before water and sightings, and check the NavMesh really has triangles before
             // animals are spawned; an empty bake used to leave them unable to move.
+            Progress = 0.8f;
             yield return null;                       // let the TerrainCollider pick up the new heights
             yield return null;
             var vertCount = BakeWalkSurface();
@@ -171,6 +178,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
             {
                 foreach (var held in heldClocks) if (held != null) held.enabled = true;
                 heldClocks.Clear();
+                Progress = 1f;
                 IsReady = true;
                 if (GetComponent<SeasonWeather>() == null) gameObject.AddComponent<SeasonWeather>();   // [AI-GENERATED] Claude Code (Claude Opus 5.5): seasons start with the world
                 if (enableTerrainEditor)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): in-game terrain/grass editor
@@ -229,47 +237,27 @@ public class HimalayaWorldBuilder : MonoBehaviour
         return verts;
     }
 
+
     static int BakeFromTerrain(NavMeshSurface surface, Terrain terrain)
     {
         if (surface == null || terrain == null || terrain.terrainData == null)
             return 0;
 
-        var data = terrain.terrainData;
-        var sources = new List<NavMeshBuildSource>
-        {
-            new NavMeshBuildSource
-            {
-                shape = NavMeshBuildSourceShape.Terrain,
-                sourceObject = data,
-                transform = Matrix4x4.TRS(terrain.transform.position, terrain.transform.rotation, Vector3.one),
-                area = 0
-            }
-        };
+        // Collect all applicable scene geometry and NavMesh modifiers,
+        // including the river's NavMeshModifierVolume components.
+        surface.collectObjects = CollectObjects.All;
+        surface.useGeometry = NavMeshCollectGeometry.RenderMeshes;
+        surface.layerMask = ~0;
+        surface.defaultArea = 0;
 
-        var settings = surface.GetBuildSettings();
-        // Cliffs on the Himalaya cut were walkable at 60°, so animals climbed and slid.
-        settings.agentSlope = Mathf.Min(settings.agentSlope, 40f);
-        settings.minRegionArea = 0.1f;
+        Physics.SyncTransforms();
 
-        var worldCenter = terrain.transform.TransformPoint(data.size * 0.5f);
-        var localCenter = surface.transform.InverseTransformPoint(worldCenter);
-        var localSize = surface.transform.InverseTransformVector(data.size);
-        localSize = new Vector3(Mathf.Abs(localSize.x), Mathf.Abs(localSize.y), Mathf.Abs(localSize.z));
-        var localBounds = new Bounds(localCenter, localSize);
-        localBounds.Expand(2f);
+        // Build the NavMesh using the NavMeshSurface collection system.
+        surface.BuildNavMesh();
 
-        var mesh = NavMeshBuilder.BuildNavMeshData(
-            settings, sources, localBounds, surface.transform.position, surface.transform.rotation);
-        if (mesh == null)
-            return 0;
-
-        mesh.name = surface.gameObject.name;
-        surface.RemoveData();
-        surface.navMeshData = mesh;
-        if (surface.isActiveAndEnabled)
-            surface.AddData();
         return CountNavVerts();
     }
+
 
     static int CountNavVerts()
     {

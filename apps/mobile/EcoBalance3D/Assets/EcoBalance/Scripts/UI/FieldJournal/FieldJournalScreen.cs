@@ -11,20 +11,30 @@ using UnityEngine.UI;
 /// so it can be restyled freely as long as these names stay: JournalPanel (the page; its children are
 /// the Ecosystem page), HeaderTxt / SubTxt (fonts copied for the new pages), HeaderTxt_02 (kept on every
 /// page), EcosystemBtn / InvestigationBtn / ObservationBtn / DYKBtn (tabs), PreviousBtn / NextBtn (page through tabs).
-/// Uses saved editable page layouts when present, or builds three pages in code:
+/// Adds three pages in code:
 ///   Investigations (wireframes 04/05): every case, locked ones with their clue, unlocked ones with what happened.
 ///   Observations (wireframe 06): the population graph of the run going on now, or of the last run.
 ///   Did You Know? (wireframe 02): fun facts about the animals.
-/// Opens on the requested case from a popup, otherwise on Ecosystem.
+/// Opens on Observations inside a run, on the discovered case from the popup, otherwise on Ecosystem.
 /// Attached by <see cref="ScreenFlow"/> when the scene loads; BackBtn is wired there.
 /// </summary>
 public class FieldJournalScreen : MonoBehaviour
 {
-    public enum Page { Ecosystem, Investigations, Observations, Facts }
-    const int PageCount = 4;
+    public enum Page { Ecosystem, Investigations, Observations, Facts, Runs}
+    const int PageCount = 5;
 
     static Page? requestedPage;
     static string requestedCaseKey;
+
+    // My Runs
+    GameObject runsPage;
+    List<MyRuns> pastRuns = new();      // newest first
+    int selectedRun;
+    RectTransform runsContent;
+    TextMeshProUGUI runsSub, runTitle, runBody, runLegend;
+    RawImage runGraph;
+    Texture2D runTex;
+    TextMeshProUGUI starsHint;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() { requestedPage = null; requestedCaseKey = null; }   // domain reload is off
@@ -120,7 +130,6 @@ public class FieldJournalScreen : MonoBehaviour
     CaseSeenTracker seen;
     int selected = -1;
     RectTransform listContent;
-    GameObject caseRowTemplate;
     TextMeshProUGUI invSub, detailPill, detailTitle, detailBody;
     Image detailPillBg;
     GameObject graphLink;
@@ -136,11 +145,8 @@ public class FieldJournalScreen : MonoBehaviour
     /// <summary>A Free Exploration run is open behind the journal, so locked cases can still be found in it.</summary>
     static bool InFreeRun => FieldJournalObservations.IsLive && !FieldJournalObservations.WasGuided;
 
-    bool editorPreview;
-
-    bool FindLayout()
+    void Start()
     {
-        byName.Clear();
         foreach (var t in GetComponentsInChildren<Transform>(true))
         {
             string key = t.name.Trim().Trim('\'').Trim();
@@ -150,7 +156,7 @@ public class FieldJournalScreen : MonoBehaviour
         if (panel == null)
         {
             Debug.LogWarning("[FieldJournalScreen] No JournalPanel in the Field Journal scene; pages not added.", this);
-            return false;
+            return;
         }
         headerTemplate = Find("HeaderTxt")?.GetComponent<TextMeshProUGUI>();
         subTemplate = Find("SubTxt")?.GetComponent<TextMeshProUGUI>();
@@ -158,50 +164,8 @@ public class FieldJournalScreen : MonoBehaviour
         var tabImage = Find("EcosystemBtn")?.GetComponent<Image>();
         roundSprite = tabImage != null && tabImage.sprite != null ? tabImage.sprite : panel.GetComponent<Image>()?.sprite;
 
-        return true;
-    }
-
-    static bool IsExtraPage(string name) => name == "InvestigationsPage" || name == "ObservationsPage" || name == "FactsPage";
-
-#if UNITY_EDITOR
-    [ContextMenu("Generate Editable Journal Pages")]
-    void GenerateEditablePages()
-    {
-        if (Application.isPlaying || !FindLayout()) return;
-        if (panel.Find("InvestigationsPage") != null || panel.Find("ObservationsPage") != null || panel.Find("FactsPage") != null)
-        {
-            Debug.LogWarning("Journal pages already exist. Edit them directly; generation was skipped.", this);
-            return;
-        }
-        editorPreview = true;
-        try
-        {
-            BuildInvestigations();
-            BuildObservations();
-            BuildFacts();
-            CreateCaseRowTemplate();
-            invSub.text = "Investigation progress";
-            detailPill.text = "LOCKED";
-            detailTitle.text = "Case 1: ???";
-            detailBody.text = "Clue: Watch what happens to the animals.";
-            obsSub.text = "How each animal's number changes over time.";
-            summary.text = "Population summary";
-            playLabel.text = "Play";
-            speedLabel.text = "Speed 1x";
-            foreach (var page in new[] { investigationsPage, observationsPage, factsPage })
-                UnityEditor.Undo.RegisterCreatedObjectUndo(page, "Generate journal page");
-            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
-        }
-        finally { editorPreview = false; }
-    }
-#endif
-
-    void Start()
-    {
-        if (!FindLayout()) return;
-        ecosystemPage.Clear();
         foreach (Transform child in panel)
-            if (child.name != "HeaderTxt_02" && !IsExtraPage(child.name)) ecosystemPage.Add(child.gameObject);
+            if (child.name != "HeaderTxt_02") ecosystemPage.Add(child.gameObject);
 
         cases = FieldJournalCases.Find();
         seen = CaseSeenTracker.ForDevice();
@@ -213,6 +177,7 @@ public class FieldJournalScreen : MonoBehaviour
         Tab("InvestigationBtn", Page.Investigations);
         Tab("ObservationBtn", Page.Observations);
         Tab("DYKBtn", Page.Facts);
+        Tab("RunsBtn", Page.Runs);
         Wire("PreviousBtn", () => Show(Previous(current)));
         Wire("NextBtn", () => Show(Next(current)));
         // The arrows are blank squares in the scene: label them with the page they lead to.
@@ -220,14 +185,14 @@ public class FieldJournalScreen : MonoBehaviour
         nextCaption = ButtonCaption.Ensure(Find("NextBtn")?.GetComponent<Button>(), "", 30f);
         newBadge = Badge(Find("InvestigationBtn"));
 
-        if (panel.Find("InvestigationsPage") != null) BindInvestigations(); else BuildInvestigations();
-        if (panel.Find("ObservationsPage") != null) BindObservations(); else BuildObservations();
-        var savedFacts = panel.Find("FactsPage");
-        if (savedFacts != null) factsPage = savedFacts.gameObject; else BuildFacts();
+        BuildInvestigations();
+        BuildObservations();
+        BuildFacts();
+        BuildRuns();      // new
 
         selected = cases.PickInitial(seen, requestedCaseKey);
-        // Open on Ecosystem by default; honor explicit requests from discovery popups.
-        Show(requestedPage ?? Page.Ecosystem);
+        // Inside a run the journal is mostly for watching that run, so open on its graph.
+        Show(requestedPage ?? (FieldJournalObservations.IsLive ? Page.Observations : Page.Ecosystem));
         requestedPage = null;
         requestedCaseKey = null;
     }
@@ -235,6 +200,7 @@ public class FieldJournalScreen : MonoBehaviour
     void OnDestroy()
     {
         if (cases?.Detector != null) cases.Detector.CaseUnlocked -= OnCaseUnlocked;
+        if (runTex != null) Destroy(runTex);
     }
 
     void OnCaseUnlocked(InvestigationCase _)
@@ -249,11 +215,13 @@ public class FieldJournalScreen : MonoBehaviour
         foreach (var go in ecosystemPage) if (go != null) go.SetActive(page == Page.Ecosystem);
         if (investigationsPage != null) investigationsPage.SetActive(page == Page.Investigations);
         if (observationsPage != null) observationsPage.SetActive(page == Page.Observations);
+        if (runsPage != null) runsPage.SetActive(page == Page.Runs);
         if (factsPage != null) factsPage.SetActive(page == Page.Facts);
         foreach (var kv in tabs) kv.Value.image.color = kv.Key == page ? TabSelected : kv.Value.normal;
         if (previousCaption != null) previousCaption.text = $"<size=220%>‹</size>\n{titles[Previous(page)]}";
         if (nextCaption != null) nextCaption.text = $"<size=220%>›</size>\n{titles[Next(page)]}";
         if (page == Page.Investigations) RefreshInvestigations();
+        if (page == Page.Runs) RefreshRuns();
         RefreshBadge();
     }
 
@@ -303,10 +271,8 @@ public class FieldJournalScreen : MonoBehaviour
         detailPill = Text(pill, "", 28f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center);
         Fill(detailPill.rectTransform);
         detailTitle = Text(detail, "", 56f, Ink, FontStyles.Bold, TextAlignmentOptions.TopLeft);
-        detailTitle.name = "DetailTitle";
         Place(detailTitle.rectTransform, new Vector2(56f, -140f), new Vector2(868f, 150f));
         detailBody = Text(detail, "", 38f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
-        detailBody.name = "DetailBody";
         Place(detailBody.rectTransform, new Vector2(56f, -310f), new Vector2(868f, 420f));
 
         // From a solved case to the graph of the run where it happened.
@@ -316,23 +282,6 @@ public class FieldJournalScreen : MonoBehaviour
         link.gameObject.AddComponent<Button>().onClick.AddListener(() => Show(Page.Observations));
         Fill(Text(link, "See it on the graph  ›", 34f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center).rectTransform);
         graphLink = link.gameObject;
-    }
-
-    void BindInvestigations()
-    {
-        investigationsPage = panel.Find("InvestigationsPage").gameObject;
-        var p = investigationsPage.transform;
-        invSub = p.Find("SubTxt").GetComponent<TextMeshProUGUI>();
-        listContent = (RectTransform)p.Find("CaseList/Content");
-        caseRowTemplate = listContent.Find("CaseRowTemplate")?.gameObject;
-        if (caseRowTemplate != null) caseRowTemplate.SetActive(false);
-        var detail = p.Find("CaseDetail");
-        detailPillBg = detail.Find("StatusPill").GetComponent<Image>();
-        detailPill = detailPillBg.GetComponentInChildren<TextMeshProUGUI>(true);
-        detailTitle = detail.Find("DetailTitle").GetComponent<TextMeshProUGUI>();
-        detailBody = detail.Find("DetailBody").GetComponent<TextMeshProUGUI>();
-        graphLink = detail.Find("SeeGraphBtn").gameObject;
-        Rewire(graphLink.GetComponent<Button>(), () => Show(Page.Observations));
     }
 
     void RefreshInvestigations()
@@ -345,7 +294,7 @@ public class FieldJournalScreen : MonoBehaviour
             : found == 0 ? $"{total} cases to discover. Read a clue, then watch what happens to the animals."
             : $"{found} of {total} cases discovered. {findMore}";
 
-        foreach (Transform c in listContent) { if (c.gameObject == caseRowTemplate) continue; c.gameObject.SetActive(false); Destroy(c.gameObject); }   // Destroy waits for the frame end
+        foreach (Transform c in listContent) { c.gameObject.SetActive(false); Destroy(c.gameObject); }   // Destroy waits for the frame end
         for (int i = 0; i < total; i++) CaseRow(i);
         ShowDetail();
     }
@@ -356,20 +305,6 @@ public class FieldJournalScreen : MonoBehaviour
         bool open = cases.IsUnlocked(c);
         bool isNew = seen.IsNew(cases.Journal, c.Key);
 
-        if (caseRowTemplate != null)
-        {
-            var clone = Instantiate(caseRowTemplate, listContent);
-            clone.name = $"Case_{index + 1}";
-            clone.GetComponent<Image>().color = index == selected ? RowSelected : caseRowTemplate.GetComponent<Image>().color;
-            clone.transform.Find("CaseTitle").GetComponent<TextMeshProUGUI>().text = open ? $"Case {index + 1}: {c.title}" : $"Case {index + 1}: ???";
-            clone.transform.Find("CaseSubtitle").GetComponent<TextMeshProUGUI>().text = open ? "Discovered. Tap to read what happened." : "Not discovered yet. Tap for a clue.";
-            var badge = clone.transform.Find("Pill");
-            badge.GetComponent<Image>().color = isNew ? Orange : open ? Green : Grey;
-            badge.GetComponentInChildren<TextMeshProUGUI>(true).text = isNew ? "NEW" : open ? "SOLVED" : "LOCKED";
-            Rewire(clone.GetComponent<Button>(), () => Select(index));
-            clone.SetActive(true);
-            return;
-        }
         var row = Box(listContent, $"Case_{index + 1}", Vector2.zero, Vector2.zero, index == selected ? RowSelected : Row);
         var le = row.gameObject.AddComponent<LayoutElement>();
         le.preferredHeight = 150f;
@@ -390,32 +325,6 @@ public class FieldJournalScreen : MonoBehaviour
         pill.anchoredPosition = new Vector2(-32f, 0f);
         var pt = Text(pill, label, 28f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center);
         Fill(pt.rectTransform);
-    }
-
-    void CreateCaseRowTemplate()
-    {
-        var row = Box(listContent, "CaseRowTemplate", Vector2.zero, Vector2.zero, Row);
-        var le = row.gameObject.AddComponent<LayoutElement>();
-        le.preferredHeight = 150f;
-        row.gameObject.AddComponent<Button>();
-
-        var title = Text(row, "Case 1: ???", 40f, Ink, FontStyles.Bold, TextAlignmentOptions.MidlineLeft);
-        title.name = "CaseTitle";
-        title.rectTransform.anchorMin = Vector2.zero; title.rectTransform.anchorMax = Vector2.one;
-        title.rectTransform.offsetMin = new Vector2(40f, 50f); title.rectTransform.offsetMax = new Vector2(-230f, -16f);
-        var sub = Text(row, "Not discovered yet. Tap for a clue.", 28f, Muted, FontStyles.Normal, TextAlignmentOptions.MidlineLeft);
-        sub.name = "CaseSubtitle";
-        sub.rectTransform.anchorMin = Vector2.zero; sub.rectTransform.anchorMax = new Vector2(1f, 0f);
-        sub.rectTransform.pivot = new Vector2(0.5f, 0f);
-        sub.rectTransform.offsetMin = new Vector2(40f, 16f); sub.rectTransform.offsetMax = new Vector2(-230f, 60f);
-
-        var (label, color) = ("LOCKED", Grey);
-        var pill = Box(row, "Pill", Vector2.zero, new Vector2(180f, 56f), color);
-        pill.anchorMin = pill.anchorMax = pill.pivot = new Vector2(1f, 0.5f);
-        pill.anchoredPosition = new Vector2(-32f, 0f);
-        var pt = Text(pill, label, 28f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center);
-        Fill(pt.rectTransform);
-        caseRowTemplate = row.gameObject;
     }
 
     void Select(int index)
@@ -483,12 +392,11 @@ public class FieldJournalScreen : MonoBehaviour
 
         var side = Box(p, "SummaryCard", new Vector2(720f, -60f), new Vector2(440f, 880f), Card);
         summary = Text(side, "", 32f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
-        summary.name = "SummaryText";
 
         // Inside a run: let the player run it from here and watch the lines move, at any speed.
-        liveSpeed = !editorPreview && FieldJournalObservations.IsLive ? FindAnyObjectByType<SimulationSpeedController>() : null;
-        Place(summary.rectTransform, new Vector2(36f, -36f), new Vector2(368f, liveSpeed != null || editorPreview ? 680f : 808f));
-        if (liveSpeed != null || editorPreview)
+        liveSpeed = FieldJournalObservations.IsLive ? FindAnyObjectByType<SimulationSpeedController>() : null;
+        Place(summary.rectTransform, new Vector2(36f, -36f), new Vector2(368f, liveSpeed != null ? 680f : 808f));
+        if (liveSpeed != null)
         {
             playBg = RunButton(side, "GraphPlayBtn", 36f, Green, () =>
             {
@@ -500,35 +408,8 @@ public class FieldJournalScreen : MonoBehaviour
         }
 
         // The run going on now, or the last one (kept after leaving it).
-        if (!editorPreview) ConnectGraph();
-    }
-
-    void ConnectGraph()
-    {
         graph.Redrawn += RefreshSummary;
         graph.Bind(FieldJournalObservations.History, FieldJournalObservations.Series, FieldJournalObservations.Days);
-    }
-
-    void BindObservations()
-    {
-        observationsPage = panel.Find("ObservationsPage").gameObject;
-        var p = observationsPage.transform;
-        obsSub = p.Find("SubTxt").GetComponent<TextMeshProUGUI>();
-        graph = p.Find("GraphCard/Inner/PopulationGraph").GetComponent<PopulationGraph>();
-        var side = p.Find("SummaryCard");
-        summary = side.Find("SummaryText").GetComponent<TextMeshProUGUI>();
-        liveSpeed = FieldJournalObservations.IsLive ? FindAnyObjectByType<SimulationSpeedController>() : null;
-        var play = side.Find("GraphPlayBtn");
-        var speed = side.Find("GraphSpeedBtn");
-        playBg = play.GetComponent<Image>();
-        playLabel = play.GetComponentInChildren<TextMeshProUGUI>(true);
-        speedLabel = speed.GetComponentInChildren<TextMeshProUGUI>(true);
-        play.gameObject.SetActive(liveSpeed != null);
-        speed.gameObject.SetActive(liveSpeed != null);
-        Rewire(play.GetComponent<Button>(), () => { if (liveSpeed == null) return; if (liveSpeed.IsRunning) liveSpeed.Pause(); else liveSpeed.Play(); RefreshRunControls(); });
-        Rewire(speed.GetComponent<Button>(), () => { if (liveSpeed == null) return; liveSpeed.CycleSpeed(); RefreshRunControls(); });
-        RefreshRunControls();
-        ConnectGraph();
     }
 
     RectTransform RunButton(Transform card, string name, float x, Color color, UnityAction onClick, out TextMeshProUGUI label)
@@ -595,6 +476,193 @@ public class FieldJournalScreen : MonoBehaviour
         summary.text = sb.ToString();
     }
 
+
+    // ---------- My Runs ----------
+
+    void BuildRuns()
+    {
+        runsPage = PageRoot("RunsPage");
+        var p = runsPage.transform;
+        Header(p, "My Runs");
+        runsSub = Sub(p, "");
+
+        // Left: scrolling list of saved runs (same setup as the case list).
+        var view = Box(p, "RunList", new Vector2(-640f, -60f), new Vector2(980f, 880f), new Color(1f, 1f, 1f, 0f));
+        view.gameObject.AddComponent<RectMask2D>();
+        runsContent = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
+        runsContent.SetParent(view, false);
+        runsContent.anchorMin = new Vector2(0f, 1f); runsContent.anchorMax = Vector2.one; runsContent.pivot = new Vector2(0.5f, 1f);
+        runsContent.sizeDelta = Vector2.zero;
+        var v = runsContent.gameObject.AddComponent<VerticalLayoutGroup>();
+        v.spacing = 20f; v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+        runsContent.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        var scroll = view.gameObject.AddComponent<ScrollRect>();
+        scroll.content = runsContent; scroll.viewport = view; scroll.horizontal = false;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+
+        // Right: the selected run.
+        var detail = Box(p, "RunDetail", new Vector2(450f, -60f), new Vector2(980f, 880f), Card);
+        runTitle = Text(detail, "", 52f, Ink, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        Place(runTitle.rectTransform, new Vector2(56f, -40f), new Vector2(868f, 80f));
+
+        var go = new GameObject("RunGraph", typeof(RectTransform), typeof(RawImage));
+        go.transform.SetParent(detail, false);
+        runGraph = go.GetComponent<RawImage>();
+        runGraph.raycastTarget = false;
+        Place(runGraph.rectTransform, new Vector2(56f, -130f), new Vector2(868f, 300f));
+
+        runLegend = Text(detail, "", 30f, Body, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        Place(runLegend.rectTransform, new Vector2(56f, -440f), new Vector2(868f, 50f));
+        runBody = Text(detail, "", 36f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        Place(runBody.rectTransform, new Vector2(56f, -510f), new Vector2(868f, 270f));
+
+        starsHint = Text(detail,
+            $"<b>How to earn stars</b>\n" +
+            $"1 star: last {RunRewards.SeasonDays} days  ·  2 stars: both animals still alive at the end  ·  3 stars: last all {RunRewards.FullRunDays} days",
+            28f, Muted, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        Place(starsHint.rectTransform, new Vector2(56f, -790f), new Vector2(868f, 80f));
+    }
+
+    void RefreshRuns()
+    {
+        if (runsContent == null) return;
+        pastRuns = RunHist.Load().runs;
+        pastRuns.Reverse();                                   // newest first
+        selectedRun = Mathf.Clamp(selectedRun, 0, Mathf.Max(0, pastRuns.Count - 1));
+
+        runsSub.text = pastRuns.Count == 0
+            ? "No runs saved yet. Finish a run and it will show up here."
+            : $"Your last {pastRuns.Count} runs. Tap one to see how it went.";
+
+        // The longest run gets the BEST tag (the newest one if there is a tie).
+        int best = -1;
+        for (int i = 0; i < pastRuns.Count; i++)
+            if (best < 0 || pastRuns[i].days_survived > pastRuns[best].days_survived) best = i;
+
+        foreach (Transform c in runsContent) { c.gameObject.SetActive(false); Destroy(c.gameObject); }
+        for (int i = 0; i < pastRuns.Count; i++) RunRow(i, i == best);
+        ShowRunDetail();
+    }
+
+    static string RunDate(MyRuns r) =>
+        System.DateTime.TryParse(r.start, out var dt)
+            ? dt.ToString("d MMM, HH:mm", System.Globalization.CultureInfo.InvariantCulture)
+            : r.id;
+
+    void RunRow(int index, bool isBest)
+    {
+        var r = pastRuns[index];
+        var row = Box(runsContent, $"Run_{index + 1}", Vector2.zero, Vector2.zero, index == selectedRun ? RowSelected : Row);
+        row.gameObject.AddComponent<LayoutElement>().preferredHeight = 150f;
+        int i = index;
+        row.gameObject.AddComponent<Button>().onClick.AddListener(() => { selectedRun = i; RefreshRuns(); });
+
+        var title = Text(row, RunDate(r), 40f, Ink, FontStyles.Bold, TextAlignmentOptions.MidlineLeft);
+        title.rectTransform.anchorMin = Vector2.zero; title.rectTransform.anchorMax = Vector2.one;
+        title.rectTransform.offsetMin = new Vector2(40f, 50f); title.rectTransform.offsetMax = new Vector2(-230f, -16f);
+
+        var sub = Text(row, $"{r.mode} · lasted {r.days_survived} days", 28f, Muted, FontStyles.Normal, TextAlignmentOptions.MidlineLeft);
+        sub.rectTransform.anchorMin = Vector2.zero; sub.rectTransform.anchorMax = new Vector2(1f, 0f);
+        sub.rectTransform.pivot = new Vector2(0.5f, 0f);
+        sub.rectTransform.offsetMin = new Vector2(40f, 16f); sub.rectTransform.offsetMax = new Vector2(-230f, 60f);
+
+        var pill = Box(row, "Pill", Vector2.zero, new Vector2(180f, 56f), isBest ? Orange : Green);
+        pill.anchorMin = pill.anchorMax = pill.pivot = new Vector2(1f, 0.5f);
+        pill.anchoredPosition = new Vector2(-32f, 0f);
+        Fill(Text(pill, isBest ? "BEST" : $"{r.stars} / 3 stars", 28f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center).rectTransform);
+    }
+
+    void ShowRunDetail()
+    {
+        if (pastRuns.Count == 0)
+        {
+            runTitle.text = "No runs yet";
+            runBody.text = "Play an exploration. When you leave it, the run is saved here so you can compare it next time.";
+            runLegend.text = "";
+            runGraph.gameObject.SetActive(false);
+            return;
+        }
+        runGraph.gameObject.SetActive(true);
+        var r = pastRuns[selectedRun];
+        var before = selectedRun + 1 < pastRuns.Count ? pastRuns[selectedRun + 1] : null;   // the run just before this one
+
+        runTitle.text = $"{RunDate(r)} · {r.mode}";
+        DrawRunGraph(r);
+        runLegend.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Blue)}>Blue sheep</color>    " +
+                         $"<color=#{ColorUtility.ToHtmlStringRGB(Orange)}>Snow leopards</color>    " +
+                         $"<color=#{ColorUtility.ToHtmlStringRGB(Green)}>Trees</color>";
+
+        var sb = new StringBuilder();
+        sb.Append("<b>").Append(CompareRuns(r, before)).Append("</b>\n\n");
+        sb.Append(OutcomeText(r.outcome)).Append("\n\n");
+        sb.Append("Most blue sheep: ").Append(r.peaksheep).Append('\n');
+        sb.Append("Most snow leopards: ").Append(r.peakleopard).Append('\n');
+        sb.Append("At the end: ").Append(r.endsheep).Append(" sheep, ").Append(r.endleopard).Append(" leopards, ").Append(r.endtrees).Append(" trees");
+        if (r.cases != null && r.cases.Count > 0) sb.Append("\nCases found: ").Append(r.cases.Count);
+        runBody.text = sb.ToString();
+    }
+
+    static string CompareRuns(MyRuns now, MyRuns before)
+    {
+        if (before == null) return "This was your first saved run. Come back and beat it!";
+        int diff = now.days_survived - before.days_survived;
+        string head = $"Run before: {before.days_survived} days. This run: {now.days_survived} days.";
+        return diff > 0 ? $"{head}\nYou lasted {diff} days longer!"
+             : diff < 0 ? $"{head}\nSo close! Can you beat {before.days_survived} days?"
+             : $"{head}\nSame as last time. Try something different!";
+    }
+
+    static string OutcomeText(string outcome) => outcome switch
+    {
+        "BothSurvived" => "Both animals made it to the end!",
+        "SheepDied" => "The blue sheep ran out. What could help them next time?",
+        "LeopardDied" => "The snow leopards ran out. What could help them next time?",
+        _ => ""
+    };
+
+    // Small line graph drawn straight into a texture, so it doesn't depend on PopulationGraph.
+    void DrawRunGraph(MyRuns r)
+    {
+        const int W = 868, H = 300;
+        if (runTex != null) Destroy(runTex);
+        runTex = new Texture2D(W, H, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        var px = new Color32[W * H];
+        for (int i = 0; i < px.Length; i++) px[i] = new Color32(255, 255, 255, 255);
+
+        int max = 1;
+        foreach (var v in r.sheep) max = Mathf.Max(max, v);
+        foreach (var v in r.leopard) max = Mathf.Max(max, v);
+        foreach (var v in r.trees) max = Mathf.Max(max, v);
+
+        PlotLine(px, W, H, r.trees, max, Green);
+        PlotLine(px, W, H, r.sheep, max, Blue);
+        PlotLine(px, W, H, r.leopard, max, Orange);
+
+        runTex.SetPixels32(px);
+        runTex.Apply();
+        runGraph.texture = runTex;
+    }
+
+    static void PlotLine(Color32[] px, int W, int H, List<int> s, int max, Color color)
+    {
+        int n = s.Count;
+        if (n == 0) return;
+        Color32 c = color;
+        int prevY = -1;
+        for (int x = 0; x < W; x++)
+        {
+            float f = n == 1 ? 0f : x * (n - 1f) / (W - 1f);
+            int i0 = (int)f, i1 = Mathf.Min(i0 + 1, n - 1);
+            float val = Mathf.Lerp(s[i0], s[i1], f - i0);
+            int y = 6 + Mathf.RoundToInt(val / max * (H - 12));
+            int a = prevY < 0 ? y : Mathf.Min(prevY, y);
+            int b = prevY < 0 ? y : Mathf.Max(prevY, y);
+            for (int yy = Mathf.Max(0, a - 2); yy <= Mathf.Min(H - 1, b + 2); yy++) px[yy * W + x] = c;
+            prevY = y;
+        }
+    }
+
+
     // ---------- Did You Know? ----------
 
     void BuildFacts()
@@ -632,7 +700,8 @@ public class FieldJournalScreen : MonoBehaviour
         if (b.TryGetComponent(out Image img)) tabs[page] = (img, img.color);
         var label = b.GetComponentInChildren<TMP_Text>(true);
         if (label != null && !string.IsNullOrWhiteSpace(label.text))
-            titles[page] = label.text.Trim().Trim('\'', '"').Replace(" Facts", "").Trim();
+            titles[page] = label.text.Replace("\n", " ").Replace("\r", " ")
+                               .Trim().Trim('\'', '"').Replace(" Facts", "").Trim();
         Rewire(b, () => Show(page));
     }
 
