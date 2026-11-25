@@ -1,4 +1,4 @@
-# EcoBalance — System Architecture (v0.2)
+# EcoBalance — System Architecture (v0.3)
 
 **Owner of this document:** Tan Wei Leong (Tech Lead)
 **Status:** v0.2 for Milestone 2 (v0.1 was Milestone 1). It describes what is built and what is planned. Anything planned is marked *(planned)*.
@@ -151,6 +151,16 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Metrics export (CSV) | `SimulationData/DataLogging`, logged from `SimulationClock` each tick | T05 (optional) | Li Juan | Done: one row per tick (tick, Blue Sheep, Snow Leopards, trees), saved when the run ends (Editor: `Assets/EcoBalance/Data/DataLogging/`; device: app data folder). Tree count still 0 on the Khumbu terrain |
 | CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/*/Tests/Editor/*`, `Assets/EcoBalance/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks + unit / smoke / performance tests on PRs into `main` (perf history per PR); tag/manual Android APK to Gitea ([details](infra/ci.md)) |
 | UI/UX design | Figma / `docs/design/ui-ux`, `Assets/Scenes/UI.unity` | — | Nomitha, Shu Min (Design) | 16 M2 wireframes in `docs/design/ui-ux/wireframes`; menu screens and the simulation HUD built in Unity by Shu Min and wired up |
+
+## 3b. M3 additions (Nov 2026)
+
+| Component | Key scripts | Owner(s) | Status |
+|---|---|---|---|
+| Player actions (Guided) | `Guided/GuidedFire.cs` (grass fire: 3 water sprays put it out, spreads, burnt grass regrows slowly via `BurntPatch`), `Guided/GuidedPlant.cs` (tap a brown patch to plant grass, 3 helps per chapter) | Wei Leong | Done |
+| Weather look | `Terrain/WeatherVisualController.cs` (fog, sun brightness, grass dries to straw in a heatwave, blends over 4 s), `Clock/DayNightLighting.cs` (sun x weather) | Li Juan (particles), Wei Leong (look) | Done |
+| Water + river | `Terrain/HimalayaResourcePlacer.cs` (drinking spots spread along the whole river, cap 160), `Terrain/HimalayaRiver.cs` (river 4-12 m, streams 3-6 m) | Wei Leong | Done: fixes animals dying of thirst downstream |
+| Demo hotkeys | `SimulationHotkeys.cs` 1-5 (Reginald); B fire, P plant, Y weather, 7/8/9 camera views, G grid, ` overlay | Reginald, Wei Leong | Done |
+| Mascot timing | `UI/Mascot.cs`: waits for the loading card and the family picker; season news waits for the welcome | Wei Leong | Done |
 
 ## 4. Data stores
 
