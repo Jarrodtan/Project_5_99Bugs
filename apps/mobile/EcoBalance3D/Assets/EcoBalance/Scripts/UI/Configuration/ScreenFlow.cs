@@ -157,6 +157,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         confirm.SetActive(false);
         openConfirm = () =>
         {
+            Mascot.Hide();   // stop the mascot talking first (it may have paused the sim itself)
             wasRunning = speed != null && speed.IsRunning;
             if (speed != null) speed.Pause();
             confirm.SetActive(true);
@@ -166,6 +167,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
 
         var back = Btn(canvasGo.transform, "Back", Vector2.zero, new Color(0.08f, 0.1f, 0.14f, 0.8f), () =>
         {
+            Mascot.Hide();
             wasRunning = speed != null && speed.IsRunning;
             if (speed != null) speed.Pause();
             confirm.SetActive(true);
@@ -225,6 +227,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         journalWasRunning = speed != null && speed.IsRunning;
         if (speed != null) speed.Pause();
+        OverlayAudio.Hush();   // same as the Ending Gallery: music on, river and animals quiet (restored when it closes)
         SceneManager.LoadSceneAsync(Journal, LoadSceneMode.Additive);
     }
 

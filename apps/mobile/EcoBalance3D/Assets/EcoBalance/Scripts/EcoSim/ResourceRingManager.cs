@@ -133,7 +133,17 @@ public class ResourceRingManager : MonoBehaviour
         lr.receiveShadows = false;
         lr.numCapVertices = 2;
         lr.sharedMaterial = foodMaterial;
-        lr.startColor = lr.endColor = Color.white;
+        lr.startColor = lr.endColor = FoodColor;
+        // Patches never move: build the circle once here, not every frame (on the 10x map that was
+        // about 1,000 rings x 40 points rebuilt each frame, the main cause of the lag).
+        Vector3 centre = patch.transform.position;
+        centre.y += HeightOffset;
+        for (int i = 0; i < Segments; i++)
+        {
+            float a = i / (float)Segments * Mathf.PI * 2f;
+            circleScratch[i] = centre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * BaseRadius;
+        }
+        lr.SetPositions(circleScratch);
         return lr;
     }
 
@@ -155,18 +165,11 @@ public class ResourceRingManager : MonoBehaviour
             if (!lr.enabled) lr.enabled = true;
 
             Material want = water ? waterMaterial : foodMaterial;
-            if (lr.sharedMaterial != want) lr.sharedMaterial = want;
-            Color c = water ? WaterColor : FoodColor;
-            lr.startColor = lr.endColor = c;
-
-            Vector3 centre = patch.transform.position;
-            centre.y += HeightOffset;
-            for (int i = 0; i < Segments; i++)
+            if (lr.sharedMaterial != want)
             {
-                float a = i / (float)Segments * Mathf.PI * 2f;
-                circleScratch[i] = centre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * BaseRadius;
+                lr.sharedMaterial = want;
+                lr.startColor = lr.endColor = water ? WaterColor : FoodColor;
             }
-            lr.SetPositions(circleScratch);
         }
     }
 

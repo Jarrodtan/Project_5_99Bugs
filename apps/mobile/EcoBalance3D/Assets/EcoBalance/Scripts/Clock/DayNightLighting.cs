@@ -45,7 +45,7 @@ public class DayNightLighting : MonoBehaviour
                 intensity *= config.moonIntensity;
 
             directionalLight.color = colour;
-            directionalLight.intensity = intensity;
+            directionalLight.intensity = intensity * WeatherVisualController.SunScale;   // dimmer under rain clouds, brighter in a heatwave
         }
 
         RenderSettings.ambientLight = config.ambientColorOverDay.Evaluate(time);

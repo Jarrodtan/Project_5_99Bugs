@@ -14,6 +14,7 @@ public static partial class ScreenFlow
     static void ShowFamilyPicker()
     {
         if (familyPicker != null) return;
+        Mascot.HoldForLoading();   // the Mode Selection mascot stops talking and hides while the picker is open
 
         var canvasGo = new GameObject("[Family Picker]", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         familyPicker = canvasGo;
@@ -56,6 +57,7 @@ public static partial class ScreenFlow
     {
         if (familyPicker != null) Object.Destroy(familyPicker);
         familyPicker = null;
+        Mascot.ShowPendingMenuLine();   // Back: the mascot and its line come back
     }
 
     // One big tappable card per family: picture, name, species, a short story line, the starting animals,

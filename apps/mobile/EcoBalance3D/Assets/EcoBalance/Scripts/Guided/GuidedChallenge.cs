@@ -215,6 +215,8 @@ public partial class GuidedChallenge : MonoBehaviour
 
         if (!introDone) { ShowIntro(); return; }
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
+        if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
+        if (!showing) UpdatePlanting();                              // player action: plant grass on brown patches
         if (showing || Time.unscaledTime < quietUntil) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
@@ -269,6 +271,11 @@ public partial class GuidedChallenge : MonoBehaviour
     }
 
     // ---------- Ending ----------
+
+    public void FinishForPresentation()
+    {
+        Finish();
+    }
 
     void Finish()
     {
@@ -593,7 +600,7 @@ public partial class GuidedChallenge : MonoBehaviour
         if (FindShuminUI())   // Shumin's DayPanel: "Day 12 / 20 | Summer" in the mock-up
         {
             // One line across the whole panel: the season box alone was too narrow to read on a tablet.
-            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");
+            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");   // weather word dropped: the icon beside the pill shows it
             if (!dayPanelStyled) StyleDayPanel();
         }
         if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it

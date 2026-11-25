@@ -18,7 +18,7 @@ MonoBehaviour:
   north: 28.14
   tileZoom: 11
   heightmapResolution: 513
-  worldWidth: 400
+  worldWidth: 900
   verticalExaggeration: 1
   areaSizeKm: 50
   landCover: {fileID: 2800000, guid: f6d98535ab794042979f0ae6f3694e82, type: 3}
@@ -32,8 +32,8 @@ MonoBehaviour:
   snowLineMeters: 5200
   rockSlope: 38
   grassClasses: 1e00000014000000i
-  grassPatches: 40
-  maxWaterPatches: 60
+  grassPatches: 100
+  maxWaterPatches: 160
   waterPatchSpacing: 12
   overpassUrl: https://overpass-api.de/api/interpreter
   useCache: 1

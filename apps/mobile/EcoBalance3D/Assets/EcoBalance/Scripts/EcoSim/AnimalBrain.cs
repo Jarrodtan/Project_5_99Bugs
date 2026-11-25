@@ -98,6 +98,9 @@ public class AnimalBrain : MonoBehaviour
     public bool IsStalking { get; private set; }
     public bool IsFleeing => CurrentAction == AnimalAction.Fleeing;
     float sprintTimer, huntRestTimer;
+    bool presentationHunt;
+    bool presentationForage;
+    bool presentationDrink;
     // [AI-GENERATED END]
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
@@ -374,6 +377,29 @@ public class AnimalBrain : MonoBehaviour
 
     [Tooltip("Seconds between decisions (scaled by simulation speed). Moving and catching still run every frame.")]
     public float decisionInterval = 0.25f;
+
+    // Herd Behaviour
+    [Header("Herd Behaviour")]
+    [Tooltip("Distance at which nearby sheep influence wandering destinations.")]
+    public float herdSeparationRadius = 6f;
+
+    [Tooltip("Distance used to find nearby adult herd members.")]
+    public float herdCohesionRadius = 25f;
+
+    [Tooltip("Preferred distance from the local herd centre.")]
+    public float herdPreferredDistance = 12f;
+
+    [Tooltip("Strength of the preference to stay near the herd.")]
+    [Range(0f, 2f)]
+    public float herdCohesionWeight = 0.35f;
+
+    [Tooltip("How strongly sheep prefer destinations away from nearby herd members.")]
+    [Range(0f, 2f)]
+    public float herdSeparationWeight = 0.5f;
+
+    [Tooltip("How strongly sheep prefer moving in the same direction as nearby adults.")]
+    [Range(0f, 2f)]
+    public float herdAlignmentWeight = 0.2f;
 
     // Collision
     [Header("Collision")]
@@ -668,7 +694,7 @@ public class AnimalBrain : MonoBehaviour
 
             // Let the NavMeshAgent rotate the animal.
             agent.updateRotation = true;
-            agent.angularSpeed = 360f;
+            agent.angularSpeed = 180f;
             base_angular_speed = agent.angularSpeed;
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): with everyone at the same priority, agents in a herd
             // keep shoving each other and shake on the spot. Different priorities let one give way.
@@ -1025,6 +1051,28 @@ public class AnimalBrain : MonoBehaviour
 
     void Decide()
     {
+        if (presentationDrink && water_patch != null && water_patch.IsEdible)
+        {
+            CurrentAction = AnimalAction.DrinkingWater;
+            CurrentTargetName = "Water";
+            return;
+        }
+
+        if (presentationForage && food_patch != null && food_patch.IsEdible)
+        {
+            CurrentAction = AnimalAction.EatingGrass;
+            CurrentTargetName = "Grass";
+            return;
+        }
+
+        // Keep a presentation hunt active until the target is caught.
+        if (presentationHunt && prey_brain != null && !prey_brain.IsCaught)
+        {
+            CurrentAction = AnimalAction.Hunting;
+            CurrentTargetName = SpeciesLabel(prey_brain.species_data);
+            return;
+        }
+
         FindTargets();
 
         // Each score: weight x need x distance factor.
@@ -1406,6 +1454,79 @@ public class AnimalBrain : MonoBehaviour
     // ---------------------------------------------------------
     // FORAGE / EAT / DRINK
     // ---------------------------------------------------------
+    public bool ForcePresentationEating()
+    {
+        if (IsPredator || IsCaught || IsYoung)
+            return false;
+
+        ResourcePatch nearestGrass = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (ResourcePatch patch in ResourcePatch.All)
+        {
+            if (patch == null || patch.IsWater || !patch.IsEdible)
+                continue;
+
+            float distance = Vector3.Distance(
+                transform.position,
+                patch.transform.position
+            );
+
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                nearestGrass = patch;
+            }
+        }
+
+        if (nearestGrass == null)
+            return false;
+
+        food_patch = nearestGrass;
+        presentationForage = true;
+
+        CurrentAction = AnimalAction.EatingGrass;
+        CurrentTargetName = "Grass";
+
+        return true;
+    }
+
+    public bool ForcePresentationDrinking()
+    {
+        if (!HasThirst || IsCaught || IsYoung)
+            return false;
+
+        ResourcePatch nearestWater = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (ResourcePatch patch in ResourcePatch.All)
+        {
+            if (patch == null || !patch.IsWater || !patch.IsEdible)
+                continue;
+
+            float distance = Vector3.Distance(
+                transform.position,
+                patch.transform.position
+            );
+
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                nearestWater = patch;
+            }
+        }
+
+        if (nearestWater == null)
+            return false;
+
+        water_patch = nearestWater;
+        presentationDrink = true;
+
+        CurrentAction = AnimalAction.DrinkingWater;
+        CurrentTargetName = "Water";
+
+        return true;
+    }
 
     bool Forage(ResourcePatch patch, bool isWater, float speed)
     {
@@ -1440,6 +1561,10 @@ public class AnimalBrain : MonoBehaviour
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): Guided "give the grass a break" takes less grass per bite, same meal
             float requested = isWater ? biteSize : biteSize * GuidedEffects.Graze;
             float taken = patch.Consume(requested);
+            if (isWater)
+                presentationDrink = false;
+            if (!isWater)
+                presentationForage = false;
             float share = requested > 0f ? taken / requested : 1f;
 
             if (EventsMode)
@@ -1482,6 +1607,39 @@ public class AnimalBrain : MonoBehaviour
     // HUNT
     // ---------------------------------------------------------
 
+
+    /// <summary>
+    /// Starts a forced hunting demonstration against a selected prey animal.
+    /// </summary>
+    public bool ForcePresentationHunt(AnimalBrain target)
+    {
+        if (target == null || target == this)
+            return false;
+
+        if (!IsPredatorSpecies || target.IsPredatorSpecies)
+            return false;
+
+        if (IsCaught || target.IsCaught)
+            return false;
+
+        if (!EventsMode || simulator == null)
+            return false;
+
+        prey = target.transform;
+        prey_brain = target;
+
+        // Bypass the normal hunting success chance for this demonstration.
+        presentationHunt = true;
+        sprintTimer = 0f;
+        huntRestTimer = 0f;
+
+        CurrentAction = AnimalAction.Hunting;
+        CurrentTargetName = SpeciesLabel(target.species_data);
+
+        return true;
+    }
+
+
     bool Hunt(float speed)
     {
         if (prey == null)
@@ -1491,6 +1649,7 @@ public class AnimalBrain : MonoBehaviour
         if (prey_brain != null &&
             prey_brain.IsCaught)
         {
+            presentationHunt = false;
             return false;
         }
 
@@ -1498,7 +1657,8 @@ public class AnimalBrain : MonoBehaviour
         {
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): research: 70% of catches succeed (Guided can add or take
             // 15 points). A miss lets the sheep escape, and the leopard rests a simulated day before trying again.
-            if (Random.value > Mathf.Clamp01(huntSuccessRate + GuidedEffects.HuntSuccessBonus))
+            if (!presentationHunt &&
+            Random.value > Mathf.Clamp01(huntSuccessRate + GuidedEffects.HuntSuccessBonus))
             {
                 sprintTimer = 0f; SetCrouch(false);
                 huntRestTimer = huntCooldownSeconds * DayScale;
@@ -1509,6 +1669,7 @@ public class AnimalBrain : MonoBehaviour
             if (prey_brain != null)
             {
                 prey_brain.MarkCaught();
+                presentationHunt = false;
                 Caught?.Invoke(this, prey_brain);
                 DramaDirector.Report(DramaDirector.Moment.Catch, transform,   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
                     $"The {SpeciesLabel(species_data)} caught a {SpeciesLabel(prey_brain.species_data)}. Hunting is how it feeds its family.");
@@ -1553,7 +1714,7 @@ public class AnimalBrain : MonoBehaviour
         {
             SetCrouch(false);
             sprintTimer += Time.deltaTime * speed;
-            if (sprintTimer > maxSprintSeconds)
+            if (!presentationHunt && sprintTimer > maxSprintSeconds)
             {
                 // Out of breath: give up and rest before trying again.
                 sprintTimer = 0f;
@@ -1676,6 +1837,42 @@ public class AnimalBrain : MonoBehaviour
 
         return true;
     }
+
+
+    /// <summary>
+    /// Forces a breeding demonstration, bypassing normal breeding requirements.
+    /// Uses the existing birth pipeline so the population and baby model are updated.
+    /// </summary>
+    public bool ForcePresentationMating(AnimalBrain partner)
+    {
+        if (partner == null || partner == this)
+            return false;
+
+        if (species_data == null || partner.species_data != species_data)
+            return false;
+
+        if (IsCaught || partner.IsCaught || IsYoung || partner.IsYoung)
+            return false;
+
+        if (!EventsMode || !partner.EventsMode || simulator == null)
+            return false;
+
+        // Do not start a demonstration if the species cannot receive another birth.
+        if (!simulator.populations.TryGetValue(species_data, out float population))
+            return false;
+
+        if (population < 1f || population >= simulator.maxPopulationPerSpecies)
+            return false;
+
+        // The first animal is treated as the mother and records the single birth.
+        FinishMating(true, partner);
+
+        // The partner shows the mating action but does not record another birth.
+        partner.FinishMating(false, this);
+
+        return true;
+    }
+
 
     void FinishMating(bool recordBirth, AnimalBrain partner)
     {
@@ -1893,6 +2090,135 @@ public class AnimalBrain : MonoBehaviour
     }
     // [AI-GENERATED END]
 
+    float HerdCrowdingCost(Vector3 position)
+    {
+        if (IsPredator || herdSeparationRadius <= 0f)
+            return 0f;
+
+        float crowding = 0f;
+        float radiusSqr = herdSeparationRadius * herdSeparationRadius;
+
+        foreach (AnimalBrain other in All)
+        {
+            if (other == null ||
+                other == this ||
+                other.IsCaught ||
+                other.species_data != species_data)
+                continue;
+
+            Vector3 offset = position - other.transform.position;
+            offset.y = 0f;
+
+            float distanceSqr = offset.sqrMagnitude;
+
+            if (distanceSqr < radiusSqr)
+            {
+                float distance = Mathf.Sqrt(distanceSqr);
+                crowding += 1f - distance / herdSeparationRadius;
+            }
+        }
+
+        return Mathf.Clamp01(crowding);
+    }
+
+    float HerdCohesionCost(Vector3 position)
+    {
+        if (IsPredator || IsYoung || herdCohesionRadius <= 0f)
+            return 0f;
+
+        Vector3 herdCenter = Vector3.zero;
+        int nearbyAdults = 0;
+
+        float radiusSqr = herdCohesionRadius * herdCohesionRadius;
+
+        foreach (AnimalBrain other in All)
+        {
+            if (other == null ||
+                other == this ||
+                other.IsCaught ||
+                other.IsYoung ||
+                other.species_data != species_data)
+                continue;
+
+            Vector3 offset = other.transform.position - transform.position;
+            offset.y = 0f;
+
+            if (offset.sqrMagnitude <= radiusSqr)
+            {
+                herdCenter += other.transform.position;
+                nearbyAdults++;
+            }
+        }
+
+        if (nearbyAdults == 0)
+            return 0f;
+
+        herdCenter /= nearbyAdults;
+
+        Vector3 destinationOffset = position - herdCenter;
+        destinationOffset.y = 0f;
+
+        float distance = destinationOffset.magnitude;
+
+        return Mathf.Clamp01(
+            (distance - herdPreferredDistance) / herdCohesionRadius
+        );
+    }
+
+    float HerdAlignmentCost(Vector3 position)
+    {
+        if (IsPredator || IsYoung)
+            return 0f;
+
+        Vector3 averageDirection = Vector3.zero;
+        int nearbyAdults = 0;
+
+        float radiusSqr = herdCohesionRadius * herdCohesionRadius;
+
+        foreach (AnimalBrain other in All)
+        {
+            if (other == null ||
+                other == this ||
+                other.IsCaught ||
+                other.IsYoung ||
+                other.species_data != species_data ||
+                other.agent == null)
+                continue;
+
+            Vector3 offset = other.transform.position - transform.position;
+            offset.y = 0f;
+
+            if (offset.sqrMagnitude > radiusSqr)
+                continue;
+
+            Vector3 neighbourVelocity = other.agent.velocity;
+            neighbourVelocity.y = 0f;
+
+            if (neighbourVelocity.sqrMagnitude < 0.25f)
+                continue;
+
+            averageDirection += neighbourVelocity;
+            nearbyAdults++;
+        }
+
+        if (nearbyAdults == 0 || averageDirection.sqrMagnitude < 0.01f)
+            return 0f;
+
+        averageDirection.Normalize();
+
+        Vector3 desiredDirection = position - transform.position;
+        desiredDirection.y = 0f;
+
+        if (desiredDirection.sqrMagnitude < 0.01f)
+            return 0f;
+
+        desiredDirection.Normalize();
+
+        float alignment = Vector3.Dot(desiredDirection, averageDirection);
+
+        return 1f - Mathf.Clamp01((alignment + 1f) * 0.5f);
+    }
+
     void Wander(float speed)
     {
         agent.speed =
@@ -1945,8 +2271,18 @@ public class AnimalBrain : MonoBehaviour
             Vector3 candidate = transform.position + Random.insideUnitSphere * reach;
             if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 10f, NavMesh.AllAreas)) continue;
             if (OtherBank(hit.position)) continue;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
-            float score = OutsideHabitat(hit.position) + DangerAt(hit.position);   // danger 1 ≈ 100 m outside home
-            if (score < bestScore) { bestScore = score; best = hit.position; found = true; }
+            float score =
+    OutsideHabitat(hit.position) +
+    DangerAt(hit.position) +
+    HerdCrowdingCost(hit.position) * herdSeparationWeight +
+    HerdCohesionCost(hit.position) * herdCohesionWeight +
+    HerdAlignmentCost(hit.position) * herdAlignmentWeight;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = hit.position;
+                found = true;
+            }
             if (score <= 0f && !away) break;   // already home: any spot inside is fine
         }
 
