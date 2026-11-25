@@ -133,9 +133,13 @@ public class HimalayaResourcePlacer : MonoBehaviour
         spawned.Clear();
     }
 
+    /// <summary>Where the grass clumps went, so trees can keep off the meadows.</summary>
+    public static readonly List<Vector3> GrassSpots = new List<Vector3>();
+
     public void PlaceGrass(HimalayaTerrainBuilder tb, HimalayaLandCover landCover)
     {
         if (grass == null) return;
+        GrassSpots.Clear();
         var rng = new System.Random(config.seed + 1);
         // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
         // Meadows: each seed spot grows into a lawn of several touching clumps, below the tree line
@@ -164,6 +168,7 @@ public class HimalayaResourcePlacer : MonoBehaviour
                 Vector2 puv = tb.WorldToUV(p);
                 if (c > 0 && !GoodGrassSpot(tb, landCover, puv.x, puv.y, meadowTop)) continue;
 
+                GrassSpots.Add(tb.WorldPosition(puv.x, puv.y));
                 SpawnTuft(grass, tb.WorldPosition(puv.x, puv.y), (float)rng.NextDouble() * 360f, material, $"Grass Patch {placed + 1}");
                 placed++;
             }

@@ -112,7 +112,7 @@ public class FamilyManager : MonoBehaviour
     // ---------- Settings (defaults from the research; editable on the [FamilyManager] object in Play mode) ----------
 
     [Header("Names")]
-    public string miloName = "Milo";
+    public string miloName = "Miloy";
     public string snowyName = "Snowy";
     public string motherName = "Mum";
     public string brotherName = "Brother";

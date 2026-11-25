@@ -126,7 +126,7 @@ public class CameraModeController : MonoBehaviour
         FamilySource = FamilyTransforms;
         if (modeLabels == null) return;
         bool guided = ScreenFlow.GuidedMode;
-        modeLabels[0].text = guided ? (snowy ? "Follow Snowy" : "Follow Milo") : (snowy ? "Follow leopards" : "Follow sheep");
+        modeLabels[0].text = guided ? (snowy ? "Follow Snowy" : "Follow Miloy") : (snowy ? "Follow leopards" : "Follow sheep");
         modeLabels[2].text = snowy ? "Watch sheep" : "Watch leopards";
     }
 

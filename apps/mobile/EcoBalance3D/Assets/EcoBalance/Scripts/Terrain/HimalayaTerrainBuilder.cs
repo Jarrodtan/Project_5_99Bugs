@@ -248,7 +248,7 @@ public class HimalayaTerrainBuilder : MonoBehaviour
     {
         surface.collectObjects = CollectObjects.All;
         surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
-        surface.layerMask = ~0;
+        surface.layerMask = ~(1 << 2);   // skip "Ignore Raycast" (decor trees)
         surface.defaultArea = 0;
         // Narrow valley strips on a steep DEM are smaller than the default 2 m² cutoff.
         surface.minRegionArea = 0.1f;

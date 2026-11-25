@@ -410,7 +410,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
 
         var dim = Rect(canvasGo.transform, "Resume", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
         var card = Rect(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1160f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
-        Text(card.transform, $"Continue {(GuidedChallenge.SavedStory == FamilyStory.SnowLeopard ? "Snowy" : "Milo")}'s story?\n<size=70%>You saved on Day {GuidedChallenge.SavedDay} of {GuidedChallenge.ChallengeDays}.</size>", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(1080f, 200f));
+        Text(card.transform, $"Continue {(GuidedChallenge.SavedStory == FamilyStory.SnowLeopard ? "Snowy" : "Miloy")}'s story?\n<size=70%>You saved on Day {GuidedChallenge.SavedDay} of {GuidedChallenge.ChallengeDays}.</size>", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(1080f, 200f));
         Btn(card.transform, "Continue", new Vector2(-370f, -110f), new Color(0.3f, 0.62f, 0.38f), () =>
         {
             if (!GuidedChallenge.PrepareResume(out int sheep, out int leopards)) { StartSimulation(true); return; }

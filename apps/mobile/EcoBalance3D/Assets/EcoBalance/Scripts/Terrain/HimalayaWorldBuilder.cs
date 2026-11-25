@@ -147,7 +147,6 @@ public class HimalayaWorldBuilder : MonoBehaviour
             if (splatPainter != null) splatPainter.Paint(terrainBuilder, landCover);
             Progress = 0.55f;
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): maxTrees 0 in the config = no trees at all (not wanted for M2)
-            if (PlaceTrees && treePlacer != null && config.maxTrees > 0) treePlacer.Place(terrainBuilder, landCover, treeCap);
 
             Progress = 0.65f;
             if (resourcePlacer != null)
@@ -157,6 +156,8 @@ public class HimalayaWorldBuilder : MonoBehaviour
                 if (PlaceGrassPatches)
                     resourcePlacer.PlaceGrass(terrainBuilder, landCover);
             }
+            // Trees after the river exists, so none are placed on the water.
+            if (PlaceTrees && treePlacer != null && config.maxTrees > 0) treePlacer.Place(terrainBuilder, landCover, treeCap);
 
             // (Yande) Bake before water and sightings, and check the NavMesh really has triangles before
             // animals are spawned; an empty bake used to leave them unable to move.
@@ -228,7 +229,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
         {
             navSurface.collectObjects = CollectObjects.All;
             navSurface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
-            navSurface.layerMask = ~0;
+            navSurface.layerMask = ~(1 << 2);   // skip "Ignore Raycast" (decor trees)
             navSurface.defaultArea = 0;
             navSurface.BuildNavMesh();
             verts = CountNavVerts();
@@ -247,7 +248,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
         // including the river's NavMeshModifierVolume components.
         surface.collectObjects = CollectObjects.All;
         surface.useGeometry = NavMeshCollectGeometry.RenderMeshes;
-        surface.layerMask = ~0;
+        surface.layerMask = ~(1 << 2);   // skip "Ignore Raycast" (decor trees)
         surface.defaultArea = 0;
 
         Physics.SyncTransforms();
