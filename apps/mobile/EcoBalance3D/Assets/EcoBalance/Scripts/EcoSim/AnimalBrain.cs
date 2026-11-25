@@ -544,6 +544,20 @@ public class AnimalBrain : MonoBehaviour
                 Mathf.Abs(transform.lossyScale.z))
             : 0f;
 
+    // [AI-GENERATED BEGIN] Cursor (Grok 4.7) - reviewed by Yande
+    /// <summary>Current NavMesh destination when the agent has a path; display overlays only.</summary>
+    public bool TryGetDestination(out Vector3 destination)
+    {
+        if (agent != null && agent.isOnNavMesh && agent.hasPath)
+        {
+            destination = agent.destination;
+            return true;
+        }
+        destination = default;
+        return false;
+    }
+    // [AI-GENERATED END]
+
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5) - reviewed by Tan Wei Leong
     // Every animal is male or female (half and half); only a male and a female can mate.
     public enum Sex { Female, Male }
