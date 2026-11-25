@@ -25,6 +25,14 @@ public class UIClickSound : MonoBehaviour, IPointerClickHandler
         SceneManager.sceneLoaded -= OnSceneLoaded;   // Enter Play Mode skips domain reload: never hook twice
         SceneManager.sceneLoaded += OnSceneLoaded;
         AddToAll();                                  // the first scene is already loaded
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): buttons made in code after a scene loads (Milo / Snowy picker,
+        // camera view bar, chapter card, Continue / Leave boxes...) had no click. Re-check twice a second.
+        if (FindFirstObjectByType<UIClickSoundWatcher>() == null)
+        {
+            var go = new GameObject("[UIClickSoundWatcher]");
+            DontDestroyOnLoad(go);
+            go.AddComponent<UIClickSoundWatcher>();
+        }
     }
 
     static void OnSceneLoaded(Scene _, LoadSceneMode __) => AddToAll();
@@ -46,13 +54,17 @@ public class UIClickSound : MonoBehaviour, IPointerClickHandler
     {
         if (e.button != PointerEventData.InputButton.Left) return;
         if (!TryGetComponent(out Button b) || !b.IsInteractable()) return;
+        if (TryGetComponent(out NoAutoClick _)) return;   // plays its own click (e.g. gallery arrows via TapZones)
         Play(mascot);
     }
 
+    /// <summary>The normal button click, for taps handled outside a Button (gallery arrows).</summary>
+    public static void PlayClick() => Play(false);
+
     static void Play(bool forMascot)
     {
-        if (click == null) click = Resources.Load<AudioClip>("UISound/Click");
-        if (mascotClick == null) mascotClick = Resources.Load<AudioClip>("UISound/MascotClick");
+        if (click == null) click = Resources.Load<AudioClip>("UISound/UI Button Click Positive_2");
+        if (mascotClick == null) mascotClick = Resources.Load<AudioClip>("UISound/Mouth-Pop-Pick-up_SFX");
         var clip = forMascot && mascotClick != null ? mascotClick : click;
         if (clip == null) return;
         if (source == null)
@@ -84,5 +96,17 @@ public class UIClickSound : MonoBehaviour, IPointerClickHandler
         for (int i = 0; i < b.onClick.GetPersistentEventCount(); i++)
             if (b.onClick.GetPersistentMethodName(i) == "Play" && b.onClick.GetPersistentTarget(i) is AudioSource)
                 b.onClick.SetPersistentListenerState(i, UnityEngine.Events.UnityEventCallState.Off);
+    }
+}
+
+/// <summary>Adds the click sound to buttons created in code after their scene loaded.</summary>
+public class UIClickSoundWatcher : MonoBehaviour
+{
+    float next;
+    void Update()
+    {
+        if (Time.unscaledTime < next) return;
+        next = Time.unscaledTime + 0.5f;
+        UIClickSound.AddToAll();
     }
 }
