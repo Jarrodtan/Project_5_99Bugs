@@ -6,8 +6,7 @@ using UnityEngine;
 /// Turns OpenStreetMap water lines into meshes on the terrain: a ribbon that follows each stream
 /// down the mountain (UV.x = distance along / width, so the WaterFlow shader's ripples run downstream;
 /// OSM draws waterways in the direction they flow), and a flat surface for each lake outline.
-/// Meshes are in the terrain's local space, for a child of the terrain at the local origin.
-/// The island fade scales that parent; world-space vertices were left behind in the wrong place.
+/// Meshes are in world space, for a GameObject at the origin.
 /// </summary>
 public static class WaterMeshBuilder
 {
@@ -55,7 +54,7 @@ public static class WaterMeshBuilder
     public static Mesh Lake(HimalayaTerrainBuilder tb, IList<Vector2> uvs)
     {
         var ring = new List<Vector3>();
-        foreach (var p in uvs) if (Inside(p)) ring.Add(tb.LocalPosition(p.x, p.y));
+        foreach (var p in uvs) if (Inside(p)) ring.Add(tb.WorldPosition(p.x, p.y));
         if (ring.Count < 3) return null;
 
         // Flat water at the lowest point of the shore, like a real lake level.
@@ -89,25 +88,21 @@ public static class WaterMeshBuilder
         {
             Vector2 a = uvs[i], b = uvs[i + 1];
             if (!Inside(a) || !Inside(b)) continue;
-            float len = Vector3.Distance(tb.LocalPosition(a.x, a.y), tb.LocalPosition(b.x, b.y));
+            float len = Vector3.Distance(tb.WorldPosition(a.x, a.y), tb.WorldPosition(b.x, b.y));
             int n = Mathf.Max(1, Mathf.CeilToInt(len / Step));
             for (int k = (pts.Count == 0 ? 0 : 1); k <= n; k++)
             {
                 Vector2 p = Vector2.Lerp(a, b, k / (float)n);
-                pts.Add(tb.LocalPosition(p.x, p.y));
+                pts.Add(tb.WorldPosition(p.x, p.y));
             }
         }
         return pts;
     }
 
-    static float Ground(HimalayaTerrainBuilder tb, Vector3 local)
+    static float Ground(HimalayaTerrainBuilder tb, Vector3 world)
     {
         var t = tb.Terrain;
-        if (t == null || t.terrainData == null) return local.y;
-        var size = t.terrainData.size;
-        float u = size.x > 0.01f ? local.x / size.x : 0f;
-        float v = size.z > 0.01f ? local.z / size.z : 0f;
-        return t.terrainData.GetInterpolatedHeight(Mathf.Clamp01(u), Mathf.Clamp01(v));
+        return t != null ? t.SampleHeight(world) + t.GetPosition().y : world.y;
     }
 
     static bool Inside(Vector2 uv) => uv.x >= 0f && uv.x <= 1f && uv.y >= 0f && uv.y <= 1f;

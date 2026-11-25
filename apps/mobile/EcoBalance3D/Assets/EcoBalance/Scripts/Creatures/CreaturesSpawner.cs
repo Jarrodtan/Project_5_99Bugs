@@ -23,7 +23,7 @@ public class CreatureSpawner : MonoBehaviour {
     public float maxElevationMeters = 0f;
 
     // Turn the metre band into fractions of this map's height range, so the rest of the code is unchanged.
-    const float EdgeMargin = 0.08f;   // keep spawns 8% in from the map edge, where the land stops
+    const float EdgeMargin = 0.25f;   // keep spawns 25% in from the map edge: the 5x map put herds far out at the edges
 
     void ApplyMetreBand(HimalayaTerrainBuilder tb)
     {
