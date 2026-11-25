@@ -24,8 +24,8 @@ public class CameraModeController : MonoBehaviour
     /// <summary>Species the player follows; Other Species watches the counterpart.</summary>
     public static string MainSpecies = "BlueSheep";
 
-    /// <summary>Top-centre offset in canvas units: one segmented "view" bar just under the Day / season banner.</summary>
-    public static readonly Vector2 BarAnchoredPosition = new Vector2(0f, -225f);
+    /// <summary>Bottom-left bar offset in canvas units; raise/lower if it covers the Play/speed controls.</summary>
+    public static readonly Vector2 BarAnchoredPosition = new Vector2(36f, 280f);
 
     public CameraMode Mode { get; private set; } = CameraMode.Free;
     public event Action<CameraMode> ModeChanged;
@@ -46,35 +46,6 @@ public class CameraModeController : MonoBehaviour
     TextMeshProUGUI[] modeLabels;
     static readonly Color IdleColor = new Color(0.08f, 0.1f, 0.14f, 0.88f);
     static readonly Color ActiveColor = new Color(0.25f, 0.62f, 0.35f, 0.95f);
-
-    // Shu Min's look, borrowed from the simulation UI once it is on screen: cream pill (speed / Field Journal
-    // buttons) when idle, her green pill when active, Chewy font, dark ink text on cream.
-    static readonly Color Ink = new Color(0.22f, 0.16f, 0.1f);
-    Sprite creamSprite, greenSprite;
-    Image barImage;
-    bool styled;
-
-    void TryStyleLikeShumin()
-    {
-        if (styled || modeButtons == null) return;
-        creamSprite = ScreenFlow.ShuminSprite("SpeedBtn", "FieldJournalBtn");
-        greenSprite = ScreenFlow.ShuminSprite(ScreenFlow.GreenButtons);
-        if (creamSprite == null || greenSprite == null) return;   // UI not loaded yet: try again next frame
-        var font = ScreenFlow.ShuminFont("Chewy");
-        barImage.sprite = creamSprite;   // one cream pill holds all three; only the chosen view is green
-        barImage.type = Image.Type.Sliced;
-        barImage.color = Color.white;
-        var edge = barImage.gameObject.AddComponent<Outline>();
-        edge.effectColor = new Color(0.45f, 0.32f, 0.18f, 0.6f);
-        edge.effectDistance = new Vector2(2f, -2f);
-        for (int i = 0; i < modeButtons.Length; i++)
-        {
-            modeButtons[i].type = Image.Type.Sliced;
-            if (font != null) modeLabels[i].font = font;
-        }
-        styled = true;
-        RefreshHighlights();
-    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Bootstrap()
@@ -108,37 +79,9 @@ public class CameraModeController : MonoBehaviour
         lead = null;
         activeList = null;
         followArmed = false;
-        styled = false;
         Mode = CameraMode.Free;
         SetBarVisible(false);
         RefreshHighlights();
-        UseFamilyStory();
-    }
-
-    // SCRUM-380 + SCRUM-384: in Guided, "Follow" is the chosen story's named family (Milo or Snowy, main animal
-    // first) and "Watch" is the other species. Free mode has no family, so it falls back to the whole species.
-    static readonly List<Transform> familyScratch = new List<Transform>(8);
-
-    void UseFamilyStory()
-    {
-        bool snowy = FamilyManager.SelectedStory == FamilyStory.SnowLeopard;
-        MainSpecies = snowy ? "SnowLeopard" : "BlueSheep";
-        FamilySource = FamilyTransforms;
-        if (modeLabels == null) return;
-        bool guided = ScreenFlow.GuidedMode;
-        modeLabels[0].text = guided ? (snowy ? "Follow Snowy" : "Follow Milo") : (snowy ? "Follow leopards" : "Follow sheep");
-        modeLabels[2].text = snowy ? "Watch sheep" : "Watch leopards";
-    }
-
-    static IReadOnlyList<Transform> FamilyTransforms()
-    {
-        if (!FamilyManager.Ready) return null;
-        familyScratch.Clear();
-        var main = FamilyManager.MainAnimal;
-        if (main != null) familyScratch.Add(main.transform);
-        foreach (var m in FamilyManager.Members)
-            if (m != null && m != main && m.IsAlive) familyScratch.Add(m.transform);
-        return familyScratch;
     }
 
     public void SetMode(CameraMode mode)
@@ -184,18 +127,10 @@ public class CameraModeController : MonoBehaviour
         if (cam == null)
         {
             cam = FindAnyObjectByType<TerrainCameraController>();
-            if (cam == null) { SetBarVisible(false); return; }
+            SetBarVisible(cam != null);
+            if (cam == null) return;
         }
 
-        // Hide the view bar while a Guided card is up (intro, chapter, event): it was drawn over them.
-        // PopupOpen is static and can stay true after leaving Guided mid-card, so only trust it in Guided.
-        // Free mode has no family story, so no view bar there (the player moves the camera freely).
-        bool popup = ScreenFlow.GuidedMode && GuidedChallenge.PopupOpen;
-        bool show = ScreenFlow.GuidedMode && !popup && !AnimalInfoUI.IsOpen && !SimHud.InspectionOpen;   // the view bar covered the inspection card's title
-        if (canvasRoot != null && canvasRoot.activeSelf != show) SetBarVisible(show);
-        if (!show) return;
-
-        TryStyleLikeShumin();
         HandleHotkeys();
 
         // Animal tap (or DramaDirector / Mascot Follow) during Ecosystem leaves Free with no button lit.
@@ -246,10 +181,9 @@ public class CameraModeController : MonoBehaviour
     {
         var kb = Keyboard.current;
         if (kb == null) return;
-        // 7/8/9 (not 1/2/3: those are the demo hotkeys in SimulationHotkeys). Numpad 1/2/3 still work.
-        if (kb.digit7Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame) SetMode(CameraMode.Family);
-        if (kb.digit8Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame) SetMode(CameraMode.Ecosystem);
-        if (kb.digit9Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame) SetMode(CameraMode.OtherSpecies);
+        if (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame) SetMode(CameraMode.Family);
+        if (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame) SetMode(CameraMode.Ecosystem);
+        if (kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame) SetMode(CameraMode.OtherSpecies);
     }
 
     void ApplyEcosystem()
@@ -314,7 +248,8 @@ public class CameraModeController : MonoBehaviour
         if (FamilySource != null)
         {
             var fromHook = FamilySource();
-            if (fromHook != null && fromHook.Count > 0) return fromHook;   // null/empty (Free mode, family not formed): fall back below
+            if (fromHook == null || fromHook.Count == 0) return Array.Empty<Transform>();
+            return fromHook;
         }
         return CollectSpecies(MainSpecies, matchMain: true);
     }
@@ -398,18 +333,15 @@ public class CameraModeController : MonoBehaviour
         scaler.referenceResolution = new Vector2(2560, 1600);
         scaler.matchWidthOrHeight = 0.5f;
 
-        var bar = new GameObject("ModeBar", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup));
+        var bar = new GameObject("ModeBar", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         bar.transform.SetParent(canvasRoot.transform, false);
         var brt = (RectTransform)bar.transform;
-        brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0.5f, 1f);
+        brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0f, 0f);
         brt.anchoredPosition = BarAnchoredPosition;
-        brt.sizeDelta = new Vector2(940f, 100f);   // same height as Field Journal / Ending Gallery
-        barImage = bar.GetComponent<Image>();
-        barImage.color = IdleColor;
+        brt.sizeDelta = new Vector2(900f, 96f);
         var layout = bar.GetComponent<HorizontalLayoutGroup>();
-        layout.spacing = 4f;
-        layout.padding = new RectOffset(8, 8, 8, 8);
-        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.spacing = 16f;
+        layout.childAlignment = TextAnchor.MiddleLeft;
         layout.childControlWidth = true;
         layout.childControlHeight = true;
         layout.childForceExpandWidth = true;
@@ -417,7 +349,7 @@ public class CameraModeController : MonoBehaviour
 
         modeButtons = new Image[3];
         modeLabels = new TextMeshProUGUI[3];
-        string[] labels = { "Follow family", "Overview", "Other animals" };
+        string[] labels = { "Family", "Whole map", "Other animals" };
         CameraMode[] modes = { CameraMode.Family, CameraMode.Ecosystem, CameraMode.OtherSpecies };
         for (int i = 0; i < 3; i++)
         {
@@ -437,7 +369,7 @@ public class CameraModeController : MonoBehaviour
             lrt.anchorMax = Vector2.one;
             lrt.offsetMin = lrt.offsetMax = Vector2.zero;
             label.text = labels[i];
-            label.fontSize = 34f;
+            label.fontSize = 36f;
             label.color = Color.white;
             label.alignment = TextAlignmentOptions.Center;
             modeLabels[i] = label;
@@ -455,15 +387,6 @@ public class CameraModeController : MonoBehaviour
         if (modeButtons == null) return;
         CameraMode[] modes = { CameraMode.Family, CameraMode.Ecosystem, CameraMode.OtherSpecies };
         for (int i = 0; i < modeButtons.Length; i++)
-        {
-            bool on = Mode == modes[i];
-            if (styled)
-            {
-                modeButtons[i].sprite = greenSprite;
-                modeButtons[i].color = on ? Color.white : Color.clear;   // idle segments show the cream bar behind
-                modeLabels[i].color = on ? Color.white : Ink;
-            }
-            else modeButtons[i].color = on ? ActiveColor : IdleColor;
-        }
+            modeButtons[i].color = Mode == modes[i] ? ActiveColor : IdleColor;
     }
 }

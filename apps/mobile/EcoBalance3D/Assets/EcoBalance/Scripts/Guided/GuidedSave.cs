@@ -24,7 +24,6 @@ public partial class GuidedChallenge
         public List<SnapshotSave> snapshots = new List<SnapshotSave>();
         public List<AnimalSave> animals = new List<AnimalSave>();
         public int sheep, leopards;
-        public int story;   // SCRUM-375: FamilyStory (0 = Milo / Blue Sheep, 1 = Snowy / Snow Leopard)
     }
 
     static GuidedChallenge instance;
@@ -34,7 +33,6 @@ public partial class GuidedChallenge
 
     /// <summary>Day of the saved story, for the "Continue your story?" box (0 = no save).</summary>
     public static int SavedDay => Load() is SaveData d ? d.day : 0;
-    public static FamilyStory SavedStory => Load() is SaveData d ? (FamilyStory)d.story : FamilyStory.BlueSheep;
 
     public static void DeleteSave() { PlayerPrefs.DeleteKey(SaveKey); PlayerPrefs.Save(); pendingResume = null; }
 
@@ -47,7 +45,6 @@ public partial class GuidedChallenge
         {
             day = g.clock.Day, timeOfDay = g.clock.TimeOfDay01, chapter = CurrentChapter,
             resolved = new List<string>(g.resolved), sheep = Sheep, leopards = Leopards,
-            story = (int)FamilyManager.SelectedStory,
         };
         foreach (var s in g.snapshots) d.snapshots.Add(new SnapshotSave { sheep = s.sheep, leopards = s.leopards, grass = s.grass });
         foreach (var a in AnimalBrain.All)
@@ -65,7 +62,6 @@ public partial class GuidedChallenge
         pendingResume = Load();
         sheep = pendingResume?.sheep ?? 0;
         leopards = pendingResume?.leopards ?? 0;
-        if (pendingResume != null) FamilyManager.SelectedStory = (FamilyStory)pendingResume.story;   // Continue keeps Milo or Snowy
         return pendingResume != null;
     }
 

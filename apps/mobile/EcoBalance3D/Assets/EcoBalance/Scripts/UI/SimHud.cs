@@ -73,9 +73,6 @@ public class SimHud : MonoBehaviour
     ClockService clock;
 
     GameObject inspection, expanded, overview;
-    static GameObject inspectionPanel;
-    /// <summary>True while Shu Min's Animal Inspection panel is showing (the camera view bar hides so it does not overlap).</summary>
-    public static bool InspectionOpen => inspectionPanel != null && inspectionPanel.activeInHierarchy;
     AnimalBrain shown;
     AnimalBrain factAnimal;   // the animal the current fun fact was picked for
     string fact;
@@ -120,7 +117,6 @@ public class SimHud : MonoBehaviour
         SeeThrough();
 
         inspection = Find("AnimalInspectionPanel")?.gameObject;
-        inspectionPanel = inspection;
         current = this;
         expanded = Find("ExpandedOverviewPanel")?.gameObject;
         overview = Find("EcosystemOverviewPanel")?.gameObject;
@@ -229,19 +225,11 @@ public class SimHud : MonoBehaviour
                     var brt = (RectTransform)bg.transform;
                     brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0f, 1f);
                     Vector2 size = txt.GetPreferredValues(txt.text);
-                    brt.anchoredPosition = rt.anchoredPosition + new Vector2(-30f, 14f);
-                    brt.sizeDelta = size + new Vector2(60f, 28f);
+                    brt.anchoredPosition = rt.anchoredPosition + new Vector2(-14f, 8f);
+                    brt.sizeDelta = size + new Vector2(28f, 16f);
                     var img = bg.GetComponent<Image>();
                     img.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
                     img.raycastTarget = false;
-                    // M3: same cream panel + dark ink as Shu Min's title box, so the HUD reads as one set.
-                    var cream = ScreenFlow.ShuminSprite("SpeedBtn", "FieldJournalBtn");
-                    if (cream != null) { img.sprite = cream; img.type = Image.Type.Sliced; img.color = Color.white; }
-                    else img.color = new Color(0.98f, 0.94f, 0.84f, 0.95f);
-                    txt.color = new Color(0.22f, 0.16f, 0.1f);
-                    var font = ScreenFlow.ShuminFont("Playpen");
-                    if (font != null) txt.font = font;
-                    txt.fontSize *= 0.8f;   // smaller than the title box, it is secondary info
                     bg.AddComponent<FitBehindText>().text = txt;   // keep it sized to the text as it changes
                 }
                 if (withHud && t is RectTransform r2 && movedWeather.Contains(r2)) moved = true;
@@ -337,7 +325,6 @@ public class SimHud : MonoBehaviour
     void RefreshOverview()
     {
         int day = clock != null ? clock.Day : 1;
-        // Weather icon beside the day pill (its text is unchanged): sun, rain, snow or heatwave at a glance.
         if (!ScreenFlow.GuidedMode)   // Guided's day panel is filled by GuidedChallenge
         {
             StyleFreeDayPanel();
@@ -537,14 +524,14 @@ public class SimHud : MonoBehaviour
         panel.sizeDelta = new Vector2(Mathf.Max(panel.sizeDelta.x, 480f), panel.sizeDelta.y);
         panel.anchoredPosition = new Vector2(right, panel.anchoredPosition.y);
         if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
-        ScreenFlow.CreamPanel(bg);   // M3: cream like the rest of the HUD
+        bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
         bg.raycastTarget = false;
         var t = Txt("Text (TMP)", panel);
         if (t == null) return;
         var rt = t.rectTransform;
         rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
         rt.offsetMin = new Vector2(16f, 4f); rt.offsetMax = new Vector2(-16f, -4f);
-        t.color = ScreenFlow.InkColor;
+        t.color = Color.white;
         t.alignment = TextAlignmentOptions.Center;
         t.textWrappingMode = TextWrappingModes.NoWrap;
         t.enableAutoSizing = true;
@@ -610,7 +597,7 @@ public class FitBehindText : MonoBehaviour
         if (text.text == last) return;
         last = text.text;
         var rt = (RectTransform)transform;
-        rt.anchoredPosition = text.rectTransform.anchoredPosition + new Vector2(-30f, 14f);
-        rt.sizeDelta = text.GetPreferredValues(text.text) + new Vector2(60f, 28f);
+        rt.anchoredPosition = text.rectTransform.anchoredPosition + new Vector2(-14f, 8f);
+        rt.sizeDelta = text.GetPreferredValues(text.text) + new Vector2(28f, 16f);
     }
 }

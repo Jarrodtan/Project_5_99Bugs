@@ -164,25 +164,6 @@ MonoBehaviour:
     headPitchWave: 0
     headYawWave: 0
     tailWag: 0
-  swim:
-    height: -0.9
-    pitch: -18
-    roll: 0
-    bobHeight: 0.08
-    pitchWave: 2
-    rollWave: 8
-    scalePulse: 0
-    stepsPerMetre: 0.9
-    cycleHz: 0
-    maxCycleHz: 1.2
-    bounce: 0
-    legSwing: 15
-    frontLegAngle: 0
-    backLegAngle: 0
-    headPitch: -25
-    headPitchWave: 0
-    headYawWave: 0
-    tailWag: 2
   blendSeconds: 0.2
   turnLeanPerDegPerSec: 0.08
   maxTurnLean: 12

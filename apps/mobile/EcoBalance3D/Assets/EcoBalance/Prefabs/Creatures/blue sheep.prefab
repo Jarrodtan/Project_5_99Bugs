@@ -59,7 +59,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.70710677, z: 0.70710677, w: 0}
   m_LocalPosition: {x: 0.16357096, y: 0.03481501, z: -0.0330695}
-  m_LocalScale: {x: 1.6, y: 1.6, z: 1.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4594468012808312511}
@@ -186,7 +186,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
+  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6772571439495030781}
@@ -253,6 +253,8 @@ MonoBehaviour:
   curr_hunger: 100
   curr_thirst: 100
   audio: {fileID: 0}
+  huntRadius: 35
+  fleeRadius: 20
   catchDistance: 1.5
   eatDuration: 2
   chaseSpeedMultiplier: 1.4
@@ -265,11 +267,13 @@ MonoBehaviour:
   huntSuccessRate: 0.7
   huntCooldownSeconds: 120
   giveUpRestSeconds: 20
-  preyMemorySeconds: 15
+  senseAnywayDistance: 10
+  spotStalkerDistance: 9
   visibilityOnGrass: 1.4
   visibilityOnRock: 0.75
   visibilityOnSnow: 0.45
   snowPreference: 2
+  grazingAlertness: 0.6
   alarmFleeSeconds: 2.5
   dangerMemorySeconds: 60
   dangerRadius: 25
@@ -312,18 +316,11 @@ MonoBehaviour:
   roamScore: 0.2
   commitmentBonus: 0.1
   decisionInterval: 0.25
-  herdSeparationRadius: 6
-  herdCohesionRadius: 25
-  herdPreferredDistance: 12
-  herdCohesionWeight: 0.35
-  herdSeparationWeight: 0.5
-  herdAlignmentWeight: 0.35
   fitAgentRadiusToModel: 1
   growUpSeconds: 60
   babyScale: 0.45
   followMotherDistance: 2.5
-  canHunt: 1
-  canBreed: 1
+  showSightLines: 1
   predatorTerritoryScale: 3
   patrolMinDistance: 25
   patrolMaxDistance: 60
@@ -545,12 +542,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimalPerception
   visionRange: 20
   visionAngle: 120
-  senseAnywayDistance: 10
-  spotStalkerDistance: 9
-  grazingAlertness: 0.6
+  scanInterval: 0.2
   eyeHeight: 1.5
   targetHeight: 1.2
-  groundClearance: 0.25
-  ignoreNearEnds: 1
   showVisionGizmo: 1
   showDetectionLines: 1

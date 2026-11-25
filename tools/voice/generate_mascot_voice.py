@@ -26,8 +26,6 @@ OUT = UNITY / "Resources/MascotVoice"
 OTHER_SOURCES = [
     (UNITY / "Scripts/EcoSim/SeasonWeather.cs", r'=>\s*"((?:[^"\\\n]|\\.)*)"|\?\s*"((?:[^"\\\n]|\\.)*)"|:\s*"((?:[^"\\\n]|\\.)*)"'),
     (UNITY / "Scripts/Guided/GuidedChallenge.cs", r'feedback\s*=\s*"((?:[^"\\\n]|\\.)*)"'),
-    (UNITY / "Scripts/Guided/GuidedFire.cs", r'Alert\(\s*"((?:[^"\\\n]|\\.)*)"'),   # SCRUM-390 fire lines
-    (UNITY / "Scripts/Guided/GuidedPlant.cs", r'(?:Alert\(|\?|:)\s*"((?:[^"\\\n]|\\.)*)"'),   # plant-grass lines (incl. both halves of the ternary)
 ]
 
 # Lines built at runtime that the string scan cannot see (Mascot.FindLine, AnimalBrain mating line).
