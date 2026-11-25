@@ -20,6 +20,15 @@ public class WeatherVisualController : MonoBehaviour
     SimulationSpeedController speedController;
     static Texture2D softDot;
 
+    [Header("Coverage")]
+    [Tooltip("Width/depth of the weather area around what the camera is looking at.")]
+    public float coverageSize = 200f;
+    [Tooltip("How far above the ground the flakes and drops start. Raise it on hilly maps.")]
+    public float emitHeight = 40f;
+    [Tooltip("Ground height to centre the weather on.")]
+    public float groundY = 0f;
+
+    Camera cam;
 
     void Awake()
     {
@@ -33,6 +42,22 @@ public class WeatherVisualController : MonoBehaviour
         {
             directionalLight = FindAnyObjectByType<Light>();
         }
+    }
+
+    void LateUpdate()
+    {
+        if (cam == null) cam = Camera.main != null ? Camera.main : FindAnyObjectByType<Camera>();
+        if (cam == null) return;
+
+        // Centre on the spot the camera is looking at, on the ground.
+        Vector3 focus = cam.transform.position;
+        var ground = new Plane(Vector3.up, new Vector3(0f, groundY, 0f));
+        var ray = new Ray(cam.transform.position, cam.transform.forward);
+        if (ground.Raycast(ray, out float dist) && dist < 500f) focus = ray.GetPoint(dist);
+
+        Vector3 pos = new Vector3(focus.x, groundY + emitHeight, focus.z);
+        if (snowSystem != null) snowSystem.transform.position = pos;
+        if (rainSystem != null) rainSystem.transform.position = pos;
     }
 
     void CreateProceduralSnowSystem()
@@ -51,20 +76,53 @@ public class WeatherVisualController : MonoBehaviour
         }
 
         var main = snowSystem.main;
-        main.startLifetime = 10f;
-        main.startSpeed = 1.5f;
-        main.gravityModifier = 0.4f;
-        main.startSize = new ParticleSystem.MinMaxCurve(0.5f, 0.9f); // Fixed type here
-        main.maxParticles = 3000;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(9f, 13f);        // flakes don't all vanish together
+        main.startSpeed = 0f;                                                // the fall comes from the velocity module below
+        main.gravityModifier = 0f;
+        main.startSize = new ParticleSystem.MinMaxCurve(0.25f, 0.6f);        // mixed sizes: small ones read as far away
+        main.startColor = new ParticleSystem.MinMaxGradient(
+            new Color(0.9f, 0.95f, 1f, 0.55f), new Color(1f, 1f, 1f, 1f));  // some flakes fainter than others
+        main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+        main.maxParticles = 6000;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.useUnscaledTime = false;
 
         var emission = snowSystem.emission;
-        emission.rateOverTime = 600f;
+        emission.rateOverTime = 450f * (coverageSize * coverageSize) / (400f * 400f);
 
         var shape = snowSystem.shape;
         shape.shapeType = ParticleSystemShapeType.Box;
-        shape.scale = new Vector3(400f, 1f, 400f);
+        shape.scale = new Vector3(coverageSize, 1f, coverageSize);
+
+        // Slow, uneven fall plus a light sideways drift. All three axes use the same curve mode.
+        var vel = snowSystem.velocityOverLifetime;
+        vel.enabled = true;
+        vel.space = ParticleSystemSimulationSpace.World;
+        vel.x = new ParticleSystem.MinMaxCurve(-0.6f, 0.6f);
+        vel.y = new ParticleSystem.MinMaxCurve(-4.5f, -2.5f);
+        vel.z = new ParticleSystem.MinMaxCurve(-0.6f, 0.6f);
+
+        // Swirling air: each flake wobbles on its own path instead of falling straight.
+        var noise = snowSystem.noise;
+        noise.enabled = true;
+        noise.strength = 0.8f;
+        noise.frequency = 0.25f;
+        noise.scrollSpeed = 0.3f;
+        noise.damping = true;
+        noise.quality = ParticleSystemNoiseQuality.Low;   // cheaper on a tablet
+
+        // Fade in at the top and out at the bottom, so flakes don't pop in or out.
+        var col = snowSystem.colorOverLifetime;
+        col.enabled = true;
+        var g = new Gradient();
+        g.SetKeys(
+            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+            new[]
+            {
+            new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.08f),
+            new GradientAlphaKey(1f, 0.85f), new GradientAlphaKey(0f, 1f)
+            });
+        col.color = g;
 
         snowSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
@@ -102,11 +160,11 @@ public class WeatherVisualController : MonoBehaviour
         main.useUnscaledTime = false;
 
         var emission = rainSystem.emission;
-        emission.rateOverTime = 1200f;
+        emission.rateOverTime = 1200f * (coverageSize * coverageSize) / (400f * 400f);
 
         var shape = rainSystem.shape;
         shape.shapeType = ParticleSystemShapeType.Box;
-        shape.scale = new Vector3(400f, 1f, 400f);
+        shape.scale = new Vector3(coverageSize, 1f, coverageSize);
         shape.rotation = new Vector3(90f, 0f, 0f);   // emit downward, not up
 
         // A slight slant, as if the wind is blowing.
