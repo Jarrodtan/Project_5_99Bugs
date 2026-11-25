@@ -67,15 +67,8 @@ public class HimalayaSplatPainter : MonoBehaviour
         float elev = builder.ElevationMeters(u, v);
         float slope = td.GetSteepness(u, v);
 
-        // [AI-GENERATED] Claude Code (Claude Opus 5.5): noise shifts the snow line and rock angle from place to place,
-        // so snow dips and lifts along the ridges and rock edges break up, instead of following one exact height / angle.
-        // Fixed per (u,v) and seed, so a partial repaint after terrain editing matches the original paint.
-        float wx = u * td.size.x / config.paintNoiseScale, wz = v * td.size.z / config.paintNoiseScale;
-        float snowLine = config.snowLineMeters + Noise(wx, wz, 0) * config.snowLineNoiseMeters;
-        float rockAngle = config.rockSlope + Noise(wx, wz, 1) * config.rockSlopeNoise;
-
-        snow = Smooth(snowLine - 250f, snowLine + 250f, elev);
-        float steep = Smooth(rockAngle - 8f, rockAngle + 8f, slope);
+        snow = Smooth(config.snowLineMeters - 250f, config.snowLineMeters + 250f, elev);
+        float steep = Smooth(config.rockSlope - 8f, config.rockSlope + 8f, slope);
         if (useLandCover && lastLandCover != null)
         {
             int c = lastLandCover.ClassAt(u, v);
@@ -87,15 +80,6 @@ public class HimalayaSplatPainter : MonoBehaviour
         grass = (1f - snow) * (1f - steep);
     }
     // [AI-GENERATED END]
-
-    // [AI-GENERATED] Claude Code (Claude Opus 5.5): two octaves of Perlin, -1..1. channel gives independent patterns for snow and rock.
-    float Noise(float x, float z, int channel)
-    {
-        float o = (config.seed * 7.31f + channel * 53.7f) % 1000f;
-        float n = Mathf.PerlinNoise(x + o, z + o) * 0.65f
-                + Mathf.PerlinNoise(x * 2.7f + o + 31.7f, z * 2.7f + o + 11.3f) * 0.35f;
-        return Mathf.Clamp(n * 2f - 1f, -1f, 1f);
-    }
 
     static float Smooth(float a, float b, float value) => Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(a, b, value));
 }

@@ -199,13 +199,10 @@ public class AnimalAudio : MonoBehaviour
 
     static Transform GetListener()
     {
-        // [AI-GENERATED] Claude Code (Claude Opus 5.5): the camera hands its AudioListener to an "ears" point on the
-        // ground (TerrainCameraController), so use the enabled listener, not the first one found.
-        if (listener == null || !listener.TryGetComponent(out AudioListener cur) || !cur.isActiveAndEnabled)
+        if (listener == null)
         {
-            listener = null;
-            foreach (var l in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))
-                if (l.isActiveAndEnabled) { listener = l.transform; break; }
+            AudioListener l = FindAnyObjectByType<AudioListener>();
+            if (l != null) listener = l.transform;
         }
         return listener;
     }

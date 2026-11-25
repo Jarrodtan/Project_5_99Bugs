@@ -215,8 +215,6 @@ public partial class GuidedChallenge : MonoBehaviour
 
         if (!introDone) { ShowIntro(); return; }
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
-        if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
-        if (!showing) UpdatePlanting();                              // player action: plant grass on brown patches
         if (showing || Time.unscaledTime < quietUntil) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
@@ -271,11 +269,6 @@ public partial class GuidedChallenge : MonoBehaviour
     }
 
     // ---------- Ending ----------
-
-    public void FinishForPresentation()
-    {
-        Finish();
-    }
 
     void Finish()
     {
@@ -367,7 +360,7 @@ public partial class GuidedChallenge : MonoBehaviour
         var panel = Find(shuminRoot, "DayPanel");
         if (panel == null) return;
         if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
-        ScreenFlow.CreamPanel(bg);   // M3: same cream pill as the rest of Shu Min's HUD (was a dark pill)
+        bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
         bg.raycastTarget = false;
         foreach (var name in new[] { "SeasonTxt", "Divider" })
         {
@@ -380,7 +373,7 @@ public partial class GuidedChallenge : MonoBehaviour
             var rt = t.rectTransform;
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
             rt.offsetMin = new Vector2(16f, 4f); rt.offsetMax = new Vector2(-16f, -4f);
-            t.color = ScreenFlow.InkColor;
+            t.color = Color.white;
             t.alignment = TextAlignmentOptions.Center;
             t.textWrappingMode = TextWrappingModes.NoWrap;
             t.enableAutoSizing = true;
@@ -600,7 +593,7 @@ public partial class GuidedChallenge : MonoBehaviour
         if (FindShuminUI())   // Shumin's DayPanel: "Day 12 / 20 | Summer" in the mock-up
         {
             // One line across the whole panel: the season box alone was too narrow to read on a tablet.
-            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");   // weather word dropped: the icon beside the pill shows it
+            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");
             if (!dayPanelStyled) StyleDayPanel();
         }
         if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it

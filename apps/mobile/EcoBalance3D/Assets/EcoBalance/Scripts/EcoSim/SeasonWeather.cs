@@ -67,7 +67,6 @@ public class SeasonWeather : MonoBehaviour
     {
         int day = clock != null ? clock.Day : 1 + Mathf.FloorToInt(Time.time / 60f);
         if (day != lastDay) NewDay(day);
-        DemoWeatherKey();
 
         float target = CurrentWeather == Weather.Drought ? 1f
                      : CurrentSeason == Season.Winter ? 0.75f
@@ -105,20 +104,6 @@ public class SeasonWeather : MonoBehaviour
         }
     }
 
-    // Demo / test key: Y switches to the next weather now (Clear, Rain, Snow, Heatwave) for the M3 presentation.
-    void DemoWeatherKey()
-    {
-        var kb = UnityEngine.InputSystem.Keyboard.current;
-        if (kb == null || !kb.yKey.wasPressedThisFrame || lastDay < 0) return;
-        CurrentWeather = (Weather)(((int)CurrentWeather + 1) % 4);
-        Temperature = CurrentWeather switch { Weather.Rain => 6f, Weather.Snow => -8f, Weather.Drought => 22f, _ => 10f };
-        ApplyEffects();
-        DramaDirector.SetStatus($"{CurrentSeason} · Day {lastDay} · {Describe(CurrentWeather)} · {Temperature:0}°C");
-        if (CurrentWeather != Weather.Clear) DramaDirector.Announce(WeatherLine(CurrentWeather));
-        var visual = FindAnyObjectByType<WeatherVisualController>();
-        if (visual != null) visual.SetWeather(CurrentSeason.ToString(), CurrentWeather.ToString());
-    }
-
     void NewDay(int day)
     {
         bool first = lastDay < 0;
@@ -130,12 +115,10 @@ public class SeasonWeather : MonoBehaviour
             float t = WeatherManager.ValleyTemperature;
             seasonOffset = t >= 8f ? (int)Season.Summer : t >= 0f ? (int)Season.Spring : t >= -10f ? (int)Season.Autumn : (int)Season.Winter;
         }
-        if (first && ForcedStartSeason.HasValue) seasonOffset = (int)ForcedStartSeason.Value;   // Guided always starts in summer
+        if (first && ForcedStartSeason.HasValue) seasonOffset = (int)ForcedStartSeason.Value;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Guided always starts in summer
         CurrentSeason = (Season)((seasonOffset + (Mathf.Max(1, day) - 1) / Mathf.Max(1, daysPerSeason)) % 4);
-        // Guided forces Summer: the live winter valley (-14°C) gave "Summer · -14°C". Live day 1 only when the live data picked the season.
-        bool useLive = first && WeatherManager.HasLiveData && !ForcedStartSeason.HasValue;
-        CurrentWeather = useLive ? FromLive(WeatherManager.LiveCondition) : Roll(CurrentSeason);
-        Temperature = useLive ? WeatherManager.ValleyTemperature : RollTemperature(CurrentSeason, CurrentWeather);
+        CurrentWeather = first ? FromLive(WeatherManager.LiveCondition) : Roll(CurrentSeason);
+        Temperature = first && WeatherManager.HasLiveData ? WeatherManager.ValleyTemperature : RollTemperature(CurrentSeason, CurrentWeather);
         if (!first && CurrentSeason == Season.Summer && Temperature > 16f) CurrentWeather = Weather.Drought;   // heatwave dries the land
         ApplyEffects();
 
@@ -147,13 +130,6 @@ public class SeasonWeather : MonoBehaviour
         else if (CurrentWeather == Weather.Drought || CurrentWeather == Weather.Rain || CurrentWeather == Weather.Snow)
             DramaDirector.Announce(WeatherLine(CurrentWeather));
         lastSeason = CurrentSeason;
-
-        // --- ADD THIS HOOK RIGHT HERE ---
-        WeatherVisualController visualController = FindAnyObjectByType<WeatherVisualController>();
-        if (visualController != null)
-        {
-            visualController.SetWeather(CurrentSeason.ToString(), CurrentWeather.ToString());
-        }
     }
 
     void ApplyEffects()

@@ -41,7 +41,7 @@ public class ResourcePatch : MonoBehaviour
     public bool IsEdible => amount >= minEdibleAmount;
     // [AI-GENERATED] Cursor (Grok 4.7) - reviewed by Yande
     public bool IsWater => isWater;
-    public float MaxAmount => resource != null ? resource.maxAmount : 100f;   // public for GuidedPlant (low-grass check)
+    float MaxAmount => resource != null ? resource.maxAmount : 100f;
 
     void Awake()
     {

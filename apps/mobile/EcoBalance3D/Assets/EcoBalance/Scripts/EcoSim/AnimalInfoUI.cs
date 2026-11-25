@@ -4,8 +4,6 @@ using UnityEngine;
 public class AnimalInfoUI : MonoBehaviour
 {
     public static AnimalInfoUI Instance { get; private set; }
-    /// <summary>True while the Animal Inspection card is showing (the camera view bar hides so it does not cover its title).</summary>
-    public static bool IsOpen => Instance != null && Instance.panel != null && Instance.panel.activeSelf;
 
     [Header("Panel")]
     public GameObject panel;
