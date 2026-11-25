@@ -149,7 +149,7 @@ jobs:
         with:
           projectPath: ${{ env.PROJECT_PATH }}
           targetPlatform: Android
-          buildName: EcoBalance3D
+          buildName: EcoBalance
           customParameters: -nographics   # same exit-137 memory fix as the test job
           # Run workflow with buildType=development uses our Development build (debug overlay,
           # profiler); everything else uses GameCI's default release build.
@@ -177,8 +177,8 @@ jobs:
             # Development APKs get a -dev suffix so they're easy to tell apart.
             if [ "${{ github.event.inputs.buildType }}" = development ]; then VER="$VER-dev"; fi
           fi
-          curl -fsS --user "$AUTH" --upload-file "$APK"             "$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance3D.apk"
-          URL="$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance3D.apk"
+          curl -fsS --user "$AUTH" --upload-file "$APK"             "$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance.apk"
+          URL="$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance.apk"
           echo "### APK: [$VER]($URL)" >> "$GITHUB_STEP_SUMMARY"
           # Keep the newest 10 build-* versions; tagged releases are never pruned.
           curl -fsS --user "$AUTH"             "$API/api/v1/packages/$OWNER?type=generic&q=$PKG&limit=50"           | jq -r '[.[] | select(.name=="'"$PKG"'" and (.version|startswith("build-")))]

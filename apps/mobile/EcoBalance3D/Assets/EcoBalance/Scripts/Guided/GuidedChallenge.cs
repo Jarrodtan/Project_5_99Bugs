@@ -13,7 +13,7 @@ using UnityEngine.UI;
 /// ecosystem's real state at the end of Day 20, or early if both species die out. Endings are kept in an
 /// Ending Gallery across restarts. Starts on its own when the simulation scene opens in Guided mode.
 /// </summary>
-public class GuidedChallenge : MonoBehaviour
+public partial class GuidedChallenge : MonoBehaviour
 {
     public const int ChallengeDays = 20;
     const float QuietSecondsBetweenEvents = 12f;   // real seconds of watching between two popups
@@ -178,6 +178,8 @@ public class GuidedChallenge : MonoBehaviour
     void Awake()
     {
         PopupOpen = false;   // statics survive Play without a domain reload
+        ResetChapters();
+        instance = this;
         // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
         var sim = FindFirstObjectByType<EcosystemSimulator>();
         if (sim != null) sim.mode = EcosystemSimulator.SimulationMode.Events;
@@ -197,13 +199,22 @@ public class GuidedChallenge : MonoBehaviour
         if (finished) return;
         int day = Day;
         if (day != lastDay) { lastDay = day; GuidedEffects.NewDay(day); }
-        if (!started) { started = Sheep > 0 || Leopards > 0; UpdatePill(); return; }   // wait for the animals to spawn
+        if (!started)   // wait for the animals to spawn
+        {
+            started = Sheep > 0 || Leopards > 0;
+            if (started) ApplyResume();   // SCRUM-375: Continue a saved story
+            UpdatePill();
+            return;
+        }
         UpdatePill();
 
         if (Sheep == 0 && Leopards == 0) { Finish(); return; }       // early collapse
         if (day > ChallengeDays) { Finish(); return; }               // end of Day 20
 
+        if (!string.IsNullOrEmpty(StoryOverReason)) { Finish(); return; }   // SCRUM-374: e.g. main animal died
+
         if (!introDone) { ShowIntro(); return; }
+        if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
         if (showing || Time.unscaledTime < quietUntil) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
@@ -262,6 +273,7 @@ public class GuidedChallenge : MonoBehaviour
     void Finish()
     {
         finished = true;
+        DeleteSave();   // SCRUM-375: an ended story can't be continued
         if (speed != null) speed.Pause();
         int i = PickEnding();
         int mask = PlayerPrefs.GetInt(GalleryKey, 0);
@@ -471,6 +483,7 @@ public class GuidedChallenge : MonoBehaviour
     {
         if (introMascot == null) return;
         SetText(introMascot, "DynamicTxt", Mascot.GuidedIntroScreenLine);
+        Mascot.Speak(Mascot.GuidedIntroScreenLine);
         var bubble = Find(introMascot, "SpeechBubble") as RectTransform;
         if (bubble != null && Find(bubble, "GotItBtn") == null)
         {
@@ -489,7 +502,7 @@ public class GuidedChallenge : MonoBehaviour
             }
         }
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): the card dims while the mascot speaks; Got It brings it back.
-        OnClick(introMascot, "GotItBtn", () => { Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); });
+        OnClick(introMascot, "GotItBtn", () => { Mascot.StopVoice(); Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); });
         introMascot.gameObject.SetActive(true);
         Spotlight.Show(introMascot);
     }
@@ -500,12 +513,12 @@ public class GuidedChallenge : MonoBehaviour
         if (eventMascot != null)
         {
             eventMascot.gameObject.SetActive(!feedback);
-            if (!feedback) SetText(eventMascot, "DynamicTxt", Mascot.EventLine);
+            if (!feedback) { SetText(eventMascot, "DynamicTxt", Mascot.EventLine); Mascot.Speak(Mascot.EventLine); }
         }
         if (feedbackMascot != null)
         {
             feedbackMascot.gameObject.SetActive(feedback);
-            if (feedback) SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine);
+            if (feedback) { SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine); Mascot.Speak(Mascot.DecisionLine); }
         }
     }
 
@@ -529,6 +542,7 @@ public class GuidedChallenge : MonoBehaviour
             SetText(box, "Option Title", c.label);
             SetText(box, "EffectDescriptionTxt (1)", c.feedback);
             if (box.TryGetComponent(out Image boxImage)) boxImage.color = Color.white;
+            SelectedDot.Set(Find(box, "SelectionBtn"), false);
             OnClick(box, "SelectionBtn", () =>
             {
                 picked = c;
@@ -536,6 +550,7 @@ public class GuidedChallenge : MonoBehaviour
                 {
                     var other = Find(eventCard, $"OptionBox0{j}");
                     if (other != null && other.TryGetComponent(out Image img)) img.color = other == box ? new Color(0.85f, 0.95f, 0.85f) : Color.white;
+                    if (other != null) SelectedDot.Set(Find(other, "SelectionBtn"), other == box);
                 }
                 if (confirmButton != null) confirmButton.interactable = true;
             });
@@ -615,6 +630,8 @@ public class GuidedChallenge : MonoBehaviour
             choiceLabels[i] = Label(b.transform, "", 36f, Color.white);
         }
         popup.SetActive(false);
+
+        BuildChapterUI(root);   // SCRUM-374
 
         // Ending screen.
         endPanel = Dim(root, "Ending");

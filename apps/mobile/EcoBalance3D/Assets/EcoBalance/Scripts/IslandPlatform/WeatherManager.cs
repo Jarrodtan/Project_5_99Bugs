@@ -6,26 +6,22 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
 
-[System.Serializable] public class WeatherResponse
+// [AI-GENERATED] Claude Code (Claude Opus 5.5) - reviewed by Tan Wei Leong
+// Live weather from Open-Meteo (https://open-meteo.com): free, no API key, data CC BY 4.0.
+// (Was OpenWeatherMap, which needed a key that could not be kept secret in a public repo.)
+[System.Serializable] public class OpenMeteoResponse
 {
-    public MainWeather main;
-    public List<WeatherCondition> weather;
+    public OpenMeteoCurrent current;
 }
 
-[System.Serializable] public class MainWeather
+[System.Serializable] public class OpenMeteoCurrent
 {
-    public float temp;
-}
-
-[System.Serializable] public class WeatherCondition
-{
-    public string main;
-    public string description;
+    public float temperature_2m;
+    public int weather_code;   // WMO weather code
 }
 
 public class WeatherManager : MonoBehaviour
 {
-    public string api_key = "b0c376cfe1ec96717743554c9f4d5356";
     private string lat = "27.9881";
     private string lon = "86.9250";
 
@@ -74,7 +70,7 @@ public class WeatherManager : MonoBehaviour
 
     IEnumerator FetchHimalayanWeather()
     {
-        string url = $"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric";
+        string url = $"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,weather_code";
 
         using (UnityWebRequest req = UnityWebRequest.Get(url))
         {
@@ -86,11 +82,11 @@ public class WeatherManager : MonoBehaviour
             }
             else
             {
-                WeatherResponse data = JsonUtility.FromJson<WeatherResponse>(req.downloadHandler.text);
-                if (data != null && data.main != null && data.weather != null && data.weather.Count > 0)
+                OpenMeteoResponse data = JsonUtility.FromJson<OpenMeteoResponse>(req.downloadHandler.text);
+                if (data != null && data.current != null)
                 {
-                    float curr_temp = data.main.temp;
-                    string condi = data.weather[0].main;
+                    float curr_temp = data.current.temperature_2m;
+                    string condi = Condition(data.current.weather_code);
                     LiveCondition = condi;     // [AI-GENERATED] Claude Code (Claude Opus 5.5): SeasonWeather starts from the real weather
                     LiveTemperature = curr_temp;
                     if (txt != null)
@@ -113,4 +109,17 @@ public class WeatherManager : MonoBehaviour
         }
     }
 
+    // WMO weather code -> the same words OpenWeatherMap used ("Clear", "Clouds", "Rain", "Snow"...),
+    // so SeasonWeather.FromLive keeps working unchanged.
+    static string Condition(int code)
+    {
+        if (code == 0) return "Clear";
+        if (code <= 3) return "Clouds";
+        if (code == 45 || code == 48) return "Fog";
+        if (code >= 51 && code <= 57) return "Drizzle";
+        if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return "Rain";
+        if ((code >= 71 && code <= 77) || code == 85 || code == 86) return "Snow";
+        if (code >= 95) return "Thunderstorm";
+        return "Clouds";
+    }
 }

@@ -6925,7 +6925,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e38db66fb561fc948ad70c00eb8b7b6f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeatherManager
-  api_key: b0c376cfe1ec96717743554c9f4d5356
   txt: {fileID: 0}
 --- !u!114 &8861000043
 MonoBehaviour:
