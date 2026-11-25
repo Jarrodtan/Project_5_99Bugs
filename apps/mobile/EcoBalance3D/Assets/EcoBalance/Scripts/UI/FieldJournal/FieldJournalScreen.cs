@@ -11,11 +11,11 @@ using UnityEngine.UI;
 /// so it can be restyled freely as long as these names stay: JournalPanel (the page; its children are
 /// the Ecosystem page), HeaderTxt / SubTxt (fonts copied for the new pages), HeaderTxt_02 (kept on every
 /// page), EcosystemBtn / InvestigationBtn / ObservationBtn / DYKBtn (tabs), PreviousBtn / NextBtn (page through tabs).
-/// Adds three pages in code:
+/// Uses saved editable page layouts when present, or builds three pages in code:
 ///   Investigations (wireframes 04/05): every case, locked ones with their clue, unlocked ones with what happened.
 ///   Observations (wireframe 06): the population graph of the run going on now, or of the last run.
 ///   Did You Know? (wireframe 02): fun facts about the animals.
-/// Opens on Observations inside a run, on the discovered case from the popup, otherwise on Ecosystem.
+/// Opens on the requested case from a popup, otherwise on Ecosystem.
 /// Attached by <see cref="ScreenFlow"/> when the scene loads; BackBtn is wired there.
 /// </summary>
 public class FieldJournalScreen : MonoBehaviour
@@ -120,6 +120,7 @@ public class FieldJournalScreen : MonoBehaviour
     CaseSeenTracker seen;
     int selected = -1;
     RectTransform listContent;
+    GameObject caseRowTemplate;
     TextMeshProUGUI invSub, detailPill, detailTitle, detailBody;
     Image detailPillBg;
     GameObject graphLink;
@@ -135,8 +136,11 @@ public class FieldJournalScreen : MonoBehaviour
     /// <summary>A Free Exploration run is open behind the journal, so locked cases can still be found in it.</summary>
     static bool InFreeRun => FieldJournalObservations.IsLive && !FieldJournalObservations.WasGuided;
 
-    void Start()
+    bool editorPreview;
+
+    bool FindLayout()
     {
+        byName.Clear();
         foreach (var t in GetComponentsInChildren<Transform>(true))
         {
             string key = t.name.Trim().Trim('\'').Trim();
@@ -146,7 +150,7 @@ public class FieldJournalScreen : MonoBehaviour
         if (panel == null)
         {
             Debug.LogWarning("[FieldJournalScreen] No JournalPanel in the Field Journal scene; pages not added.", this);
-            return;
+            return false;
         }
         headerTemplate = Find("HeaderTxt")?.GetComponent<TextMeshProUGUI>();
         subTemplate = Find("SubTxt")?.GetComponent<TextMeshProUGUI>();
@@ -154,8 +158,50 @@ public class FieldJournalScreen : MonoBehaviour
         var tabImage = Find("EcosystemBtn")?.GetComponent<Image>();
         roundSprite = tabImage != null && tabImage.sprite != null ? tabImage.sprite : panel.GetComponent<Image>()?.sprite;
 
+        return true;
+    }
+
+    static bool IsExtraPage(string name) => name == "InvestigationsPage" || name == "ObservationsPage" || name == "FactsPage";
+
+#if UNITY_EDITOR
+    [ContextMenu("Generate Editable Journal Pages")]
+    void GenerateEditablePages()
+    {
+        if (Application.isPlaying || !FindLayout()) return;
+        if (panel.Find("InvestigationsPage") != null || panel.Find("ObservationsPage") != null || panel.Find("FactsPage") != null)
+        {
+            Debug.LogWarning("Journal pages already exist. Edit them directly; generation was skipped.", this);
+            return;
+        }
+        editorPreview = true;
+        try
+        {
+            BuildInvestigations();
+            BuildObservations();
+            BuildFacts();
+            CreateCaseRowTemplate();
+            invSub.text = "Investigation progress";
+            detailPill.text = "LOCKED";
+            detailTitle.text = "Case 1: ???";
+            detailBody.text = "Clue: Watch what happens to the animals.";
+            obsSub.text = "How each animal's number changes over time.";
+            summary.text = "Population summary";
+            playLabel.text = "Play";
+            speedLabel.text = "Speed 1x";
+            foreach (var page in new[] { investigationsPage, observationsPage, factsPage })
+                UnityEditor.Undo.RegisterCreatedObjectUndo(page, "Generate journal page");
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+        }
+        finally { editorPreview = false; }
+    }
+#endif
+
+    void Start()
+    {
+        if (!FindLayout()) return;
+        ecosystemPage.Clear();
         foreach (Transform child in panel)
-            if (child.name != "HeaderTxt_02") ecosystemPage.Add(child.gameObject);
+            if (child.name != "HeaderTxt_02" && !IsExtraPage(child.name)) ecosystemPage.Add(child.gameObject);
 
         cases = FieldJournalCases.Find();
         seen = CaseSeenTracker.ForDevice();
@@ -174,13 +220,14 @@ public class FieldJournalScreen : MonoBehaviour
         nextCaption = ButtonCaption.Ensure(Find("NextBtn")?.GetComponent<Button>(), "", 30f);
         newBadge = Badge(Find("InvestigationBtn"));
 
-        BuildInvestigations();
-        BuildObservations();
-        BuildFacts();
+        if (panel.Find("InvestigationsPage") != null) BindInvestigations(); else BuildInvestigations();
+        if (panel.Find("ObservationsPage") != null) BindObservations(); else BuildObservations();
+        var savedFacts = panel.Find("FactsPage");
+        if (savedFacts != null) factsPage = savedFacts.gameObject; else BuildFacts();
 
         selected = cases.PickInitial(seen, requestedCaseKey);
-        // Inside a run the journal is mostly for watching that run, so open on its graph.
-        Show(requestedPage ?? (FieldJournalObservations.IsLive ? Page.Observations : Page.Ecosystem));
+        // Open on Ecosystem by default; honor explicit requests from discovery popups.
+        Show(requestedPage ?? Page.Ecosystem);
         requestedPage = null;
         requestedCaseKey = null;
     }
@@ -256,8 +303,10 @@ public class FieldJournalScreen : MonoBehaviour
         detailPill = Text(pill, "", 28f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center);
         Fill(detailPill.rectTransform);
         detailTitle = Text(detail, "", 56f, Ink, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        detailTitle.name = "DetailTitle";
         Place(detailTitle.rectTransform, new Vector2(56f, -140f), new Vector2(868f, 150f));
         detailBody = Text(detail, "", 38f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        detailBody.name = "DetailBody";
         Place(detailBody.rectTransform, new Vector2(56f, -310f), new Vector2(868f, 420f));
 
         // From a solved case to the graph of the run where it happened.
@@ -267,6 +316,23 @@ public class FieldJournalScreen : MonoBehaviour
         link.gameObject.AddComponent<Button>().onClick.AddListener(() => Show(Page.Observations));
         Fill(Text(link, "See it on the graph  ›", 34f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center).rectTransform);
         graphLink = link.gameObject;
+    }
+
+    void BindInvestigations()
+    {
+        investigationsPage = panel.Find("InvestigationsPage").gameObject;
+        var p = investigationsPage.transform;
+        invSub = p.Find("SubTxt").GetComponent<TextMeshProUGUI>();
+        listContent = (RectTransform)p.Find("CaseList/Content");
+        caseRowTemplate = listContent.Find("CaseRowTemplate")?.gameObject;
+        if (caseRowTemplate != null) caseRowTemplate.SetActive(false);
+        var detail = p.Find("CaseDetail");
+        detailPillBg = detail.Find("StatusPill").GetComponent<Image>();
+        detailPill = detailPillBg.GetComponentInChildren<TextMeshProUGUI>(true);
+        detailTitle = detail.Find("DetailTitle").GetComponent<TextMeshProUGUI>();
+        detailBody = detail.Find("DetailBody").GetComponent<TextMeshProUGUI>();
+        graphLink = detail.Find("SeeGraphBtn").gameObject;
+        Rewire(graphLink.GetComponent<Button>(), () => Show(Page.Observations));
     }
 
     void RefreshInvestigations()
@@ -279,7 +345,7 @@ public class FieldJournalScreen : MonoBehaviour
             : found == 0 ? $"{total} cases to discover. Read a clue, then watch what happens to the animals."
             : $"{found} of {total} cases discovered. {findMore}";
 
-        foreach (Transform c in listContent) { c.gameObject.SetActive(false); Destroy(c.gameObject); }   // Destroy waits for the frame end
+        foreach (Transform c in listContent) { if (c.gameObject == caseRowTemplate) continue; c.gameObject.SetActive(false); Destroy(c.gameObject); }   // Destroy waits for the frame end
         for (int i = 0; i < total; i++) CaseRow(i);
         ShowDetail();
     }
@@ -290,6 +356,20 @@ public class FieldJournalScreen : MonoBehaviour
         bool open = cases.IsUnlocked(c);
         bool isNew = seen.IsNew(cases.Journal, c.Key);
 
+        if (caseRowTemplate != null)
+        {
+            var clone = Instantiate(caseRowTemplate, listContent);
+            clone.name = $"Case_{index + 1}";
+            clone.GetComponent<Image>().color = index == selected ? RowSelected : caseRowTemplate.GetComponent<Image>().color;
+            clone.transform.Find("CaseTitle").GetComponent<TextMeshProUGUI>().text = open ? $"Case {index + 1}: {c.title}" : $"Case {index + 1}: ???";
+            clone.transform.Find("CaseSubtitle").GetComponent<TextMeshProUGUI>().text = open ? "Discovered. Tap to read what happened." : "Not discovered yet. Tap for a clue.";
+            var badge = clone.transform.Find("Pill");
+            badge.GetComponent<Image>().color = isNew ? Orange : open ? Green : Grey;
+            badge.GetComponentInChildren<TextMeshProUGUI>(true).text = isNew ? "NEW" : open ? "SOLVED" : "LOCKED";
+            Rewire(clone.GetComponent<Button>(), () => Select(index));
+            clone.SetActive(true);
+            return;
+        }
         var row = Box(listContent, $"Case_{index + 1}", Vector2.zero, Vector2.zero, index == selected ? RowSelected : Row);
         var le = row.gameObject.AddComponent<LayoutElement>();
         le.preferredHeight = 150f;
@@ -310,6 +390,32 @@ public class FieldJournalScreen : MonoBehaviour
         pill.anchoredPosition = new Vector2(-32f, 0f);
         var pt = Text(pill, label, 28f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center);
         Fill(pt.rectTransform);
+    }
+
+    void CreateCaseRowTemplate()
+    {
+        var row = Box(listContent, "CaseRowTemplate", Vector2.zero, Vector2.zero, Row);
+        var le = row.gameObject.AddComponent<LayoutElement>();
+        le.preferredHeight = 150f;
+        row.gameObject.AddComponent<Button>();
+
+        var title = Text(row, "Case 1: ???", 40f, Ink, FontStyles.Bold, TextAlignmentOptions.MidlineLeft);
+        title.name = "CaseTitle";
+        title.rectTransform.anchorMin = Vector2.zero; title.rectTransform.anchorMax = Vector2.one;
+        title.rectTransform.offsetMin = new Vector2(40f, 50f); title.rectTransform.offsetMax = new Vector2(-230f, -16f);
+        var sub = Text(row, "Not discovered yet. Tap for a clue.", 28f, Muted, FontStyles.Normal, TextAlignmentOptions.MidlineLeft);
+        sub.name = "CaseSubtitle";
+        sub.rectTransform.anchorMin = Vector2.zero; sub.rectTransform.anchorMax = new Vector2(1f, 0f);
+        sub.rectTransform.pivot = new Vector2(0.5f, 0f);
+        sub.rectTransform.offsetMin = new Vector2(40f, 16f); sub.rectTransform.offsetMax = new Vector2(-230f, 60f);
+
+        var (label, color) = ("LOCKED", Grey);
+        var pill = Box(row, "Pill", Vector2.zero, new Vector2(180f, 56f), color);
+        pill.anchorMin = pill.anchorMax = pill.pivot = new Vector2(1f, 0.5f);
+        pill.anchoredPosition = new Vector2(-32f, 0f);
+        var pt = Text(pill, label, 28f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center);
+        Fill(pt.rectTransform);
+        caseRowTemplate = row.gameObject;
     }
 
     void Select(int index)
@@ -377,11 +483,12 @@ public class FieldJournalScreen : MonoBehaviour
 
         var side = Box(p, "SummaryCard", new Vector2(720f, -60f), new Vector2(440f, 880f), Card);
         summary = Text(side, "", 32f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        summary.name = "SummaryText";
 
         // Inside a run: let the player run it from here and watch the lines move, at any speed.
-        liveSpeed = FieldJournalObservations.IsLive ? FindAnyObjectByType<SimulationSpeedController>() : null;
-        Place(summary.rectTransform, new Vector2(36f, -36f), new Vector2(368f, liveSpeed != null ? 680f : 808f));
-        if (liveSpeed != null)
+        liveSpeed = !editorPreview && FieldJournalObservations.IsLive ? FindAnyObjectByType<SimulationSpeedController>() : null;
+        Place(summary.rectTransform, new Vector2(36f, -36f), new Vector2(368f, liveSpeed != null || editorPreview ? 680f : 808f));
+        if (liveSpeed != null || editorPreview)
         {
             playBg = RunButton(side, "GraphPlayBtn", 36f, Green, () =>
             {
@@ -393,8 +500,35 @@ public class FieldJournalScreen : MonoBehaviour
         }
 
         // The run going on now, or the last one (kept after leaving it).
+        if (!editorPreview) ConnectGraph();
+    }
+
+    void ConnectGraph()
+    {
         graph.Redrawn += RefreshSummary;
         graph.Bind(FieldJournalObservations.History, FieldJournalObservations.Series, FieldJournalObservations.Days);
+    }
+
+    void BindObservations()
+    {
+        observationsPage = panel.Find("ObservationsPage").gameObject;
+        var p = observationsPage.transform;
+        obsSub = p.Find("SubTxt").GetComponent<TextMeshProUGUI>();
+        graph = p.Find("GraphCard/Inner/PopulationGraph").GetComponent<PopulationGraph>();
+        var side = p.Find("SummaryCard");
+        summary = side.Find("SummaryText").GetComponent<TextMeshProUGUI>();
+        liveSpeed = FieldJournalObservations.IsLive ? FindAnyObjectByType<SimulationSpeedController>() : null;
+        var play = side.Find("GraphPlayBtn");
+        var speed = side.Find("GraphSpeedBtn");
+        playBg = play.GetComponent<Image>();
+        playLabel = play.GetComponentInChildren<TextMeshProUGUI>(true);
+        speedLabel = speed.GetComponentInChildren<TextMeshProUGUI>(true);
+        play.gameObject.SetActive(liveSpeed != null);
+        speed.gameObject.SetActive(liveSpeed != null);
+        Rewire(play.GetComponent<Button>(), () => { if (liveSpeed == null) return; if (liveSpeed.IsRunning) liveSpeed.Pause(); else liveSpeed.Play(); RefreshRunControls(); });
+        Rewire(speed.GetComponent<Button>(), () => { if (liveSpeed == null) return; liveSpeed.CycleSpeed(); RefreshRunControls(); });
+        RefreshRunControls();
+        ConnectGraph();
     }
 
     RectTransform RunButton(Transform card, string name, float x, Color color, UnityAction onClick, out TextMeshProUGUI label)
