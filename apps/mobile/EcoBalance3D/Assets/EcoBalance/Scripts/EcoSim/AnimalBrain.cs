@@ -447,6 +447,9 @@ public class AnimalBrain : MonoBehaviour
         busy_timer > 0f &&
         (CurrentAction == AnimalAction.EatingGrass || CurrentAction == AnimalAction.DrinkingWater);
 
+    /// <summary>With its partner right now (not still looking for one).</summary>
+    public bool IsMating => busy_timer > 0f && CurrentAction == AnimalAction.Reproducing;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+
     // How far this animal sees (0 before Start).
     float VisionRange => perception != null ? perception.visionRange : 0f;
 

@@ -30,11 +30,13 @@ public class WildlifeChecklist : MonoBehaviour
     const float RowHeight = 48f;
     const float CelebrationHeight = 56f;
     // Overview / start zoom is ~110; Family follow is ~12–48. Above this = too far to "spot".
-    const float MaxSpotDistance = 55f;
+    const float MaxSpotDistance = 90f;   // [AI-GENERATED] Claude Code (Claude Opus 5.5): 55 missed herds at the normal play zoom
 
-    static readonly Color CardColor = new(0.97f, 0.97f, 0.95f, 0.96f);
-    static readonly Color TitleColor = new(0.12f, 0.16f, 0.2f);
-    static readonly Color BodyColor = new(0.2f, 0.24f, 0.28f);
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): Shu Min's HUD look (cream card, brown edge, dark ink, Playpen font)
+    static readonly Color CardColor = new(0.98f, 0.94f, 0.84f, 0.97f);
+    static readonly Color EdgeColor = new(0.45f, 0.32f, 0.18f);
+    static readonly Color TitleColor = new(0.22f, 0.16f, 0.1f);
+    static readonly Color BodyColor = new(0.32f, 0.25f, 0.18f);
     static readonly Color Green = new(0.3f, 0.62f, 0.38f);
     static readonly Color TickedColor = new(0.35f, 0.55f, 0.4f);
     static readonly Color MutedGreen = new(0.45f, 0.58f, 0.48f);
@@ -182,15 +184,15 @@ public class WildlifeChecklist : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): any animal close and on screen counts, not only the one
         // being followed or tapped; children didn't know they had to select one, so nothing ever ticked.
         var focused = ResolveFocusedBrain(modes);
-        if (focused != null && focused.isActiveAndEnabled) Check(focused);
+        if (focused != null && focused.isActiveAndEnabled) Check(focused, true);   // tapped / followed: counts at any zoom
         foreach (var other in AnimalBrain.All)
-            if (other != null && other != focused && other.isActiveAndEnabled) Check(other);
+            if (other != null && other != focused && other.isActiveAndEnabled) Check(other, false);
     }
 
-    void Check(AnimalBrain brain)
+    void Check(AnimalBrain brain, bool focused)
     {
         Vector3 pos = brain.transform.position;
-        if ((pos - viewCam.transform.position).sqrMagnitude > MaxSpotDistance * MaxSpotDistance) return;
+        if (!focused && (pos - viewCam.transform.position).sqrMagnitude > MaxSpotDistance * MaxSpotDistance) return;
         if (!IsOnScreen(viewCam, pos)) return;
 
         for (int i = 0; i < items.Length; i++)
@@ -436,6 +438,18 @@ public class WildlifeChecklist : MonoBehaviour
         toastText.alignment = TextAlignmentOptions.MidlineLeft;
         toastCard.gameObject.SetActive(false);
 
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): same edge and font as the other HUD cards
+        foreach (var card in new[] { panel, toastCard })
+        {
+            var edge = card.gameObject.AddComponent<Outline>();
+            edge.effectColor = EdgeColor;
+            edge.effectDistance = new Vector2(4f, -4f);
+        }
+        var font = ScreenFlow.ShuminFont("PlaypenSans-SemiBold") ?? ScreenFlow.ShuminFont("PlaypenSans");
+        if (font != null)
+            foreach (var t in canvasGo.GetComponentsInChildren<TextMeshProUGUI>(true))
+                if (t.text != "○" && t.text != "✓") t.font = font;   // keep the tick marks in a font that has them
+
         UIClickSound.AddToAll();
         ResizePanel();
         if (ConfigurationScreen.Open) canvasGo.SetActive(false);
@@ -446,17 +460,17 @@ public class WildlifeChecklist : MonoBehaviour
         return new[]
         {
             Item("sheep_eat", "Sheep eats grass", "BlueSheep",
-                a => a.CurrentAction == AnimalBrain.AnimalAction.EatingGrass),
+                a => a.CurrentAction == AnimalBrain.AnimalAction.EatingGrass && a.IsHeadDown),
             Item("sheep_drink", "Sheep drinks water", "BlueSheep",
-                a => a.CurrentAction == AnimalBrain.AnimalAction.DrinkingWater),
+                a => a.CurrentAction == AnimalBrain.AnimalAction.DrinkingWater && a.IsHeadDown),
             Item("sheep_flee", "Sheep runs away from danger", "BlueSheep",
                 a => a.CurrentAction == AnimalBrain.AnimalAction.Fleeing),
             Item("leopard_hunt", "Leopard hunts", "SnowLeopard",
                 a => a.CurrentAction == AnimalBrain.AnimalAction.Hunting),
             Item("leopard_drink", "Leopard drinks water", "SnowLeopard",
-                a => a.CurrentAction == AnimalBrain.AnimalAction.DrinkingWater),
+                a => a.CurrentAction == AnimalBrain.AnimalAction.DrinkingWater && a.IsHeadDown),
             Item("mate", "Two animals mate", null,
-                a => a.CurrentAction == AnimalBrain.AnimalAction.Reproducing),
+                a => a.IsMating),
             Item("hungry", "A hungry animal", null, a => a.curr_hunger < 30f),
             Item("thirsty", "A thirsty animal", null, a => a.curr_thirst < 30f),
         };
