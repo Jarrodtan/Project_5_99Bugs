@@ -1,7 +1,7 @@
 # EcoBalance — System Architecture (v0.3)
 
 **Owner of this document:** Tan Wei Leong (Tech Lead)
-**Status:** v0.2 for Milestone 2 (v0.1 was Milestone 1). It describes what is built and what is planned. Anything planned is marked *(planned)*.
+**Status:** v0.3 for Milestone 3, updated 26 Nov 2026 (v0.2 was Milestone 2, v0.1 Milestone 1). It describes what is built and what is planned. Anything planned is marked *(planned)*.
 
 See also: [toolchain.md](toolchain.md) (technology choices), [data-pipeline.md](data-pipeline.md) (asset/data rules) and [deliverables.md](deliverables.md) (M1/M2/M3 targets).
 
@@ -121,7 +121,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Procedural animation (M2) | `packages/procanim`: `ProcAnimator`, `MotionStateMachine`, `SpringFloat`, `LegLayout`, `Appendage`, `BodyDeformer`; app: `AnimalMotionBridge`, `Resources/Motion/*` | SCRUM-267 (TI-10) | Wei Leong | Done: our own animation instead of Unity's Animator; 13 motions incl. legs/head/tail found in the static meshes, child-friendly death; data-driven; 36 tests, 0.085 ms per frame for 500 animals |
 | Spatial grid (M2) | `packages/ecosim/Runtime/EcoRegistry.cs`; debug view `DevTools/SpatialGridView` | SCRUM-264–266 (TI-16) | Wei Leong | Done: 8 m hash grid with ring search; same answers as a full scan (500-animal test); 20 vs 500 animals benchmark in the perf history |
 | Selection & Inspection | `Selection/*`, `Inspection/*`, `InspectorPanel` | F09 | Yan De | Tap-to-select + inspector panel framework |
-| Audio | `Audio/AudioManager`, `Audio/AnimalAudio`, `Terrain/RiverAudioTracker`, BGM + species SFX | — | Li Juan | Done: BGM/ambience, sheep and leopard sounds, river sound that follows the camera, pop on the animal card; volume slider (`ScreenFlow`). M3: `Audio/UIClickSound` gives every button the same click (mascot buttons their own); mascot voice clips in `Resources/MascotVoice` (`UI/Mascot.Speak`). Stream audio still in progress |
+| Audio | `Audio/AudioManager`, `Audio/AnimalAudio`, `Terrain/RiverAudioTracker`, BGM + species SFX | — | Li Juan | Done: BGM/ambience, sheep and leopard sounds, river sound that follows the camera, pop on the animal card; Sound Settings with Music / Voice / Sound Effects sliders (`Audio/AudioPrefs`, `ScreenFlow`). M3: `Audio/UIClickSound` gives every button the same click, mascot button its own SFX (from the audio prof); spatial audio distance fixed for the bigger map; mascot voice clips in `Resources/MascotVoice` (`UI/Mascot.Speak`) |
 | Population history (M2) | `packages/ecosim/Runtime/History`: `PopulationHistory`, `PopulationHistoryRecorder` | T05 / F05 | Wei Leong | Done: per-day species and resource values, read by the graph and the case detector; tested |
 | Investigation cases (M2, Free Exploration) | `packages/ecosim/Runtime/Cases`: `InvestigationCase`, `CaseEvaluator`, `CaseJournal`, `CaseDetector`; case assets in `Assets/EcoBalance/Resources/Cases` | F07 / Field Journal | Wei Leong (engine), Dillon (UI), design (case content) | Engine done and tested; journal UI done (see Field Journal row) |
 | Balance model (M2) | `packages/ecosim/Runtime/Balance`: `BalanceModel`, `BalanceParameters` | T03 | Wei Leong | Headless agent model of design's simulation spec; proves cases are reachable; tested |
@@ -148,7 +148,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | IslandPlatform HUD (M2, test scene) | `IslandPlatform/IslandPlatformHud`, `SpeedControlBar`, `SpawnedPopulationSync` | — | Yan De | Done: speed bar, animal info and population sync for the IslandPlatform test scene (PR #54) |
 | Weather & seasons (M2) | `EcoSim/SeasonWeather` | T06 | Wei Leong (system), Li Juan (live weather) | Done: 4 seasons of 5 days (1 real minute per day at 1x since 3 Nov; animal timings, breeding and grass regrowth scale with `ClockConfig.dayLengthSeconds`); river refill follows glacier melt (warm = full, freezing = low); heat raises thirst, cold raises hunger; Guided always starts in summer |
 | "Watch!" moments + camera (M2) | `EcoSim/DramaDirector`, `HeartPop`, `Camera/TerrainCameraController` | — | Wei Leong (built), Yan De (camera owner: buttons, touch testing) | Done: banners for hunts / catches / mating / births with a one-tap follow; orbit camera (drag to spin / tilt, two fingers to move, pinch to zoom) kept over the terrain and lifted over hills, third-person follow, POV |
-| Metrics export (CSV) | `SimulationData/DataLogging`, logged from `SimulationClock` each tick | T05 (optional) | Li Juan | Done: one row per tick (tick, Blue Sheep, Snow Leopards, trees), saved when the run ends (Editor: `Assets/EcoBalance/Data/DataLogging/`; device: app data folder). Tree count still 0 on the Khumbu terrain |
+| Metrics export (CSV) | `SimulationData/DataLogging`, logged from `SimulationClock` each tick | T05 (optional) | Li Juan | Done: one row per tick (tick, Blue Sheep, Snow Leopards, trees), saved when the run ends (Editor: `EcoBalance3D/DataLogging/`, outside Assets so Unity does not import them; device: app data folder). M3: past runs shown in the Field Journal "My Runs" tab with 1–3 stars. Tree column not counted yet (trees are scenery) |
 | CI / build / test pipeline | `.github/workflows/unity-ci.yml`, `tools/ci/repo-checks.py`, `packages/*/Tests/Editor/*`, `Assets/EcoBalance/Tests/Editor/*` | #4, #5 | Wei Leong | Done: repo checks + unit / smoke / performance tests on PRs into `main` (perf history per PR); tag/manual Android APK to Gitea ([details](infra/ci.md)) |
 | UI/UX design | Figma / `docs/design/ui-ux`, `Assets/Scenes/UI.unity` | — | Nomitha, Shu Min (Design) | 16 M2 wireframes in `docs/design/ui-ux/wireframes`; menu screens and the simulation HUD built in Unity by Shu Min and wired up |
 
@@ -164,7 +164,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Recorded voice-over | UXGD clips (`Audio/VoiceOver_M3`, Nomitha) copied into `Resources/MascotVoice` under the line's FNV hash (`manifest.csv`); 9 lines + the family picker use the recorded wording, the rest stay Kokoro AI placeholders (OK'd for M3) | Nomitha (VO), Wei Leong (wiring) | Done 26 Nov |
 | Named family | `Guided/Family/*`: the blue sheep is now **Miloy** (was Milo, renamed to avoid a trademark clash) | Zhi Jie, Wei Leong | Done 26 Nov |
 | UXGD trees | `Terrain/HimalayaTreePlacer.cs` places Nomitha's Pine Tree / Dead Tree prefabs as objects (ESA WorldCover tree cover, below the 4,800 m tree line, off slopes > 35°, 10 m from water, 5 m from meadows); 600 on PC, 300 on tablet; no shadows, layer Ignore Raycast; trunks are small Not Walkable NavMesh volumes, so animals walk around them | Nomitha (models), Wei Leong (placement) | Done 26 Nov |
-| Faster, offline load | 16 Terrarium tiles for the M3 box bundled in `Resources/HimalayaData`; NavMesh baked coarser (voxel 0.35, tile 128; was 1.7 s of the 2.1 s load); `UI/LoadingOverlay` only shows if the build takes over 1 s; `[Himalaya] Load ms` log per step | Wei Leong | Done 26 Nov |
+| Faster, offline load | 16 Terrarium tiles for the M3 box bundled in `Resources/HimalayaData`; NavMesh baked coarser (voxel 0.25, tile 128; was 1.7 s of the 2.1 s load); `UI/LoadingOverlay` only shows if the build takes over 1 s; `[Himalaya] Load ms` log per step | Wei Leong | Done 26 Nov |
 | Sound Settings | `Audio/AudioPrefs.cs` + `ScreenFlow.OpenVolume`: Music / Voice / Sound Effects sliders, saved, scaling the audio team's own mix | Wei Leong (UI look: Shu Min) | Done 26 Nov |
 
 ## 4. Data stores
@@ -177,7 +177,7 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Population history | Per-day species and resource values (in memory, newest 1,000 days) | `PopulationHistoryRecorder.History` |
 | Field Journal progress | Unlocked investigation case ids | Device `PlayerPrefs` (`EcoBalance.CaseJournal`) |
 | Guided Ending Gallery | Endings found (bit mask) | Device `PlayerPrefs` (`EcoBalance.GuidedEndings`) |
-| Exported metrics (T05) | Population per tick as CSV | `Simulation_Run_Export.csv` (Editor: `Assets/EcoBalance/Data/DataLogging/`, device: `Application.persistentDataPath/DataLogging`) |
+| Exported metrics (T05) | Population per tick as CSV | `Run_<date>.csv` + `Runs_Summary.csv` (Editor: `EcoBalance3D/DataLogging/`, gitignored; device: `Application.persistentDataPath/DataLogging`) |
 | Sound Settings | Music, Voice, Sound Effects, 0–1 each | Device `PlayerPrefs` (`EcoBalance.Volume.Music` / `.Voice` / `.Sounds`; old `EcoBalance.Volume` is the start value) |
 
 There is no server or database. EcoBalance is a single offline mobile app.

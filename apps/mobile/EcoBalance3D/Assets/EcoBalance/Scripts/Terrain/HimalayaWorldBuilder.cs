@@ -253,7 +253,7 @@ public class HimalayaWorldBuilder : MonoBehaviour
     static void Coarse(NavMeshSurface surface)
     {
         surface.overrideVoxelSize = true;
-        surface.voxelSize = 0.35f;
+        surface.voxelSize = 0.25f;   // 2 voxels per agent radius (0.5): coarse but still accurate around fords and trunks
         surface.overrideTileSize = true;
         surface.tileSize = 128;
     }

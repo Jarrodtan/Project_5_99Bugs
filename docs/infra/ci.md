@@ -67,13 +67,16 @@ chmod +x soak.sh
 nano ~/.ecobalance-token        # paste a Gitea token with package read/write, save
 chmod 600 ~/.ecobalance-token
 ./soak.sh                       # first run by hand (needs a headless build on Gitea first)
-crontab -e                      # add the line below: every Sunday 05:00 SGT (tests the newest headless build)
+crontab -e                      # add the line below: every Sunday 5am SGT (tests the newest headless build)
 # 0 21 * * 6 $HOME/soak/soak.sh >> $HOME/soak/cron.log 2>&1
 ```
 
 The repository is private, so the `raw.githubusercontent.com` download needs a GitHub token; copying `tools/vm/soak.sh`
-over with MobaXterm/scp is simpler. The VM clock is UTC, so `0 21 * * 6` (Saturday 21:00 UTC) is Sunday 05:00 SGT.
+over with MobaXterm/scp is simpler. The VM clock is UTC, so `0 21 * * 6` (Saturday 9pm UTC) is Sunday 5am SGT.
 
 ## Other options
 
 - Self-hosted runner on a team PC as an unlimited fallback if minutes run low (GitHub → Settings → Actions → Runners → New self-hosted runner; then `runs-on: self-hosted` in the workflow).
+
+---
+*Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed and edited by Tan Wei Leong.*

@@ -58,11 +58,12 @@ Scenes live in `Assets/Scenes/` (referenced by Build Settings); personal test sc
 - EditMode tests (package + app) and repo checks run in CI on every PR. A PR must not be merged while they are failing.
 - **Repo checks** (`python tools/ci/repo-checks.py`; run it locally before a PR): every asset has a `.meta`, no orphan `.meta`, no file over 5 MB stored outside LFS, no merge-conflict markers, no `using UnityEditor` in runtime code.
 
----
-*Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed and edited by Tan Wei Leong.*
 
 ## Terrain data (M2)
 
 - **Heights:** AWS Terrain Tiles (Terrarium PNG, zoom 11), downloaded at runtime and cached in `persistentDataPath/HimalayaCache`; a copy of the 16 tiles and the OpenStreetMap water for the M3 box ships in `Resources/HimalayaData`, so the world builds with no internet and no download wait (26 Nov). Only the live weather, GBIF sightings and Wikidata facts need a connection, and the game runs without them. The M3 map box is the Khumbu valleys, 86.595–87.095°E, 27.64–28.14°N (set in `Terrain/HimalayaConfig.asset`); real heights squeezed into a 900-unit game map (about 6x the M2 area).
 - **Habitats:** blue sheep 4,000–5,200 m, snow leopard 4,200–5,500 m, tree line 4,200 m (game uses 4,800 m so the forest-to-alpine change is visible), snow line 5,200 m (from the animal research). Trees: ESA WorldCover tree-cover class + tree line + slope, using UXGD's Pine / Dead Tree models.
 - **Water:** the main river and glacier streams are traced from the heights at runtime (`HimalayaRiver`); OpenStreetMap water is only used when the traced river is switched off.
+
+---
+*Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed and edited by Tan Wei Leong.*
