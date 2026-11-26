@@ -26,19 +26,19 @@
 
 Integration build: branch `M3-Integration` (teammates' branches merged in, only the final PR to `main` is reviewed). Do **not** merge `Nomitha` / `Nomitha-new` / `Nomitha2` as whole branches: they contain a revert of `M3-Integration` that would delete M3 code; their assets were brought in by commit.
 
-**Done for M3:** Guided as the main mode with a named family (Miloy the Blue Sheep / Snowy the Snow Leopard), 4 seasonal chapters, Save & Exit / resume, 3 camera views, thought bubbles, player actions (fire, planting), weather (rain, snow, heatwave) with visuals, 6x real Khumbu map with UXGD trees by real land-cover, offline elevation tiles, faster load, recorded VO + AI placeholders, past runs with stars in the Field Journal, Sound Settings (Music / Voice / Sound Effects), demo hotkeys. Details: [architecture.md, section 3b](architecture.md).
+**Done for M3:** Guided as the main mode with a named family (Miloy the Blue Sheep / Snowy the Snow Leopard), 4 seasonal chapters, Save & Exit / resume, 3 camera views, thought bubbles, player actions (fire, planting), weather (rain, snow, heatwave) with visuals, 6x real Khumbu map with UXGD trees by real land-cover, offline elevation tiles, faster load, recorded VO + AI placeholders, past runs with stars in the Field Journal, Sound Settings (Music / Voice / Sound Effects), demo hotkeys, focal animal protection (Miloy), Free Exploration wildlife checklist, pre-baked NavMesh (no loading card), 60 FPS + HDR off on tablets, honest Going to drink / Drinking labels. Details: [architecture.md, section 3b](architecture.md).
 
 | Person | Role | Open for M3 |
 | --- | --- | --- |
 | Shu Min | UXGD, PM | Rename Milo → Miloy in AnimalSelection / MeetAnimal scenes; design doc PDF: ages 7–9, Miloy; event library feasibility with tech |
 | Nomitha | UXGD, Design Lead | Re-record "Milo" lines as "Miloy" if time; realistic grass / rock / snow textures (M4) |
 | Dillon | IMGD | Endings + Restart Story (SCRUM-376) and Achievements (SCRUM-377) moved to **M4** (agreed with Shu Min 26 Nov; the doc's achievement list is not final yet); Field Journal alignment also M4. M3 keeps the existing Guided ending screens + Ending Gallery |
-| Zhi Jie | IMGD | Focal animal protection rule (SCRUM-381) |
+| Zhi Jie | IMGD | Done: named family, focal animal protection rule (SCRUM-381) |
 | Reginald | IMGD | Done: flocking, hotkeys 1–5; check hunting / pathing with trees (trunks are Not Walkable) |
-| Yan De | IMGD | Done: camera modes, thought bubbles |
+| Yan De | IMGD | Done: camera modes, thought bubbles, wildlife checklist (SCRUM-391, merged 26 Nov; PR #74 closed as it went in through `M3-Integration`) |
 | Yusuf | IMGD | Done: bigger map |
 | Li Juan | IMGD | Done: CSV outside Assets, past runs + stars, mascot button SFX, rain / snow effects, spatial audio |
-| Wei Leong | RTIS, Tech Lead | Done: chapters, save, fire, planting, family wiring, VO wiring, trees, offline tiles, NavMesh speed-up, Sound Settings. Left: tablet test, PR → `main`, final build + zip |
+| Wei Leong | RTIS, Tech Lead | Done: chapters, save, fire, planting, family wiring, VO wiring, trees, offline tiles, NavMesh speed-up + pre-baked NavMesh, Sound Settings, 60 FPS on tablets, checklist + label fixes. Left: tablet test, PR → `main`, final build + zip |
 
 ## M2 status and open tasks (updated 7 Nov)
 
