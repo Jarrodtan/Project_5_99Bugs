@@ -27,6 +27,7 @@ public static class FieldJournalInstaller
 
         // Investigations are a Free Exploration feature; Guided has its own events and endings.
         if (ScreenFlow.GuidedMode) return;
+        WildlifeChecklist.Install(go);
 
         var detector = go.GetComponent<CaseDetector>();
         if (detector == null) detector = go.AddComponent<CaseDetector>();

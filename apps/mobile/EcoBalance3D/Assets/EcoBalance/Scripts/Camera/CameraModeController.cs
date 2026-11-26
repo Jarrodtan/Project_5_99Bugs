@@ -30,6 +30,9 @@ public class CameraModeController : MonoBehaviour
     public CameraMode Mode { get; private set; } = CameraMode.Free;
     public event Action<CameraMode> ModeChanged;
 
+    /// <summary>Lead animal for Family / Other Species follow (null in Ecosystem / Free without a lead).</summary>
+    public Transform Lead => lead;
+
     const float GroupRadius = 30f;
     const int MaxCompanions = 6;
     const float BaseFollowDistance = 12f;
