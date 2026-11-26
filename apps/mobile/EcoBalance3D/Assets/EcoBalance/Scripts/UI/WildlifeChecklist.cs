@@ -284,7 +284,7 @@ public class WildlifeChecklist : MonoBehaviour
     {
         if (rowLabels == null || rowLabels[index] == null) return;
         bool done = spotted.Contains(items[index].id);
-        rowChecks[index].text = done ? "✓" : "○";
+        rowChecks[index].text = done ? "●" : "○";
         rowChecks[index].color = done ? Green : BodyColor;
         rowLabels[index].text = items[index].label;
         rowLabels[index].color = done ? TickedColor : BodyColor;
@@ -448,7 +448,7 @@ public class WildlifeChecklist : MonoBehaviour
         var font = ScreenFlow.ShuminFont("PlaypenSans-SemiBold") ?? ScreenFlow.ShuminFont("PlaypenSans");
         if (font != null)
             foreach (var t in canvasGo.GetComponentsInChildren<TextMeshProUGUI>(true))
-                if (t.text != "○" && t.text != "✓") t.font = font;   // keep the tick marks in a font that has them
+                if (t.text != "○" && t.text != "●") t.font = font;   // keep the tick marks in a font that has them
 
         UIClickSound.AddToAll();
         ResizePanel();
