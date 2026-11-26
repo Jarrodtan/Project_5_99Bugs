@@ -183,6 +183,11 @@ public class HimalayaTerrainBuilder : MonoBehaviour
         // Work on a copy so the TerrainData asset in the project isn't overwritten.
         var source = terrain.terrainData;
         var previous = _runtimeTerrainData;
+        // The template still lists an old M2 "Grass" tree prototype (not a real tree), so Unity warns
+        // "must use the Nature/Soft Occlusion shader" on every copy. Trees are placed as objects now
+        // (HimalayaTreePlacer), so the template needs no tree prototypes at all.
+        if (source.treePrototypes != null && source.treePrototypes.Length > 0)
+            source.treePrototypes = new TreePrototype[0];
         var td = Instantiate(source);
         _runtimeTerrainData = td;
         terrain.terrainData = td;
