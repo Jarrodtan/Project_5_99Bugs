@@ -2299,7 +2299,7 @@ public class AnimalBrain : MonoBehaviour
     {
         if (species_data != null && species_data.death != null)
         {
-            AudioSource.PlayClipAtPoint(species_data.death, transform.position);
+            AudioSource.PlayClipAtPoint(species_data.death, transform.position, AudioPrefs.Sounds);
         }
     }
 

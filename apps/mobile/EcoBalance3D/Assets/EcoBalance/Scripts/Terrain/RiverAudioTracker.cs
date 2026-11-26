@@ -91,6 +91,7 @@ public class RiverAudioTracker : MonoBehaviour
 
     void Update()
     {
+        if (source != null) source.volume = volume * AudioPrefs.Sounds;   // Sounds slider
         if (hasTarget)
             transform.position = Vector3.MoveTowards(transform.position, target, followSpeed * Time.deltaTime);
     }

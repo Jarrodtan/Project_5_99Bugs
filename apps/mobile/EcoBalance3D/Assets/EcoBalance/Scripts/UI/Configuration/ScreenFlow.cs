@@ -106,7 +106,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         On("SettingBtn", OpenVolume);
         if (buttons.TryGetValue("SettingBtn", out var settings))
             foreach (var b in settings) ButtonCaption.Ensure(b, "Sound", 20f);
-        AudioListener.volume = Volume;
+        AudioPrefs.Apply();
     }
 
     // Yande's FAB (add animals, island swap, season / weather / hazard) is a prototype: the design says
@@ -250,10 +250,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         if (journalWasRunning && speed != null) speed.Play();
     }
 
-    // ---------- Volume (all sound: music, animals, river), kept between runs ----------
-    const string VolumeKey = "EcoBalance.Volume";
-    static float Volume => PlayerPrefs.GetFloat(VolumeKey, 1f);
-
+    // ---------- Volume: Music / Voice / Sounds sliders (AudioPrefs), kept between runs ----------
     static void OpenVolume()
     {
         var canvasGo = new GameObject("[Volume Canvas]", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -266,32 +263,42 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         scaler.matchWidthOrHeight = 0.5f;
 
         var dim = Rect(canvasGo.transform, "Dim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
-        dim.AddComponent<Button>().onClick.AddListener(() => Object.Destroy(canvasGo));   // tap outside to close
-        var card = Rect(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        dim.AddComponent<Button>().onClick.AddListener(() => { PlayerPrefs.Save(); Object.Destroy(canvasGo); });   // tap outside to close
+        var card = Rect(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 620f), new Color(0.97f, 0.97f, 0.95f, 1f));
         card.AddComponent<Button>().transition = UnityEngine.UI.Selectable.Transition.None;   // taps on the card don't close it
-        Text(card.transform, "Sound volume", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 130f), new Vector2(820f, 80f));
+        Text(card.transform, "Sound Settings", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 240f), new Vector2(820f, 80f));
 
-        var slider = DefaultControls.CreateSlider(new DefaultControls.Resources());
-        slider.transform.SetParent(card.transform, false);
-        var srt = (RectTransform)slider.transform;
-        srt.anchoredPosition = new Vector2(0f, 10f);
-        srt.sizeDelta = new Vector2(700f, 60f);
-        var handle = slider.transform.Find("Handle Slide Area/Handle") as RectTransform;
-        if (handle != null) handle.sizeDelta = new Vector2(60f, 0f);   // finger-sized
-        var fill = slider.transform.Find("Fill Area/Fill");
-        if (fill != null) fill.GetComponent<Image>().color = new Color(0.3f, 0.62f, 0.38f);
-        var s = slider.GetComponent<Slider>();
-        s.minValue = 0f; s.maxValue = 1f; s.value = Volume;
-        s.onValueChanged.AddListener(v =>
-        {
-            AudioListener.volume = v;
-            PlayerPrefs.SetFloat(VolumeKey, v);
-        });
+        VolumeRow(card.transform, "Music", 120f, AudioPrefs.Music, v => AudioPrefs.Music = v);
+        VolumeRow(card.transform, "Voice", 10f, AudioPrefs.Voice, v => AudioPrefs.Voice = v);
+        VolumeRow(card.transform, "Sound Effects", -100f, AudioPrefs.Sounds, v => AudioPrefs.Sounds = v);
 
-        Btn(card.transform, "Done", new Vector2(0f, -130f), new Color(0.3f, 0.62f, 0.38f), () => { PlayerPrefs.Save(); Object.Destroy(canvasGo); });
+        Btn(card.transform, "Done", new Vector2(0f, -230f), new Color(0.3f, 0.62f, 0.38f), () => { PlayerPrefs.Save(); Object.Destroy(canvasGo); });
         StyleLikeShumin(card, null);
-        // Slider in the same palette: brown track, green fill, round green knob.
-        var bg = slider.transform.Find("Background");
+        foreach (var t in card.GetComponentsInChildren<Slider>(true)) StyleSlider(t);   // after the card style, so the knob keeps its look
+    }
+
+    // One labelled slider row (finger-sized knob).
+    static void VolumeRow(Transform card, string label, float y, float value, UnityEngine.Events.UnityAction<float> changed)
+    {
+        Text(card, label, 32f, new Color(0.22f, 0.16f, 0.1f), new Vector2(-290f, y), new Vector2(250f, 60f));
+        var slider = DefaultControls.CreateSlider(new DefaultControls.Resources());
+        slider.transform.SetParent(card, false);
+        var srt = (RectTransform)slider.transform;
+        srt.anchoredPosition = new Vector2(120f, y);
+        srt.sizeDelta = new Vector2(520f, 50f);
+        var s = slider.GetComponent<Slider>();
+        s.minValue = 0f; s.maxValue = 1f; s.value = value;
+        s.onValueChanged.AddListener(changed);
+    }
+
+    // Shu Min's palette: brown track, green fill, round green knob.
+    static void StyleSlider(Slider s)
+    {
+        var handle = s.transform.Find("Handle Slide Area/Handle") as RectTransform;
+        if (handle != null) handle.sizeDelta = new Vector2(56f, 0f);
+        var fill = s.transform.Find("Fill Area/Fill");
+        if (fill != null) fill.GetComponent<Image>().color = new Color(0.3f, 0.62f, 0.38f);
+        var bg = s.transform.Find("Background");
         if (bg != null) bg.GetComponent<Image>().color = new Color(0.86f, 0.78f, 0.62f);
         if (handle != null)
         {

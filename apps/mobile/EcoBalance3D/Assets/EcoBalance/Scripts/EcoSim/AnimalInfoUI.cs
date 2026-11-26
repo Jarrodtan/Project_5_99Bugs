@@ -195,7 +195,7 @@ public class AnimalInfoUI : MonoBehaviour
     private void PlayPop()
     {
         if (popSound == null || uiAudio == null) return;
-        uiAudio.PlayOneShot(popSound, popVolume);
+        uiAudio.PlayOneShot(popSound, popVolume * AudioPrefs.Sounds);
     }
     // [AI-GENERATED END]
 

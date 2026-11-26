@@ -193,8 +193,12 @@ public class Mascot : MonoBehaviour
             voice.ignoreListenerPause = true;   // keeps talking while the run is paused
         }
         voice.clip = clip;
+        voice.volume = AudioPrefs.Voice;
         voice.Play();
     }
+
+    /// <summary>Voice slider (AudioPrefs.Voice) on the mascot's source.</summary>
+    public static void ApplyVoiceVolume() { if (voice != null) voice.volume = AudioPrefs.Voice; }
 
     public static void StopVoice() { if (voice != null) voice.Stop(); }
 
