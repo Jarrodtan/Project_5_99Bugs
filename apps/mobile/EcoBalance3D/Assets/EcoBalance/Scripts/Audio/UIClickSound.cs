@@ -79,7 +79,7 @@ public class UIClickSound : MonoBehaviour, IPointerClickHandler
         // Same mixer group as the other SFX, so the volume slider still works.
         if (AudioManager.Instance != null && AudioManager.Instance.sfx != null)
             source.outputAudioMixerGroup = AudioManager.Instance.sfx.outputAudioMixerGroup;
-        source.PlayOneShot(clip);
+        source.PlayOneShot(clip, AudioPrefs.Sounds);
     }
 
     // Buttons inside the mascot's speech bubble (Next, Skip, Got It, Explore!).

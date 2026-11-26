@@ -30,6 +30,9 @@ public class CameraModeController : MonoBehaviour
     public CameraMode Mode { get; private set; } = CameraMode.Free;
     public event Action<CameraMode> ModeChanged;
 
+    /// <summary>Lead animal for Family / Other Species follow (null in Ecosystem / Free without a lead).</summary>
+    public Transform Lead => lead;
+
     const float GroupRadius = 30f;
     const int MaxCompanions = 6;
     const float BaseFollowDistance = 12f;
@@ -126,7 +129,7 @@ public class CameraModeController : MonoBehaviour
         FamilySource = FamilyTransforms;
         if (modeLabels == null) return;
         bool guided = ScreenFlow.GuidedMode;
-        modeLabels[0].text = guided ? (snowy ? "Follow Snowy" : "Follow Milo") : (snowy ? "Follow leopards" : "Follow sheep");
+        modeLabels[0].text = guided ? (snowy ? "Follow Snowy" : "Follow Miloy") : (snowy ? "Follow leopards" : "Follow sheep");
         modeLabels[2].text = snowy ? "Watch sheep" : "Watch leopards";
     }
 

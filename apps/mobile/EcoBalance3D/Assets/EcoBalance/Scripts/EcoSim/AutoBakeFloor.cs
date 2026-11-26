@@ -31,7 +31,9 @@ public class AutoBakeFloor : MonoBehaviour
             return;
         }
 
-        GetComponent<NavMeshSurface>().BuildNavMesh();
+        var surface = GetComponent<NavMeshSurface>();
+        surface.layerMask &= ~(1 << 2);   // skip Ignore Raycast (decor trees): their meshes are not readable on device
+        surface.BuildNavMesh();
         Debug.Log("Succesfully created.");
 
         SimulationClock clock = FindAnyObjectByType<SimulationClock>();

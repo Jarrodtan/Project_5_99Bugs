@@ -26,7 +26,7 @@ public class Mascot : MonoBehaviour
         "Keep an eye on the grass and animal populations. What do you think will happen?", // FE-M04
     };
     const string FreeHelp = "Need help? Try clicking an animal, checking your Field Journal, or editing the terrain!";   // FE-M05
-    const string HintAny = "Not sure what to explore? Try clicking on an animal!";                                         // FE-M06
+    const string HintAny = "Hmm, I wonder what the animals are up to. Let's check on one and see what it's doing.";                                         // FE-M06
     const string HintJournal = "Don't forget to check your Field Journal! You might discover something new!";              // FE-M07
     const string HintInspect = "Can you spot a Blue Sheep or a Snow Leopard? Click on one when you spot it!";              // FE-M08
     const string TerrainIntro = "You can change the highlands too! Try making hills or even add grass!";                   // FE-M09
@@ -38,16 +38,16 @@ public class Mascot : MonoBehaviour
 
     static readonly string[] GuidedIntro =
     {
-        "Our adventure has begun! Let's see how the highlands change!",                // GE-M01
-        "Watch the grass, Blue Sheep, and Snow Leopards. Can you spot any changes?",  // GE-M02
-        "Try clicking on an animal to see how it's doing!",                           // GE-M03
+        "Here we go! A new adventure awaits! Let's follow our animal friend and see what happens in the highlands.",                // GE-M01
+        "Let's look around. There's so much to see in the highlands. I wonder what we'll discover.",  // GE-M02
+        "Hey, look! Let's click on an animal. We can see how it's feeling and what it's doing.",                           // GE-M03
     };
-    const string GuidedHelp = "Need help? Try inspecting an animal or watching how the ecosystem changes!";       // GE-M04
-    public const string EventLine = "Something is happening in the highlands! Let's see what we can do!";         // GE-M05
-    public const string DecisionLine = "Let's see how your choice affects the highlands!";                        // GE-M06
+    const string GuidedHelp = "Need a little help? No worries! Click on an animal to see how it's doing, or look around to see what's happening in the highlands.";       // GE-M04
+    public const string EventLine = "Oh, something's happening in the highlands! Let's take a closer look and see what we can do.";         // GE-M05
+    public const string DecisionLine = "You've made your choice. Now, let's see what happens next.";                        // GE-M06
     const string GuidedHint = "Can you find a Blue Sheep or Snow Leopard? Click on one to learn more!";           // GE-M07
 
-    public const string ModeSelectLine = "Ready to explore the highlands? Choose how you'd like to explore today!";
+    public const string ModeSelectLine = "Ready to explore the highlands? How would you like to explore today?";
     public const string ConfigureLine = "Let's build your ecosystem! Choose how many Blue Sheep and Snow Leopards you'd like to start with!";
     public const string GuidedIntroScreenLine = "Ready for an ecosystem adventure? Let's help the highlands stay in balance!";
 
@@ -193,8 +193,12 @@ public class Mascot : MonoBehaviour
             voice.ignoreListenerPause = true;   // keeps talking while the run is paused
         }
         voice.clip = clip;
+        voice.volume = AudioPrefs.Voice;
         voice.Play();
     }
+
+    /// <summary>Voice slider (AudioPrefs.Voice) on the mascot's source.</summary>
+    public static void ApplyVoiceVolume() { if (voice != null) voice.volume = AudioPrefs.Voice; }
 
     public static void StopVoice() { if (voice != null) voice.Stop(); }
 
