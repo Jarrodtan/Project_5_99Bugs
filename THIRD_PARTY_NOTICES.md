@@ -1,7 +1,7 @@
 # Third-Party Notices and Credits
 
 EcoBalance (team 99 Bugs) uses the following third-party software, data, fonts and audio.
-Each item stays under its own licence. Rows marked **TODO** still need their source confirmed.
+Each item stays under its own licence.
 
 ## AI voice (mascot placeholder VO)
 
@@ -39,8 +39,9 @@ Each item stays under its own licence. Rows marked **TODO** still need their sou
 
 | File / folder | Source | Licence |
 |---|---|---|
-| `Art & Design/Art Assets/`, UI icons, earth mascot | **TODO** (team-made by UXGD?) | **TODO** |
-| Animal models and animations (`Prefabs/Animals`, `Resources/Motion`) | **TODO** | **TODO** |
+| `Art & Design/Art Assets/`, UI icons, earth mascot | Made by the team's UXGD designers (Shu Min, Nomitha) in design software (e.g. Figma); not AI-generated | Owned by the team |
+| Trees and plants (`Prefabs/Resources`: Pine Tree, Dead Tree, Clutter Plant) | Made by the team's UXGD design lead | Owned by the team |
+| Animal models and animations (`Prefabs/Animals`, `Resources/Motion`) | Made by the team's UXGD design lead | Owned by the team |
 
 ## Engine and tools
 
