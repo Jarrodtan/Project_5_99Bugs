@@ -16,6 +16,14 @@ public class HimalayaTreePlacer : MonoBehaviour
     [SerializeField] float treeScale = 1f;
     [Tooltip("Most UXGD tree objects to place (each is a real object, so keep this low for tablets).")]
     [SerializeField] int maxObjectTrees = 600;
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): by build target, not Application.isMobilePlatform, so the
+    // editor (target Android) places the same trees as the tablet and its pre-baked NavMesh matches.
+#if UNITY_ANDROID || UNITY_IOS
+    public const bool MobileBuild = true;
+#else
+    public const bool MobileBuild = false;
+#endif
     [Tooltip("No trees closer than this to the river or a stream (world units).")]
     [SerializeField] float riverGap = 10f;
     [Tooltip("No trees closer than this to a grass clump (world units), so meadows stay open for grazing.")]
@@ -94,7 +102,7 @@ public class HimalayaTreePlacer : MonoBehaviour
         // Too many for a phone? Drop random ones.
         int cap = maxTreesOverride > 0 ? maxTreesOverride : config.maxTrees;
         // Tablets get half: each tree is a real object and the build is slower there.
-        if (useObjects) cap = Mathf.Min(cap, Application.isMobilePlatform ? maxObjectTrees / 2 : maxObjectTrees);
+        if (useObjects) cap = Mathf.Min(cap, MobileBuild ? maxObjectTrees / 2 : maxObjectTrees);
         while (trees.Count > cap)
         {
             int i = rng.Next(trees.Count);

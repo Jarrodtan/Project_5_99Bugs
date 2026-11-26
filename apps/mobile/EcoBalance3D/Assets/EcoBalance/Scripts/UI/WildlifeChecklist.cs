@@ -26,7 +26,7 @@ public class WildlifeChecklist : MonoBehaviour
     const float PollSeconds = 0.5f;
     const float ToastSeconds = 3.5f;
     const float PanelWidth = 520f;
-    const float HeaderHeight = 72f;
+    const float HeaderHeight = 84f;
     const float RowHeight = 48f;
     const float CelebrationHeight = 56f;
     // Overview / start zoom is ~110; Family follow is ~12–48. Above this = too far to "spot".
@@ -179,9 +179,16 @@ public class WildlifeChecklist : MonoBehaviour
         var modes = CameraModeController.Instance;
         if (modes != null && modes.Mode == CameraMode.Ecosystem) return;
 
-        var brain = ResolveFocusedBrain(modes);
-        if (brain == null || !brain.isActiveAndEnabled) return;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): any animal close and on screen counts, not only the one
+        // being followed or tapped; children didn't know they had to select one, so nothing ever ticked.
+        var focused = ResolveFocusedBrain(modes);
+        if (focused != null && focused.isActiveAndEnabled) Check(focused);
+        foreach (var other in AnimalBrain.All)
+            if (other != null && other != focused && other.isActiveAndEnabled) Check(other);
+    }
 
+    void Check(AnimalBrain brain)
+    {
         Vector3 pos = brain.transform.position;
         if ((pos - viewCam.transform.position).sqrMagnitude > MaxSpotDistance * MaxSpotDistance) return;
         if (!IsOnScreen(viewCam, pos)) return;
@@ -374,6 +381,10 @@ public class WildlifeChecklist : MonoBehaviour
         var title = Text(header, "Spot these animals!", 32f, TitleColor, FontStyles.Bold,
             new Vector2(20f, -12f), new Vector2(340f, 48f));
         title.raycastTarget = false;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): says how to spot, since ticks only count up close
+        var hint = Text(header, "Zoom in close to watch the animals", 20f, BodyColor, FontStyles.Italic,
+            new Vector2(20f, -46f), new Vector2(PanelWidth - 40f, 26f));
+        hint.raycastTarget = false;
 
         countText = Text(header, "0/" + items.Length, 28f, Green, FontStyles.Bold,
             new Vector2(-20f, -12f), new Vector2(100f, 48f));

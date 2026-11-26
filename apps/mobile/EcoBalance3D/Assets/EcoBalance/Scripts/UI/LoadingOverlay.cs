@@ -12,6 +12,7 @@ using UnityEngine.UI;
 public class LoadingOverlay : MonoBehaviour
 {
     const float MaxSeconds = 30f, FadeSeconds = 0.4f, ShowAfterSeconds = 1f;
+    static readonly bool ShowCard = false;   // readonly, not const: no "unreachable code" warning
 
     HimalayaWorldBuilder builder;
     CanvasGroup group;
@@ -37,6 +38,9 @@ public class LoadingOverlay : MonoBehaviour
 
     static void OnLoaded(Scene scene, LoadSceneMode _)
     {
+        // Turned off 26 Nov: the NavMesh is pre-baked now, so the map loads fast enough without a card.
+        // Set ShowCard back to true to bring "Building the Himalayas" back.
+        if (!ShowCard) return;
         if (scene.name != ScreenFlow.Simulation) return;
         var b = FindFirstObjectByType<HimalayaWorldBuilder>();
         if (b == null || b.IsReady) return;

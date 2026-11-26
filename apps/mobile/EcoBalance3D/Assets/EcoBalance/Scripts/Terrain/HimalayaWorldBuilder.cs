@@ -39,6 +39,9 @@ public class HimalayaWorldBuilder : MonoBehaviour
     [Tooltip("Show the in-game Edit Terrain panel (sculpt hills, paint grass) once the world is built.")]
     [SerializeField] bool enableTerrainEditor = true;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
 
+    [Tooltip("Editor only: load the saved NavMesh like a device does, instead of baking fresh and saving it.")]
+    [SerializeField] bool usePrebakedInEditor = false;   // [AI-GENERATED] Claude Code (Claude Opus 5.5)
+
     public HimalayaTerrainBuilder TerrainBuilder => terrainBuilder;
     public HimalayaSightings Sightings => sightings;
     public bool IsReady { get; private set; }
@@ -232,6 +235,31 @@ public class HimalayaWorldBuilder : MonoBehaviour
         Physics.SyncTransforms();
         navSurface.minRegionArea = 0.1f;
 
+        // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5) - reviewed by Tan Wei Leong
+        // Same world as one baked in the editor: load that NavMesh instead of baking (instant on tablets).
+        var key = WorldKey();
+        var prebaked = PrebakedNavMesh.Load();
+        var saved = prebaked != null ? prebaked.Find(key) : null;
+#if UNITY_EDITOR
+        // The editor always bakes fresh and refreshes the saved copy, so it follows code changes.
+        // Tick "Use Pre-baked In Editor" to test the device path here.
+        if (!usePrebakedInEditor) saved = null;
+#endif
+        if (saved != null)
+        {
+            navSurface.RemoveData();
+            navSurface.navMeshData = saved;   // terrain edits later update it in memory only; the asset on disk is never written at runtime
+            navSurface.AddData();
+            int loadedVerts = CountNavVerts();
+            Debug.Log($"[Himalaya] NavMesh loaded pre-baked ({key}), {loadedVerts} verts.");
+            if (loadedVerts > 0) return loadedVerts;
+            navSurface.RemoveData();
+        }
+        else Debug.Log(prebaked != null && prebaked.Find(key) != null
+            ? $"[Himalaya] Pre-baked NavMesh {key} exists; editor bakes fresh anyway (tick Use Pre-baked In Editor to load it)."
+            : $"[Himalaya] No pre-baked NavMesh for {key}; baking now.");
+        // [AI-GENERATED END]
+
         var verts = BakeFromTerrain(navSurface, terrain);
         if (verts == 0)
         {
@@ -244,8 +272,46 @@ public class HimalayaWorldBuilder : MonoBehaviour
             verts = CountNavVerts();
         }
 
+#if UNITY_EDITOR
+        if (verts > 0) PrebakedNavMesh.SaveInEditor(key, navSurface.navMeshData);
+#endif
         return verts;
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5) - reviewed by Tan Wei Leong
+    /// <summary>
+    /// Key for a pre-baked NavMesh, made only from the map's inputs (config, profile, tree/river counts,
+    /// location) so it is identical on PC and tablet. Every placement step is seeded, so the same inputs
+    /// always give the same world. Bump <see cref="NavBakeVersion"/> when placement code changes; the
+    /// editor also re-bakes and refreshes the saved copy on every Play, so it follows code changes.
+    /// </summary>
+    const int NavBakeVersion = 1;
+
+    string WorldKey()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append(NavBakeVersion).Append('|').Append(config != null ? JsonUtility.ToJson(config) : "-");
+        sb.Append('|').Append(profile != null ? JsonUtility.ToJson(profile) : "-");
+        var bnd = config != null ? config.Bounds : default;
+        sb.Append('|').Append(bnd.West.ToString("R", System.Globalization.CultureInfo.InvariantCulture))
+          .Append(',').Append(bnd.South.ToString("R", System.Globalization.CultureInfo.InvariantCulture))
+          .Append(',').Append(bnd.East.ToString("R", System.Globalization.CultureInfo.InvariantCulture))
+          .Append(',').Append(bnd.North.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+        sb.Append('|').Append(treeCap).Append('|').Append(riverCap);
+        // Guided and Free Exploration build slightly different worlds (174k vs 172k NavMesh verts).
+        sb.Append('|').Append(ScreenFlow.GuidedMode).Append(CameraModeController.MainSpecies);
+        sb.Append('|').Append(HimalayaTreePlacer.MobileBuild);   // mobile places half the trees (trunks are no-walk spots)
+        sb.Append('|').Append(PlaceTrees).Append(PlaceGrassPatches).Append(config != null && config.landCover != null);
+        // Object references serialize as instance IDs, which differ per run and per device.
+        var text = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), @"\{""instanceID"":-?\d+\}", "ref");
+        unchecked
+        {
+            ulong h = 1469598103934665603UL;
+            foreach (char c in text) { h ^= c; h *= 1099511628211UL; }
+            return h.ToString("x16");
+        }
+    }
+    // [AI-GENERATED END]
 
 
     // The default NavMesh detail (voxel = agent radius / 3) gave 205k verts and 1.7 s of the 2.1 s load on PC
