@@ -35,9 +35,8 @@ public class FieldJournalScreen : MonoBehaviour
     List<MyRuns> pastRuns = new();      // newest first
     int selectedRun;
     RectTransform runsContent;
-    TextMeshProUGUI runsSub, runTitle, runBody, runLegend;
-    RawImage runGraph;
-    Texture2D runTex;
+    TextMeshProUGUI runsSub, runTitle, runBody;
+    PopulationGraph runGraph;
     TextMeshProUGUI starsHint;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -221,7 +220,6 @@ public class FieldJournalScreen : MonoBehaviour
     void OnDestroy()
     {
         if (cases?.Detector != null) cases.Detector.CaseUnlocked -= OnCaseUnlocked;
-        if (runTex != null) Destroy(runTex);
     }
 
     void OnCaseUnlocked(InvestigationCase _)
@@ -417,7 +415,7 @@ public class FieldJournalScreen : MonoBehaviour
         graph = PopulationGraph.Create(inner, subTemplate != null ? subTemplate.font : null);
         graph.labelSize = 30f;
         graph.textColor = Body;
-        graph.pillSprite = roundSprite;
+        graph.pillSprite = RoundedSprite.Get();
 
         var side = Box(p, "SummaryCard", new Vector2(550f, -60f), new Vector2(780f, 880f), Card);
         summary = Text(side, "", 30f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);   // first text in the card (tests read it)
@@ -465,6 +463,11 @@ public class FieldJournalScreen : MonoBehaviour
 
     public bool FoodViewShown => foodView;
 
+    static void Round(RectTransform box)
+    {
+        if (box != null && box.TryGetComponent(out Image img)) { img.sprite = RoundedSprite.Get(); img.type = Image.Type.Sliced; }
+    }
+
     /// <summary>Notes listed in the Food &amp; Water view (less room under the tiles and meters).</summary>
     public const int FoodViewNotes = 3;
 
@@ -481,6 +484,7 @@ public class FieldJournalScreen : MonoBehaviour
         var b = Box(card, name, Vector2.zero, new Vector2(310f, 72f), Row);
         b.anchorMin = b.anchorMax = b.pivot = new Vector2(0f, 1f);
         b.anchoredPosition = new Vector2(x, -22f);
+        Round(b);
         b.gameObject.AddComponent<Button>().onClick.AddListener(() => ShowView(food));
         label = Text(b, text, 32f, Body, FontStyles.Bold, TextAlignmentOptions.Center);
         Fill(label.rectTransform);
@@ -495,8 +499,8 @@ public class FieldJournalScreen : MonoBehaviour
         Fill(root);
         foodWidgets = root.gameObject;
 
-        Tile(root, "GrassTile", 36f, FoodWater.GrassColor, "of the grass eaten in the last day", out grassTileValue, out grassTileFoot);
-        Tile(root, "WaterTile", 402f, FoodWater.WaterColor, "of the water drunk in the last day", out waterTileValue, out waterTileFoot);
+        Tile(root, "GrassTile", 36f, FoodWater.GrassColor, "of the grass eaten today", out grassTileValue, out grassTileFoot);
+        Tile(root, "WaterTile", 402f, FoodWater.WaterColor, "of the water drunk today", out waterTileValue, out waterTileFoot);
         famineMeter = MeterRow(root, "FamineMeter", "Famine level", 214f, "Well fed", "Starving");
         thirstMeter = MeterRow(root, "ThirstMeter", "Thirst level", 334f, "Not thirsty", "Very thirsty");
         foodWidgets.SetActive(false);
@@ -506,6 +510,7 @@ public class FieldJournalScreen : MonoBehaviour
     {
         var tint = Color.Lerp(color, Color.white, 0.86f);
         var tile = Box(parent, name, Vector2.zero, new Vector2(342f, 160f), tint);
+        Round(tile);
         tile.anchorMin = tile.anchorMax = tile.pivot = new Vector2(0f, 1f);
         tile.anchoredPosition = new Vector2(x, -30f);
         var stripe = Box(tile, "Stripe", Vector2.zero, new Vector2(12f, 0f), color);
@@ -737,14 +742,15 @@ public class FieldJournalScreen : MonoBehaviour
         runTitle = Text(detail, "", 52f, Ink, FontStyles.Bold, TextAlignmentOptions.TopLeft);
         Place(runTitle.rectTransform, new Vector2(56f, -40f), new Vector2(868f, 80f));
 
-        var go = new GameObject("RunGraph", typeof(RectTransform), typeof(RawImage));
-        go.transform.SetParent(detail, false);
-        runGraph = go.GetComponent<RawImage>();
-        runGraph.raycastTarget = false;
-        Place(runGraph.rectTransform, new Vector2(56f, -130f), new Vector2(868f, 300f));
+        var holder = new GameObject("RunGraph", typeof(RectTransform)).GetComponent<RectTransform>();
+        holder.SetParent(detail, false);
+        Place(holder, new Vector2(30f, -120f), new Vector2(920f, 380f));
+        runGraph = PopulationGraph.Create(holder, subTemplate != null ? subTemplate.font : null);
+        runGraph.labelSize = 26f;
+        runGraph.textColor = Body;
+        runGraph.pillSprite = RoundedSprite.Get();
+        runGraph.emptyMessage = "This run has no saved days.";
 
-        runLegend = Text(detail, "", 30f, Body, FontStyles.Bold, TextAlignmentOptions.TopLeft);
-        Place(runLegend.rectTransform, new Vector2(56f, -440f), new Vector2(868f, 50f));
         runBody = Text(detail, "", 36f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
         Place(runBody.rectTransform, new Vector2(56f, -510f), new Vector2(868f, 270f));
 
@@ -810,7 +816,6 @@ public class FieldJournalScreen : MonoBehaviour
         {
             runTitle.text = "No runs yet";
             runBody.text = "Play an exploration. When you leave it, the run is saved here so you can compare it next time.";
-            runLegend.text = "";
             runGraph.gameObject.SetActive(false);
             return;
         }
@@ -820,9 +825,6 @@ public class FieldJournalScreen : MonoBehaviour
 
         runTitle.text = $"{RunDate(r)} · {r.mode}";
         DrawRunGraph(r);
-        runLegend.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Blue)}>Blue sheep</color>    " +
-                         $"<color=#{ColorUtility.ToHtmlStringRGB(Orange)}>Snow leopards</color>    " +
-                         $"<color=#{ColorUtility.ToHtmlStringRGB(Green)}>Trees</color>";
 
         var sb = new StringBuilder();
         sb.Append("<b>").Append(CompareRuns(r, before)).Append("</b>\n\n");
@@ -852,46 +854,34 @@ public class FieldJournalScreen : MonoBehaviour
         _ => ""
     };
 
-    // Small line graph drawn straight into a texture, so it doesn't depend on PopulationGraph.
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): the saved run on the same live graph as Observations, so it
+    // draws itself in, can be explored with a finger, and each line can be shown / hidden with its name chip.
     void DrawRunGraph(MyRuns r)
     {
-        const int W = 868, H = 300;
-        if (runTex != null) Destroy(runTex);
-        runTex = new Texture2D(W, H, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
-        var px = new Color32[W * H];
-        for (int i = 0; i < px.Length; i++) px[i] = new Color32(255, 255, 255, 255);
-
-        int max = 1;
-        foreach (var v in r.sheep) max = Mathf.Max(max, v);
-        foreach (var v in r.leopard) max = Mathf.Max(max, v);
-        foreach (var v in r.trees) max = Mathf.Max(max, v);
-
-        PlotLine(px, W, H, r.trees, max, Green);
-        PlotLine(px, W, H, r.sheep, max, Blue);
-        PlotLine(px, W, H, r.leopard, max, Orange);
-
-        runTex.SetPixels32(px);
-        runTex.Apply();
-        runGraph.texture = runTex;
+        var (history, days) = RunHistory(r);
+        runGraph.Bind(history, new[]
+        {
+            new PopulationSeries { Key = "Trees", Label = "Trees", Color = Green, Visible = true, IsResource = true },
+            new PopulationSeries { Key = "BlueSheep", Label = "Blue Sheep", Color = Blue, Visible = true },
+            new PopulationSeries { Key = "SnowLeopard", Label = "Snow Leopards", Color = Orange, Visible = true },
+        }, days);
     }
 
-    static void PlotLine(Color32[] px, int W, int H, List<int> s, int max, Color color)
+    /// <summary>A saved run's numbers as a history the graph can draw (one sample per saved point).</summary>
+    public static (PopulationHistory history, Dictionary<int, int> days) RunHistory(MyRuns r)
     {
-        int n = s.Count;
-        if (n == 0) return;
-        Color32 c = color;
-        int prevY = -1;
-        for (int x = 0; x < W; x++)
+        int n = Mathf.Max(r.sheep?.Count ?? 0, Mathf.Max(r.leopard?.Count ?? 0, r.trees?.Count ?? 0));
+        var history = new PopulationHistory(Mathf.Max(1, n));
+        var days = new Dictionary<int, int>();
+        static int At(List<int> list, int i) => list != null && list.Count > 0 ? list[Mathf.Min(i, list.Count - 1)] : 0;
+        for (int i = 0; i < n; i++)
         {
-            float f = n == 1 ? 0f : x * (n - 1f) / (W - 1f);
-            int i0 = (int)f, i1 = Mathf.Min(i0 + 1, n - 1);
-            float val = Mathf.Lerp(s[i0], s[i1], f - i0);
-            int y = 6 + Mathf.RoundToInt(val / max * (H - 12));
-            int a = prevY < 0 ? y : Mathf.Min(prevY, y);
-            int b = prevY < 0 ? y : Mathf.Max(prevY, y);
-            for (int yy = Mathf.Max(0, a - 2); yy <= Mathf.Min(H - 1, b + 2); yy++) px[yy * W + x] = c;
-            prevY = y;
+            int tick = r.t != null && i < r.t.Count ? r.t[i] : i;
+            if (i > 0 && tick <= history[history.Count - 1].Tick) tick = history[history.Count - 1].Tick + 1;   // ticks must grow
+            history.Add(tick, new Dictionary<string, float> { ["BlueSheep"] = At(r.sheep, i), ["SnowLeopard"] = At(r.leopard, i), ["Trees"] = At(r.trees, i) });
+            if (r.days != null && i < r.days.Count) days[tick] = r.days[i];
         }
+        return (history, days);
     }
 
     // The clue of the first case not found yet (the one selected on the Investigations page if it is locked).

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
@@ -93,6 +94,8 @@ public class PopulationGraph : MonoBehaviour
         series.Clear();
         if (lineSet != null) series.AddRange(lineSet);
         BuildLegend();
+        HideScrub();
+        revealFrom = Time.unscaledTime;   // the lines draw themselves in from the left
         dirty = true;
         return this;
     }
@@ -120,9 +123,173 @@ public class PopulationGraph : MonoBehaviour
     // At 8x the simulator can add several days a frame: redraw once, after them.
     void LateUpdate()
     {
+        Animate();
         if (!dirty) return;
         dirty = false;
         Redraw();
+        if (scrubIndex >= 0) ShowScrub(scrubIndex);   // the explored day keeps its card while new days arrive
+    }
+
+    // ---------- Motion (unscaled time: it also plays while the run is paused) ----------
+
+    float revealFrom = -10f;
+    const float RevealSeconds = 0.9f;
+    readonly List<RingDotGraphic> todayDots = new();
+
+    /// <summary>0..1: how much of each line is drawn (1 = all of it).</summary>
+    public float Reveal => Mathf.Clamp01((Time.unscaledTime - revealFrom) / RevealSeconds);
+
+    void Animate()
+    {
+        if (lines == null) return;
+        float k = Reveal, eased = 1f - Mathf.Pow(1f - k, 3f);
+        if (!Mathf.Approximately(lines.reveal, eased)) { lines.reveal = eased; lines.SetVerticesDirty(); }
+
+        // Today's dots breathe; the value bubbles pop in once their line has arrived.
+        float pulse = 1f + 0.18f * Mathf.Sin(Time.unscaledTime * 3.2f);
+        foreach (var d in todayDots)
+            if (d != null && d.gameObject.activeSelf) d.rectTransform.localScale = Vector3.one * (k < 1f ? 0f : pulse);
+        float pop = k < 1f ? 0f : Mathf.Clamp01((Time.unscaledTime - revealFrom - RevealSeconds) / 0.35f);
+        float s = pop >= 1f ? 1f : Mathf.Max(0f, 1f + Mathf.Sin(pop * Mathf.PI * 2f) * (1f - pop) * 0.3f) * pop;
+        foreach (var (bg, _) in bubbles) if (bg != null) bg.rectTransform.localScale = Vector3.one * s;
+        AnimateChips();
+    }
+
+    // A tapped name chip bounces.
+    readonly Dictionary<Transform, float> chipBounce = new();
+    void AnimateChips()
+    {
+        if (chipBounce.Count == 0) return;
+        var done = new List<Transform>();
+        foreach (var kv in chipBounce)
+        {
+            if (kv.Key == null) { done.Add(kv.Key); continue; }
+            float t = (Time.unscaledTime - kv.Value) / 0.35f;
+            kv.Key.localScale = Vector3.one * (t >= 1f ? 1f : 1f + Mathf.Sin(t * Mathf.PI) * 0.12f);
+            if (t >= 1f) done.Add(kv.Key);
+        }
+        foreach (var d in done) chipBounce.Remove(d);
+    }
+
+    // ---------- Explore: press or drag on the graph to read any day ----------
+
+    RectTransform scrubLine, tip;
+    TextMeshProUGUI tipText;
+    readonly List<RingDotGraphic> scrubDots = new();
+    int scrubIndex = -1;
+
+    /// <summary>The day being explored (-1 = none).</summary>
+    public int ScrubIndex => scrubIndex;
+    /// <summary>The explore card's text (tests read it).</summary>
+    public string ScrubText => tipText != null && tip.gameObject.activeSelf ? tipText.text : "";
+
+    /// <summary>Shows the day under <paramref name="x01"/> (0 = first day, 1 = today) with every visible value.</summary>
+    public void ScrubAt(float x01)
+    {
+        int n = History?.Count ?? 0;
+        if (n == 0) { HideScrub(); return; }
+        ShowScrub(Mathf.Clamp(Mathf.RoundToInt(Mathf.Clamp01(x01) * (n - 1)), 0, n - 1));
+    }
+
+    internal void ScrubAtScreen(Vector2 screen, Camera cam)
+    {
+        if (plot == null || !RectTransformUtility.ScreenPointToLocalPointInRectangle(plot, screen, cam, out var local)) return;
+        var r = plot.rect;
+        ScrubAt((local.x - r.xMin) / Mathf.Max(1f, r.width));
+    }
+
+    public void HideScrub()
+    {
+        scrubIndex = -1;
+        if (scrubLine != null) scrubLine.gameObject.SetActive(false);
+        if (tip != null) tip.gameObject.SetActive(false);
+        foreach (var d in scrubDots) if (d != null) d.gameObject.SetActive(false);
+    }
+
+    void ShowScrub(int index)
+    {
+        int n = History?.Count ?? 0;
+        if (n == 0 || index >= n) { HideScrub(); return; }
+        bool changed = index != scrubIndex;
+        scrubIndex = index;
+        BuildScrub();
+        var r = plot.rect;
+        float x = r.xMin + r.width * (n == 1 ? 0f : index / (float)(n - 1));
+        scrubLine.gameObject.SetActive(true);
+        scrubLine.anchoredPosition = new Vector2(x, 0f);
+
+        var sample = History[index];
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<b>").Append(TimeLabel(sample.Tick)).Append("</b>");
+        int dot = 0;
+        float yMax = lastAxisMax > 0f ? lastAxisMax : 1f;
+        foreach (var s in series)
+        {
+            if (!s.Visible || !sample.Has(s.Key)) continue;
+            float v = sample.Get(s.Key);
+            sb.Append("\n<color=#").Append(ColorUtility.ToHtmlStringRGB(s.Color)).Append("><b>")
+              .Append(s.Label).Append("</b></color>  ").Append(v.ToString("0")).Append(valueSuffix);
+            if (dot == scrubDots.Count)
+            {
+                var d = NewRect($"ScrubDot{dot}", plot).gameObject.AddComponent<RingDotGraphic>();
+                d.raycastTarget = false;
+                d.ring = Color.white;
+                d.ringWidth = 4f;
+                d.rectTransform.sizeDelta = new Vector2(26f, 26f);
+                d.rectTransform.anchorMin = d.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+                scrubDots.Add(d);
+            }
+            var g = scrubDots[dot++];
+            g.gameObject.SetActive(true);
+            g.color = s.Color;
+            g.rectTransform.anchoredPosition = new Vector2(x, r.yMin + Mathf.Clamp01(v / yMax) * r.height);
+        }
+        for (int i = dot; i < scrubDots.Count; i++) scrubDots[i].gameObject.SetActive(false);
+        tipText.text = sb.ToString();
+
+        // The card sits beside the line, on whichever side has room, near the top.
+        tip.gameObject.SetActive(true);
+        tip.SetAsLastSibling();
+        float w = tip.sizeDelta.x, h = Mathf.Max(70f, tipText.preferredHeight + 28f);
+        tip.sizeDelta = new Vector2(w, h);
+        bool right = x + 24f + w <= r.xMax;
+        tip.anchoredPosition = new Vector2(right ? x + 24f : x - 24f - w, r.yMax - 8f);
+        if (changed) tipPop = Time.unscaledTime;
+        tip.localScale = Vector3.one;
+    }
+
+    float tipPop, lastAxisMax;
+
+    void BuildScrub()
+    {
+        if (scrubLine != null) return;
+        scrubLine = NewRect("ScrubLine", plot);
+        var img = scrubLine.gameObject.AddComponent<Image>();
+        img.color = new Color(textColor.r, textColor.g, textColor.b, 0.55f);
+        img.raycastTarget = false;
+        scrubLine.anchorMin = scrubLine.anchorMax = new Vector2(0.5f, 0.5f);
+        scrubLine.pivot = new Vector2(0.5f, 0.5f);
+        scrubLine.sizeDelta = new Vector2(4f, plot.rect.height);
+        scrubLine.anchorMin = new Vector2(0.5f, 0f); scrubLine.anchorMax = new Vector2(0.5f, 1f);
+        scrubLine.offsetMin = new Vector2(-2f, 0f); scrubLine.offsetMax = new Vector2(2f, 0f);
+
+        tip = NewRect("ExploreCard", plot);
+        var bg = tip.gameObject.AddComponent<Image>();
+        if (pillSprite != null) { bg.sprite = pillSprite; bg.type = Image.Type.Sliced; }
+        bg.color = new Color(1f, 1f, 1f, 0.97f);
+        bg.raycastTarget = false;
+        var edge = tip.gameObject.AddComponent<Outline>();
+        edge.effectColor = new Color(0f, 0f, 0f, 0.18f); edge.effectDistance = new Vector2(2f, -3f);
+        tip.anchorMin = tip.anchorMax = new Vector2(0.5f, 0.5f);
+        tip.pivot = new Vector2(0f, 1f);
+        tip.sizeDelta = new Vector2(330f, 120f);
+        tipText = Label("Text", tip, labelSize * 0.85f, TextAlignmentOptions.TopLeft);
+        tipText.enableAutoSizing = false;
+        var trt = tipText.rectTransform;
+        trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
+        trt.offsetMin = new Vector2(18f, 10f); trt.offsetMax = new Vector2(-14f, -12f);
+        tip.gameObject.SetActive(false);
+        scrubLine.gameObject.SetActive(false);
     }
 
     // ---------- Layout ----------
@@ -136,8 +303,9 @@ public class PopulationGraph : MonoBehaviour
         plot = NewRect("Plot", root);
         plot.anchorMin = Vector2.zero; plot.anchorMax = Vector2.one;
         lines = plot.gameObject.AddComponent<PopulationGraphLines>();
-        lines.raycastTarget = false;
+        lines.raycastTarget = true;   // the plot catches presses and drags (explore a day)
         lines.gridColor = gridColor;
+        plot.gameObject.AddComponent<PopulationGraphTouch>().graph = this;
 
         xLabels = new TextMeshProUGUI[3];
         var xAlign = new[] { TextAlignmentOptions.Left, TextAlignmentOptions.Center, TextAlignmentOptions.Right };
@@ -199,9 +367,11 @@ public class PopulationGraph : MonoBehaviour
             trt.offsetMin = new Vector2(42f, 2f); trt.offsetMax = new Vector2(-14f, -2f);
 
             var key = s.Key;
+            var chipTransform = chip.transform;
             chip.gameObject.AddComponent<Button>().onClick.AddListener(() =>
             {
                 foreach (var x in series) if (x.Key == key) SetVisible(key, !x.Visible);
+                chipBounce[chipTransform] = Time.unscaledTime;
             });
             chips.Add((s, bg, dot, text));
         }
@@ -258,6 +428,7 @@ public class PopulationGraph : MonoBehaviour
                 if (s.Visible && History[i].Has(s.Key)) max = Mathf.Max(max, History[i].Get(s.Key));
         var (step, divisions) = PopulationGraphMath.Scale(max);
         float yMax = step * divisions;
+        lastAxisMax = yMax;
 
         var drawn = new List<PopulationGraphLines.Line>();
         var ends = new List<(PopulationSeries s, float y, float value)>();
@@ -291,6 +462,27 @@ public class PopulationGraph : MonoBehaviour
         var rect = ((RectTransform)transform).rect;
         float plotHeight = rect.height - PlotBottom - TopMargin;
         float plotWidth = rect.width - LeftMargin - RightMargin;
+
+        // Today: a white-ringed dot at the end of each line (its own little object, so it can breathe cheaply).
+        for (int i = 0; i < drawn.Count; i++)
+        {
+            if (i == todayDots.Count)
+            {
+                var d = NewRect($"Today{i}", plot).gameObject.AddComponent<RingDotGraphic>();
+                d.raycastTarget = false;
+                d.ring = Color.white;
+                d.ringWidth = 4.5f;
+                d.rectTransform.anchorMin = d.rectTransform.anchorMax = Vector2.zero;
+                d.rectTransform.sizeDelta = new Vector2(30f, 30f);
+                todayDots.Add(d);
+            }
+            var dot = todayDots[i];
+            var end = drawn[i].points[drawn[i].points.Count - 1];
+            dot.gameObject.SetActive(true);
+            dot.color = drawn[i].color;
+            dot.rectTransform.anchoredPosition = new Vector2(end.x * plotWidth, Mathf.Clamp01(end.y) * plotHeight);
+        }
+        for (int i = drawn.Count; i < todayDots.Count; i++) todayDots[i].gameObject.SetActive(false);
 
         // Y labels on the gridlines.
         while (yLabels.Count < divisions + 1)
@@ -466,6 +658,8 @@ public class PopulationGraphLines : MaskableGraphic
     public float fillAlpha = 0.16f;
     /// <summary>Lines with this many points or fewer are drawn as smooth curves.</summary>
     public int smoothUpTo = 120;
+    /// <summary>0..1 of the width drawn so far (the lines draw themselves in from the left).</summary>
+    public float reveal = 1f;
 
     readonly List<Line> lines = new();
     readonly List<Mark> marks = new();
@@ -510,6 +704,7 @@ public class PopulationGraphLines : MaskableGraphic
             if (line.points != null)
                 foreach (var p in line.points) pts.Add(new Vector2(r.xMin + p.x * r.width, r.yMin + Mathf.Clamp01(p.y) * r.height));
             if (pts.Count > 2 && pts.Count <= smoothUpTo) pts = PopulationGraphMath.Smooth(pts, 4, r.yMin, r.yMax);
+            if (reveal < 1f) pts = PopulationGraphMath.ClipX(pts, r.xMin + Mathf.Clamp01(reveal) * r.width);   // drawing in
             curves.Add(pts);
             if (pts.Count < 2) continue;
             var top = line.color; top.a = fillAlpha;
@@ -527,10 +722,8 @@ public class PopulationGraphLines : MaskableGraphic
                 Segment(vh, pts[i - 1], pts[i], thickness, color);
                 if (i < pts.Count - 1) Disc(vh, pts[i], thickness * 0.5f, color, 8);   // round joints
             }
-            // Today: a white ring round a coloured dot.
-            var end = pts[pts.Count - 1];
-            Disc(vh, end, dotRadius + 4f, Color.white, 20);
-            Disc(vh, end, dotRadius, color, 20);
+            // While drawing in, a round pen tip leads the line (today's dot is the graph's own pulsing object).
+            if (reveal < 1f) Disc(vh, pts[pts.Count - 1], thickness, color, 12);
         }
     }
 
@@ -580,5 +773,25 @@ public class PopulationGraphLines : MaskableGraphic
             vh.AddVert(c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius, color, Vector2.zero);
             if (k > 0) vh.AddTriangle(center, center + k, center + k + 1);
         }
+    }
+}
+
+/// <summary>
+/// [AI-GENERATED] Claude Code (Claude Opus 5.5): press or drag a finger along the graph to read any day; the card
+/// stays a moment after the finger lifts, then the graph goes back to showing today.
+/// </summary>
+public class PopulationGraphTouch : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
+{
+    public PopulationGraph graph;
+    float hideAt = -1f;
+    const float StaySeconds = 3f;
+
+    public void OnPointerDown(PointerEventData e) { hideAt = -1f; graph.ScrubAtScreen(e.position, e.pressEventCamera); }
+    public void OnDrag(PointerEventData e) => graph.ScrubAtScreen(e.position, e.pressEventCamera);
+    public void OnPointerUp(PointerEventData e) => hideAt = Time.unscaledTime + StaySeconds;
+
+    void Update()
+    {
+        if (hideAt > 0f && Time.unscaledTime >= hideAt) { hideAt = -1f; graph.HideScrub(); }
     }
 }

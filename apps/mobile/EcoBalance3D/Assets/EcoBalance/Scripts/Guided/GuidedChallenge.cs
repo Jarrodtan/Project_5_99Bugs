@@ -110,25 +110,35 @@ public partial class GuidedChallenge : MonoBehaviour
         };
     }
 
-    // ---------- Endings (priority order from the research) ----------
+    // ---------- Endings: GuidedEndings.cs (doc text, END01-END05, classification) ----------
 
-    public static readonly (string title, string text, string lesson)[] Endings =
-    {
-        ("Ecosystem Collapse", "The Blue Sheep and Snow Leopards have both disappeared. The highlands have lost important parts of their ecosystem. What could we do differently next time?", "Changes in food and animal numbers can affect the whole ecosystem."),
-        ("Predator-Free Highlands", "The Blue Sheep are still living in the highlands, but the Snow Leopards have disappeared. Without predators, the sheep population may grow and eat more grass!", "Predators help keep prey numbers in balance."),
-        ("Disappearing Herd", "The Blue Sheep have disappeared from the highlands. The Snow Leopards are still here, but without their prey, they may struggle to find food!", "Predators depend on prey to survive."),
-        ("Thriving Highlands", "The highlands are full of life! The Blue Sheep have grass to eat, and the Snow Leopards still have prey to hunt. Both animals and plants are doing well!", "A thriving ecosystem needs plants, prey and predators together."),
-        ("Fragile Balance", "The Blue Sheep and Snow Leopards are still here, but the highlands are struggling. There may not be enough food or animals to keep everything balanced!", "An ecosystem can survive but still be at risk."),
-    };
+    int PickEnding() => GuidedEndings.Classify(Sheep, Leopards, Vegetation);
 
-    int PickEnding()
+    /// <summary>Miloy or Snowy (the focal animal of the chosen story).</summary>
+    public static string FocalName
     {
-        int s = Sheep, l = Leopards;
-        if (s == 0 && l == 0) return 0;
-        if (l == 0) return 1;
-        if (s == 0) return 2;
-        if (s >= 5 && l >= 1 && Vegetation >= 50f) return 3;
-        return 4;
+        get
+        {
+            var fm = FamilyManager.Instance;
+            bool sheep = FamilyManager.SelectedStory == FamilyStory.BlueSheep;
+            return fm != null ? (sheep ? fm.miloName : fm.snowyName) : (sheep ? "Miloy" : "Snowy");
+        }
+    }
+
+    /// <summary>
+    /// The ending screen's line about the focal animal (doc, Ending Presentation: acknowledge whether Milo or Snowy
+    /// survived until the last day or died earlier). Kind words, never blaming the player.
+    /// </summary>
+    public static string FocalOutcome(string name, bool died, int day, FamilyDeathCause cause, int lastDay)
+    {
+        if (!died) return $"{name} made it through all {lastDay} days!";
+        return cause switch
+        {
+            FamilyDeathCause.Caught => $"{name} was caught by a Snow Leopard on Day {day}. The story ended early.",
+            FamilyDeathCause.Hunger => $"{name} could not find enough food and died on Day {day}. The story ended early.",
+            FamilyDeathCause.Thirst => $"{name} could not find enough water and died on Day {day}. The story ended early.",
+            _ => $"{name} did not survive past Day {day}. The story ended early.",
+        };
     }
 
     // ---------- State ----------
@@ -170,6 +180,7 @@ public partial class GuidedChallenge : MonoBehaviour
     static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (scene.name != ScreenFlow.Simulation) return;
+        PopupOpen = false;   // a card left open by the last Guided run (Leave from its intro) must not silence the next run's mascot
         SeasonWeather.ForcedStartSeason = ScreenFlow.GuidedMode ? SeasonWeather.Season.Summer : (SeasonWeather.Season?)null;
         GuidedEffects.Clear();
         if (ScreenFlow.GuidedMode) new GameObject("[GuidedChallenge]").AddComponent<GuidedChallenge>();
@@ -187,10 +198,13 @@ public partial class GuidedChallenge : MonoBehaviour
         BuildEvents();
     }
 
+    void OnDestroy() { if (instance == this) PopupOpen = false; }   // the run is gone: no Guided card is open any more
+
     void Start()
     {
         clock = FindAnyObjectByType<ClockService>();
         speed = FindAnyObjectByType<SimulationSpeedController>();
+        missionEvents = MissionEvents();   // the chosen story's wording (Miloy or Snowy)
         BuildUI();
     }
 
@@ -208,6 +222,7 @@ public partial class GuidedChallenge : MonoBehaviour
         }
         UpdatePill();
 
+        if (FamilyManager.MainAnimalDead) { Finish(); return; }     // doc: Miloy / Snowy died = early ending, evaluated now
         if (Sheep == 0 && Leopards == 0) { Finish(); return; }       // early collapse
         if (day > ChallengeDays) { Finish(); return; }               // end of Day 20
 
@@ -218,7 +233,9 @@ public partial class GuidedChallenge : MonoBehaviour
         if (ScreenFlow.JournalOpen) return;
 
         if (!introDone) { ShowIntro(); return; }
+        TrackMissionSteps(day);                                      // Badges and Achievement: Day 1-3 missions
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
+        if (UpdateMissionCards()) return;                            // a mission decision, badge or question
         if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
         if (!showing) UpdatePlanting();                              // player action: plant grass on brown patches
         if (showing || Time.unscaledTime < quietUntil) return;
@@ -265,6 +282,7 @@ public partial class GuidedChallenge : MonoBehaviour
         e.environment?.Invoke();
         c.apply();
         resolved.Add(e.id);
+        chosenLabels[e.id] = c.label;   // Mission 2's outcome card says what was chosen
         if (popup != null) popup.SetActive(false);
         showing = false;
         PopupOpen = false;
@@ -288,37 +306,45 @@ public partial class GuidedChallenge : MonoBehaviour
         if (speed != null) speed.Pause();
         ScreenFlow.CloseJournalOverlay();   // the ending would be hidden under the journal
         int i = PickEnding();
-        int mask = PlayerPrefs.GetInt(GalleryKey, 0);
-        bool isNew = (mask & (1 << i)) == 0;
-        PlayerPrefs.SetInt(GalleryKey, mask | (1 << i));
-        PlayerPrefs.Save();
+        bool isNew = GuidedEndings.Unlock(i);
+        var result = new GuidedScreens.Result {
+            ending = i, isNew = isNew, day = Mathf.Min(Day, ChallengeDays),
+            sheep = Sheep, leopards = Leopards, vegetation = Vegetation,
+            focal = FocalLine(), newBadges = newBadgesThisRun };
+        LastResult = result;
 
         // Shumin's Ending screen when it's in the build; otherwise the card below.
-        if (GuidedScreens.ShowEnding(new GuidedScreens.Result {
-                ending = i, isNew = isNew, day = Mathf.Min(Day, ChallengeDays),
-                sheep = Sheep, leopards = Leopards, vegetation = Vegetation }))
-            return;
+        if (GuidedScreens.ShowEnding(result)) return;
 
-        var (title, text, lesson) = Endings[i];
-        endTitle.text = title;
-        endText.text = $"{text}\n\n<i>{lesson}</i>\n\n<size=80%>Day {Mathf.Min(Day, ChallengeDays)} of {ChallengeDays} · Blue Sheep {Sheep} · Snow Leopards {Leopards} · Grass {Vegetation:0}%</size>"
+        var e = GuidedEndings.All[i];
+        endTitle.text = e.title;
+        endText.text = $"<b>{result.focal}</b>\n\n{e.description}\n\n<i>{e.takeaway}</i>\n\n<size=80%>Blue Sheep {Sheep} · Snow Leopards {Leopards} · Grass {Vegetation:0}%</size>"
                      + (isNew ? "\n<color=#E0A000>New ending unlocked!</color>" : "");
         endPanel.SetActive(true);
     }
 
+    /// <summary>The last ending this session (tests read it).</summary>
+    public static GuidedScreens.Result LastResult { get; private set; }
+
+    string FocalLine()
+    {
+        bool died = FamilyManager.MainAnimalDead;
+        int day = Mathf.Min(Day, ChallengeDays);
+        var cause = FamilyDeathCause.Other;
+        foreach (var loss in FamilyManager.Lost)
+            if (loss.Role == FamilyRole.Main) { day = loss.Day; cause = loss.Cause; }
+        return FocalOutcome(FocalName, died, day, cause, ChallengeDays);
+    }
+
     void ShowGallery()
     {
-        int mask = PlayerPrefs.GetInt(GalleryKey, 0);
         var sb = new System.Text.StringBuilder();
-        int found = 0;
-        // Gallery order: best to worst, as the children would read it.
-        foreach (int i in new[] { 3, 4, 1, 2, 0 })
+        foreach (int i in GuidedEndings.GalleryOrder)
         {
-            bool got = (mask & (1 << i)) != 0;
-            if (got) found++;
-            sb.Append(got ? $"<b>{Endings[i].title}</b>\n<size=80%>{Endings[i].text}</size>\n\n" : "<b>???</b>\n<size=80%>Not discovered yet. Try different choices!</size>\n\n");
+            var e = GuidedEndings.All[i];
+            sb.Append(GuidedEndings.IsUnlocked(i) ? $"<b>{e.title}</b>\n<size=80%>{e.card}</size>\n\n" : "<b>???</b>\n<size=80%>Not discovered yet. Try different choices!</size>\n\n");
         }
-        galleryText.text = $"Endings found: {found} of {Endings.Length}\n\n" + sb;
+        galleryText.text = GuidedEndings.Progress() + "\n\n" + sb;
         gallery.SetActive(true);
     }
 
@@ -627,6 +653,8 @@ public partial class GuidedChallenge : MonoBehaviour
         // Day counter, bottom-right (top is taken by Play/Pause/Reset, the banner and the season pill).
         pillBox = Box(root, "Day pill", new Vector2(1f, 0f), new Vector2(-30f, 30f), new Vector2(520f, 70f), new Color(0.08f, 0.1f, 0.14f, 0.8f), new Vector2(1f, 0f));
         pill = Label(pillBox.transform, "", 30f, Color.white);
+
+        BuildMissionUI(root);   // tracker first, so every popup in this canvas draws over it
 
         // Decision popup.
         popup = Dim(root, "Decision");

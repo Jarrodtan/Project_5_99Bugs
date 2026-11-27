@@ -161,6 +161,16 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         Btn(card.transform, "Stay", new Vector2(-x, -110f), new Color(0.3f, 0.62f, 0.38f), () => { confirm.SetActive(false); if (wasRunning && speed != null) speed.Play(); });
         if (canSave) Btn(card.transform, "Save & Exit", new Vector2(0f, -110f), new Color(0.28f, 0.5f, 0.75f), () => { GuidedChallenge.SaveNow(); Load(Modes); });
         Btn(card.transform, "Leave", new Vector2(x, -110f), new Color(0.55f, 0.55f, 0.55f), () => Load(Modes));
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): doc, Reset & Replay Rules, "Restart Story": the same story from
+        // Day 1 (starting animals, grass, needs, time and season); endings and badges already found are kept.
+        if (canSave)
+        {
+            ((RectTransform)card.transform).sizeDelta = new Vector2(1160f, 560f);
+            var restart = Btn(card.transform, "Start over", new Vector2(0f, -225f), new Color(0.95f, 0.55f, 0.2f), RestartGuided);
+            ((RectTransform)restart.transform).sizeDelta = new Vector2(1060f, 90f);
+            foreach (Transform t in card.transform)
+                if (t != restart.transform && t.TryGetComponent(out RectTransform r)) r.anchoredPosition += new Vector2(0f, 70f);
+        }
         StyleLikeShumin(card, "Leave");
         confirm.SetActive(false);
         openConfirm = () =>
