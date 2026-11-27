@@ -81,9 +81,15 @@ public class TerrainEditTool : MonoBehaviour
     float savedPixelError = -1f;
     bool loggedPointer;
 
-    static readonly Color PanelColor = new Color(0.08f, 0.1f, 0.12f, 0.88f);
-    static readonly Color ButtonColor = new Color(0.22f, 0.26f, 0.3f, 1f);
-    static readonly Color ActiveColor = new Color(0.25f, 0.6f, 0.35f, 1f);
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): Shumin's HUD look (28 Nov): cream card, cream buttons,
+    // her green for the chosen brush, dark brown ink.
+    static readonly Color PanelColor = new Color(0.97f, 0.94f, 0.87f, 0.97f);
+    static readonly Color ButtonColor = new Color(0.9f, 0.85f, 0.74f, 1f);
+    static readonly Color ActiveColor = new Color(0.2f, 0.52f, 0.38f, 1f);
+    static readonly Color Ink = new Color(0.24f, 0.17f, 0.1f, 1f);
+    static readonly Color EdgeColor = new Color(0.45f, 0.32f, 0.18f, 0.8f);
+    readonly Dictionary<Tool, TMP_Text> toolLabels = new Dictionary<Tool, TMP_Text>();
+    bool fontApplied;
 
     // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
     // The Edit Terrain button matches Shumin's HUD buttons (Scenes/UI.unity: white rounded, dark grey text, 88 tall)
@@ -719,7 +725,13 @@ public class TerrainEditTool : MonoBehaviour
         panel.anchoredPosition = new Vector2(-40f, tr.anchoredPosition.y - tr.sizeDelta.y - 16f);
         panel.localScale = Vector3.one * PanelScale;
         panel.sizeDelta = new Vector2(340f, 0f);
-        panel.gameObject.AddComponent<Image>().color = PanelColor;
+        var panelImg = panel.gameObject.AddComponent<Image>();
+        panelImg.color = PanelColor;
+        panelImg.sprite = RoundedSprite();
+        panelImg.type = Image.Type.Sliced;
+        var panelEdge = panel.gameObject.AddComponent<Outline>();
+        panelEdge.effectColor = EdgeColor;
+        panelEdge.effectDistance = new Vector2(2f, -2f);
         var layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(14, 14, 14, 14);
         layout.spacing = 8f;
@@ -729,23 +741,31 @@ public class TerrainEditTool : MonoBehaviour
         panel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
         MakeLabel(panel, "Brushes", 22f, FontStyles.Bold);
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): Look (no brush) on its own full-width row, then each
+        // add / take-away pair side by side (left adds or shapes, right removes), all the same size.
+        var look = NewRect("LookRow", panel);
+        look.gameObject.AddComponent<LayoutElement>().preferredHeight = 48f;
+        AddToolButton(look, Tool.Look, "Look (move camera)");
+        var lookRt = (RectTransform)toolButtons[Tool.Look].transform;
+        lookRt.anchorMin = Vector2.zero; lookRt.anchorMax = Vector2.one;
+        lookRt.offsetMin = lookRt.offsetMax = Vector2.zero;
+
         var grid = NewRect("Tools", panel);
         var g = grid.gameObject.AddComponent<GridLayoutGroup>();
-        g.cellSize = new Vector2(150f, 48f);
+        g.cellSize = new Vector2(152f, 48f);
         g.spacing = new Vector2(8f, 8f);
         g.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         g.constraintCount = 2;
-        grid.gameObject.AddComponent<LayoutElement>().preferredHeight = 5 * 48f + 4 * 8f;
+        grid.gameObject.AddComponent<LayoutElement>().preferredHeight = 4 * 48f + 3 * 8f;
 
-        AddToolButton(grid, Tool.Look, "Look");
-        AddToolButton(grid, Tool.Smooth, "Smooth");
         AddToolButton(grid, Tool.Raise, "Raise");
         AddToolButton(grid, Tool.Lower, "Lower");
+        AddToolButton(grid, Tool.Smooth, "Smooth");
         AddToolButton(grid, Tool.Flatten, "Flatten");
-        AddToolButton(grid, Tool.RemoveGrass, "Remove Grass");
         AddToolButton(grid, Tool.AddGrass, "Add Grass");
-        AddToolButton(grid, Tool.RemoveStream, "Remove Stream");
+        AddToolButton(grid, Tool.RemoveGrass, "Remove Grass");
         AddToolButton(grid, Tool.DrawStream, "Draw Stream");
+        AddToolButton(grid, Tool.RemoveStream, "Remove Stream");
 
         MakeSlider(panel, "Brush Size", brushSizeRange.x, brushSizeRange.y, brushSize, v => brushSize = v, v => $"{v:0}");
         MakeSlider(panel, "Strength", 0.05f, 1f, strength, v => strength = v, v => $"{v * 100f:0}%");
@@ -755,7 +775,7 @@ public class TerrainEditTool : MonoBehaviour
 
         MakeLabel(panel, "Paint with left-drag / one finger.\nRight-drag, pinch & wheel still move the camera.", 16f, FontStyles.Italic);
         statusText = MakeLabel(panel, "", 16f, FontStyles.Normal);
-        statusText.color = new Color(0.7f, 1f, 0.75f);
+        statusText.color = ActiveColor;
 
         panel.gameObject.SetActive(false);
         SelectTool(Tool.Look);
@@ -805,6 +825,7 @@ public class TerrainEditTool : MonoBehaviour
             nextHudLookTry = Time.unscaledTime + 0.5f;
             hudLookCopied = CopyHudLook();
         }
+        ApplyHudFont();
 
         // The animal card opens on the right, just under the pill: get out of its way (and off its close button)
         // unless the editor itself is open.
@@ -817,7 +838,10 @@ public class TerrainEditTool : MonoBehaviour
         if (ConfigurationScreen.Open) plainLookAt = -1f;
         else if (plainLookAt < 0f) plainLookAt = Time.unscaledTime + 3f;
         bool styled = hudLookCopied || (plainLookAt > 0f && Time.unscaledTime >= plainLookAt && !SimHud.Active);
-        bool show = !ConfigurationScreen.Open && styled &&
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): not in Guided (28 Nov): Shumin's Guided design has no
+        // terrain editor, and reshaping the land mid-story upsets the chapters; Free keeps it.
+        if (ScreenFlow.GuidedMode && panel.gameObject.activeSelf) TogglePanel();
+        bool show = !ConfigurationScreen.Open && styled && !ScreenFlow.GuidedMode &&
                     (panel.gameObject.activeSelf || (!cardOpen && !SimHud.RightPanelOpen));
         if (toggleRect.gameObject.activeSelf != show) toggleRect.gameObject.SetActive(show);
     }
@@ -881,8 +905,11 @@ public class TerrainEditTool : MonoBehaviour
 
     void AddToolButton(Transform parent, Tool t, string label)
     {
-        MakeButton(parent, label, ButtonColor, () => SelectTool(t), out _, out var img);
+        MakeButton(parent, label, ButtonColor, () => SelectTool(t), out var text, out var img);
+        img.sprite = RoundedSprite();
+        img.type = Image.Type.Sliced;
         toolButtons[t] = img;
+        toolLabels[t] = text;
     }
 
     void SelectTool(Tool t)
@@ -891,6 +918,17 @@ public class TerrainEditTool : MonoBehaviour
         stroking = false;
         SetStatus(t == Tool.Look ? "" : $"{t}: drag on the ground to paint");
         foreach (var kv in toolButtons) kv.Value.color = kv.Key == t ? ActiveColor : ButtonColor;
+        foreach (var kv in toolLabels) kv.Value.color = kv.Key == t ? Color.white : Ink;   // white on green, ink on cream
+    }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): Shumin's font for the whole panel, once her HUD has loaded it.
+    void ApplyHudFont()
+    {
+        if (fontApplied || panel == null) return;
+        var font = ScreenFlow.ShuminFont("Chewy");
+        if (font == null) return;
+        foreach (var t in panel.GetComponentsInChildren<TMP_Text>(true)) t.font = font;
+        fontApplied = true;
     }
 
     static RectTransform NewRect(string name, Transform parent)
@@ -907,7 +945,7 @@ public class TerrainEditTool : MonoBehaviour
         t.text = text;
         t.fontSize = size;
         t.fontStyle = style;
-        t.color = Color.white;
+        t.color = Ink;
         t.raycastTarget = false;
         return t;
     }
@@ -959,7 +997,7 @@ public class TerrainEditTool : MonoBehaviour
 
         var bg = NewRect("Background", sr);
         bg.anchorMin = new Vector2(0f, 0.35f); bg.anchorMax = new Vector2(1f, 0.65f); bg.offsetMin = bg.offsetMax = Vector2.zero;
-        bg.gameObject.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.15f);
+        bg.gameObject.AddComponent<Image>().color = new Color(0.45f, 0.32f, 0.18f, 0.25f);
 
         var fillArea = NewRect("Fill Area", sr);
         fillArea.anchorMin = new Vector2(0f, 0.35f); fillArea.anchorMax = new Vector2(1f, 0.65f); fillArea.offsetMin = fillArea.offsetMax = Vector2.zero;
@@ -973,6 +1011,11 @@ public class TerrainEditTool : MonoBehaviour
         handle.sizeDelta = new Vector2(28f, 0f);
         var handleImg = handle.gameObject.AddComponent<Image>();
         handleImg.color = Color.white;
+        handleImg.sprite = RoundedSprite();
+        handleImg.type = Image.Type.Sliced;
+        var handleEdge = handle.gameObject.AddComponent<Outline>();
+        handleEdge.effectColor = EdgeColor;
+        handleEdge.effectDistance = new Vector2(1.5f, -1.5f);
 
         slider.fillRect = fill;
         slider.handleRect = handle;
