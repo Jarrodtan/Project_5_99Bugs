@@ -84,6 +84,8 @@ public class Mascot : MonoBehaviour
     {
         var p = Find(hud, "MascotPanel");
         if (p == null) return;
+        // 28 Nov: Free's mascot stood 147 further left than Guided's, over the left camera buttons: same spot as Guided.
+        if (!ScreenFlow.GuidedMode && p is RectTransform prt) prt.anchoredPosition = new Vector2(-523f, -415.92f);
         current = hud.gameObject.AddComponent<Mascot>();
         current.panel = p.gameObject;
     }
