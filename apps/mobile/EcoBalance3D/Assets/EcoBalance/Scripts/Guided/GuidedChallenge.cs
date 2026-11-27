@@ -217,7 +217,8 @@ public partial class GuidedChallenge : MonoBehaviour
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
         if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
         if (!showing) UpdatePlanting();                              // player action: plant grass on brown patches
-        if (showing || Time.unscaledTime < quietUntil) return;
+        // The run keeps going under the Field Journal: decisions wait until the player is back to see them.
+        if (showing || Time.unscaledTime < quietUntil || ScreenFlow.JournalOpen) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
     }
@@ -282,6 +283,7 @@ public partial class GuidedChallenge : MonoBehaviour
         finished = true;
         DeleteSave();   // SCRUM-375: an ended story can't be continued
         if (speed != null) speed.Pause();
+        ScreenFlow.CloseJournalOverlay();   // the ending would be hidden under the journal
         int i = PickEnding();
         int mask = PlayerPrefs.GetInt(GalleryKey, 0);
         bool isNew = (mask & (1 << i)) == 0;

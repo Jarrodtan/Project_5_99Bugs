@@ -18,6 +18,12 @@ public class PopulationHistoryRecorder : MonoBehaviour
     PopulationHistory history;
     EcosystemSimulator subscribed;
 
+    /// <summary>
+    /// Raised while each sample is being built, before it is added: listeners add their own values
+    /// (e.g. grass eaten, famine level) under their own keys, so they are recorded on the same day.
+    /// </summary>
+    public event System.Action<Dictionary<string, float>> Recording;
+
     public PopulationHistory History => history ??= new PopulationHistory(capacity);
 
     void OnEnable()
@@ -67,6 +73,7 @@ public class PopulationHistoryRecorder : MonoBehaviour
         if (sim.resources != null)
             foreach (var r in sim.resources)
                 if (r != null) values[r.name] = r.currentAmount;
+        Recording?.Invoke(values);
         History.Add(sim.TickCount, values);
     }
 }

@@ -217,16 +217,18 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
     }
 
     // ---------- Field Journal on top of a running simulation ----------
-    static bool journalWasRunning;
 
-    /// <summary>Opens the Field Journal over the simulation, paused; its Back button returns to the same run.</summary>
+    /// <summary>The Field Journal is open (on top of a simulation or on its own).</summary>
+    public static bool JournalOpen => SceneManager.GetSceneByName(Journal).isLoaded;
+
+    /// <summary>
+    /// Opens the Field Journal over the simulation; its Back button returns to the same run. The run keeps
+    /// going as it was (running or paused), so the Observations graph moves while the player watches it.
+    /// </summary>
     public static void OpenJournalOverlay()
     {
-        if (SceneManager.GetSceneByName(Journal).isLoaded) return;
+        if (JournalOpen) return;
         Mascot.NoteJournalOpened();
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
-        journalWasRunning = speed != null && speed.IsRunning;
-        if (speed != null) speed.Pause();
         OverlayAudio.Hush();   // same as the Ending Gallery: music on, river and animals quiet (restored when it closes)
         SceneManager.LoadSceneAsync(Journal, LoadSceneMode.Additive);
     }
@@ -243,11 +245,10 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         }
     }
 
-    static void CloseJournalOverlay()
+    /// <summary>Closes the journal opened over the simulation (Back, or the Guided challenge ending).</summary>
+    public static void CloseJournalOverlay()
     {
-        SceneManager.UnloadSceneAsync(Journal);
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
-        if (journalWasRunning && speed != null) speed.Play();
+        if (JournalOpen) SceneManager.UnloadSceneAsync(Journal);
     }
 
     // ---------- Volume: Music / Voice / Sounds sliders (AudioPrefs), kept between runs ----------
