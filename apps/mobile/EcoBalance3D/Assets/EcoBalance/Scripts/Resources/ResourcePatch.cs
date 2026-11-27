@@ -80,12 +80,22 @@ public class ResourcePatch : MonoBehaviour
         UpdateVisual();
     }
 
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    /// <summary>Raised whenever an animal eats or drinks from a patch: (patch, amount taken). The Field Journal counts it.</summary>
+    public static event System.Action<ResourcePatch, float> Consumed;
+    /// <summary>True for water (puddles, pools), false for grass.</summary>
+    public bool IsWaterPatch => IsWater;
+    /// <summary>How much this patch holds when full.</summary>
+    public float Capacity => MaxAmount;
+    // [AI-GENERATED END]
+
     // Takes up to `requested` from the patch, returns how much was actually taken.
     public float Consume(float requested)
     {
         float taken = Mathf.Min(requested, amount);
         amount -= taken;
         UpdateVisual();
+        if (taken > 0f) Consumed?.Invoke(this, taken);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Field Journal food & water graph
         return taken;
     }
 
@@ -165,5 +175,5 @@ public class ResourcePatch : MonoBehaviour
     // [AI-GENERATED END]
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() => All.Clear();
+    static void ResetStatics() { All.Clear(); Consumed = null; }   // domain reload is off: drop last session's listeners
 }

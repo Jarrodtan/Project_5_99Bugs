@@ -199,7 +199,8 @@ public class GuidedChallenge : MonoBehaviour
         if (Sheep == 0 && Leopards == 0) { Finish(); return; }       // early collapse
         if (day > ChallengeDays) { Finish(); return; }               // end of Day 20
 
-        if (showing || Time.unscaledTime < quietUntil) return;
+        // The run keeps going under the Field Journal: decisions wait until the player is back to see them.
+        if (showing || Time.unscaledTime < quietUntil || ScreenFlow.JournalOpen) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
     }
@@ -250,6 +251,7 @@ public class GuidedChallenge : MonoBehaviour
     {
         finished = true;
         if (speed != null) speed.Pause();
+        ScreenFlow.CloseJournalOverlay();   // the ending would be hidden under the journal
         int i = PickEnding();
         int mask = PlayerPrefs.GetInt(GalleryKey, 0);
         bool isNew = (mask & (1 << i)) == 0;

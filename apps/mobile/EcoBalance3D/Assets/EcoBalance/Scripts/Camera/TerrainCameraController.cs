@@ -104,7 +104,7 @@ public class TerrainCameraController : MonoBehaviour
         followTarget = null;
         pov = false;
         if (terrain == null) terrain = Terrain.activeTerrain;
-        focusTarget = terrain != null ? terrain.GetPosition() + terrain.terrainData.size * 0.5f : Vector3.zero;
+        focusTarget = HasTerrain ? terrain.GetPosition() + terrain.terrainData.size * 0.5f : Vector3.zero;
         focusTarget.y = GroundHeight(focusTarget);
         yawTarget = startYaw;
         pitchTarget = startPitch;
@@ -362,7 +362,7 @@ public class TerrainCameraController : MonoBehaviour
         distTarget = Mathf.Clamp(distTarget, minDistance, maxDistance);
         pitchTarget = Mathf.Clamp(pitchTarget, pov ? -30f : minPitch, maxPitch);
 
-        if (terrain != null && followTarget == null)
+        if (HasTerrain && followTarget == null)
         {
             // Keep the view over the land: a margin from the edges, so the camera never shows the void beyond.
             var min = terrain.GetPosition() + new Vector3(edgeMargin, 0f, edgeMargin);
@@ -406,7 +406,7 @@ public class TerrainCameraController : MonoBehaviour
 
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): the camera itself stays over the terrain, not just the point
         // it looks at, so zooming out never shows the empty edge of the world.
-        if (terrain != null)
+        if (HasTerrain)
         {
             Vector3 tMin = terrain.GetPosition(), tMax = tMin + terrain.terrainData.size;
             pos.x = Mathf.Clamp(pos.x, tMin.x + 2f, tMax.x - 2f);
@@ -445,5 +445,9 @@ public class TerrainCameraController : MonoBehaviour
     Quaternion YawRotation() => Quaternion.Euler(0f, yaw, 0f);
 
     float GroundHeight(Vector3 p) =>
-        terrain != null ? terrain.SampleHeight(p) + terrain.GetPosition().y : p.y;
+        HasTerrain ? terrain.SampleHeight(p) + terrain.GetPosition().y : p.y;
+
+    // The terrain's data can already be gone while the scene closes (leaving the run, stopping Play)
+    // and the camera still gets one last LateUpdate: then act as if there were no terrain.
+    bool HasTerrain => terrain != null && terrain.terrainData != null;
 }

@@ -184,15 +184,17 @@ public static class ScreenFlow
     }
 
     // ---------- Field Journal on top of a running simulation ----------
-    static bool journalWasRunning;
 
-    /// <summary>Opens the Field Journal over the simulation, paused; its Back button returns to the same run.</summary>
+    /// <summary>The Field Journal is open (on top of a simulation or on its own).</summary>
+    public static bool JournalOpen => SceneManager.GetSceneByName(Journal).isLoaded;
+
+    /// <summary>
+    /// Opens the Field Journal over the simulation; its Back button returns to the same run. The run keeps
+    /// going as it was (running or paused), so the Observations graph moves while the player watches it.
+    /// </summary>
     public static void OpenJournalOverlay()
     {
-        if (SceneManager.GetSceneByName(Journal).isLoaded) return;
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
-        journalWasRunning = speed != null && speed.IsRunning;
-        if (speed != null) speed.Pause();
+        if (JournalOpen) return;
         SceneManager.LoadSceneAsync(Journal, LoadSceneMode.Additive);
     }
 
@@ -208,11 +210,10 @@ public static class ScreenFlow
         }
     }
 
-    static void CloseJournalOverlay()
+    /// <summary>Closes the journal opened over the simulation (Back, or the Guided challenge ending).</summary>
+    public static void CloseJournalOverlay()
     {
-        SceneManager.UnloadSceneAsync(Journal);
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
-        if (journalWasRunning && speed != null) speed.Play();
+        if (JournalOpen) SceneManager.UnloadSceneAsync(Journal);
     }
 
     static void Load(string scene)
