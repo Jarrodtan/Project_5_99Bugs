@@ -44,7 +44,7 @@ public static class GuidedScreens
     public static void OpenGallery()
     {
         if (SceneManager.GetSceneByName(GalleryScene).isLoaded || !Application.CanStreamedLevelBeLoaded(GalleryScene)) return;
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
+        var speed = Object.FindAnyObjectByType<SimulationSpeedController>();
         galleryPausedRun = speed != null && speed.IsRunning;
         if (galleryPausedRun) speed.Pause();
         // The river and animal sounds kept playing behind the gallery. Pause the world audio; the music, the click sound
@@ -58,7 +58,7 @@ public static class GuidedScreens
     static void CloseGallery()
     {
         SceneManager.UnloadSceneAsync(GalleryScene);
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
+        var speed = Object.FindAnyObjectByType<SimulationSpeedController>();
         if (galleryPausedRun && speed != null) speed.Play();
     }
 

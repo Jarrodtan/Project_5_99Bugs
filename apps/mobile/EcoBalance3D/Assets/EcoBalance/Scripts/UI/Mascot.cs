@@ -298,7 +298,7 @@ public class Mascot : MonoBehaviour
     {
         if (watchTarget != null)
         {
-            var cam = FindFirstObjectByType<TerrainCameraController>();
+            var cam = FindAnyObjectByType<TerrainCameraController>();
             if (cam != null) cam.Follow(watchTarget);
             Dismiss();
             return;
@@ -312,7 +312,7 @@ public class Mascot : MonoBehaviour
     bool pausedSim;
     void PauseSimWhileTalking()
     {
-        var sim = FindFirstObjectByType<SimulationSpeedController>();
+        var sim = FindAnyObjectByType<SimulationSpeedController>();
         if (sim == null || !sim.IsRunning) return;
         sim.Pause();
         pausedSim = true;
@@ -322,7 +322,7 @@ public class Mascot : MonoBehaviour
     {
         if (!pausedSim) return;
         pausedSim = false;
-        var sim = FindFirstObjectByType<SimulationSpeedController>();
+        var sim = FindAnyObjectByType<SimulationSpeedController>();
         if (sim != null && !sim.IsRunning && !ModalOpen()) sim.Play();
     }
 
@@ -367,7 +367,7 @@ public class Mascot : MonoBehaviour
     // Other popups come first: no mascot over the Guided intro/event cards, a question, or the journal.
     static bool ModalOpen() =>
         ContextualQuestions.Showing || GuidedChallenge.PopupOpen ||
-        SceneManager.GetSceneByName(ScreenFlow.Journal).isLoaded ||
+        ScreenFlow.JournalOpen ||
         SceneManager.GetSceneByName(GuidedScreens.GalleryScene).isLoaded;
 
     // ---------- Triggers called from the rest of the game ----------
@@ -375,7 +375,9 @@ public class Mascot : MonoBehaviour
     void PlayFreeIntro()
     {
         if (introPlayed) return;
-        if (LoadingOverlay.Active) { Invoke(nameof(PlayFreeIntro), 0.5f); return; }   // wait: no talking over "Building the Himalayas"
+        // Wait: no talking over "Building the Himalayas", or hidden under the Field Journal / a question (the intro
+        // pauses the run, so under the journal the graph would just stop).
+        if (LoadingOverlay.Active || ModalOpen()) { Invoke(nameof(PlayFreeIntro), 0.5f); return; }
         introPlayed = true;
         Say(FreeIntro, true);
     }

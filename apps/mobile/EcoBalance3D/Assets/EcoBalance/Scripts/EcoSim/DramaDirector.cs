@@ -126,7 +126,7 @@ public class DramaDirector : MonoBehaviour
 
     void Watch()
     {
-        var cam = FindFirstObjectByType<TerrainCameraController>();
+        var cam = FindAnyObjectByType<TerrainCameraController>();
         if (cam != null && subject != null) cam.Follow(subject);
         Hide(WatchSeconds);
     }

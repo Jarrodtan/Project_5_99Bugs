@@ -27,7 +27,7 @@ public class UIClickSound : MonoBehaviour, IPointerClickHandler
         AddToAll();                                  // the first scene is already loaded
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): buttons made in code after a scene loads (Milo / Snowy picker,
         // camera view bar, chapter card, Continue / Leave boxes...) had no click. Re-check twice a second.
-        if (FindFirstObjectByType<UIClickSoundWatcher>() == null)
+        if (FindAnyObjectByType<UIClickSoundWatcher>() == null)
         {
             var go = new GameObject("[UIClickSoundWatcher]");
             DontDestroyOnLoad(go);
@@ -40,7 +40,7 @@ public class UIClickSound : MonoBehaviour, IPointerClickHandler
     /// <summary>Gives every Button in the open scenes the click sound. Safe to call again for buttons made in code.</summary>
     public static void AddToAll()
     {
-        foreach (var b in FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var b in FindObjectsByType<Button>(FindObjectsInactive.Include))
             if (!b.TryGetComponent(out UIClickSound _)) b.gameObject.AddComponent<UIClickSound>();
     }
 

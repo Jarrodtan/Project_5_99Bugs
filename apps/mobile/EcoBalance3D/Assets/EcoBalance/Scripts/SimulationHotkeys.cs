@@ -19,7 +19,7 @@ public class SimulationHotkeys : MonoBehaviour
         if (scene.name != SimulationScene)
             return;
 
-        if (FindFirstObjectByType<SimulationHotkeys>() != null)
+        if (FindAnyObjectByType<SimulationHotkeys>() != null)
             return;
 
         GameObject controller = new GameObject("[SimulationHotkeys]");
@@ -95,7 +95,7 @@ public class SimulationHotkeys : MonoBehaviour
 
         // Focus the camera on the breeding demonstration.
         TerrainCameraController cameraController =
-            FindFirstObjectByType<TerrainCameraController>();
+            FindAnyObjectByType<TerrainCameraController>();
 
         if (cameraController != null)
             cameraController.Follow(mother.transform, 18f);
@@ -203,7 +203,7 @@ public class SimulationHotkeys : MonoBehaviour
 
         // Focus the camera on the hunting leopard.
         TerrainCameraController cameraController =
-            FindFirstObjectByType<TerrainCameraController>();
+            FindAnyObjectByType<TerrainCameraController>();
 
         if (cameraController != null)
             cameraController.Follow(leopard.transform, 20f);
@@ -268,7 +268,7 @@ public class SimulationHotkeys : MonoBehaviour
         }
 
         TerrainCameraController cameraController =
-            FindFirstObjectByType<TerrainCameraController>();
+            FindAnyObjectByType<TerrainCameraController>();
 
         if (cameraController != null)
             cameraController.Follow(sheep.transform, 15f);
@@ -329,7 +329,7 @@ public class SimulationHotkeys : MonoBehaviour
         }
 
         TerrainCameraController cameraController =
-            FindFirstObjectByType<TerrainCameraController>();
+            FindAnyObjectByType<TerrainCameraController>();
 
         if (cameraController != null)
             cameraController.Follow(selectedAnimal.transform, 15f);
@@ -350,7 +350,7 @@ public class SimulationHotkeys : MonoBehaviour
             return;
 
         GuidedChallenge challenge =
-            FindFirstObjectByType<GuidedChallenge>();
+            FindAnyObjectByType<GuidedChallenge>();
 
         if (challenge == null)
         {

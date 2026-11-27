@@ -82,7 +82,7 @@ public class RiverAudioTracker : MonoBehaviour
             // Water that appears later (lakes, side streams, online river data) joins in.
             if (Time.unscaledTime >= refindAt) { refindAt = Time.unscaledTime + 10f; FindWater(); }
             // The camera hands its AudioListener to an "ears" point on the ground: always use the enabled one.
-            foreach (var l in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))
+            foreach (var l in FindObjectsByType<AudioListener>())
                 if (l.isActiveAndEnabled) { listener = l.transform; break; }
             UpdateTarget();
             yield return new WaitForSeconds(0.2f);
@@ -106,14 +106,14 @@ public class RiverAudioTracker : MonoBehaviour
         // so there are no silent gaps along a long river.
         AddLine(HimalayaRiver.Path);
         foreach (var t in HimalayaRiver.Tributaries) AddLine(t);
-        foreach (Transform t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
+        foreach (Transform t in FindObjectsByType<Transform>())
         {
             string n = t.name;
             if (!(n.StartsWith("Lake") || n.StartsWith("Stream") || n.StartsWith("Glacier stream"))) continue;
             foreach (var r in t.GetComponentsInChildren<Renderer>()) fallbackRenderers.Add(r);
         }
 
-        foreach (Transform t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
+        foreach (Transform t in FindObjectsByType<Transform>())
         {
             if (!t.name.Contains(waterNameContains)) continue;
 

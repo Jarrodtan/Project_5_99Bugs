@@ -199,7 +199,7 @@ public class TerrainCameraController : MonoBehaviour
         if (ear == null)
         {
             var own = GetComponentInChildren<AudioListener>();
-            if (own == null) own = FindFirstObjectByType<AudioListener>();
+            if (own == null) own = FindAnyObjectByType<AudioListener>();
             if (own != null && own.transform == transform) own.enabled = false;
             else if (own != null) { ear = own.transform; ear.SetParent(null); }
             if (ear == null) ear = new GameObject("[Ears]", typeof(AudioListener)).transform;

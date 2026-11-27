@@ -151,8 +151,8 @@ public class AnimalCreator : EditorWindow
     // Registers the species with the scene's simulator and clones an existing spawner (with its clock) for it.
     static void add_to_scene(SpeciesDefinition species)
     {
-        var sim = Object.FindFirstObjectByType<EcosystemSimulator>();
-        var template = Object.FindFirstObjectByType<CreatureSpawner>();
+        var sim = Object.FindAnyObjectByType<EcosystemSimulator>();
+        var template = Object.FindAnyObjectByType<CreatureSpawner>();
         if (sim == null || template == null)
         {
             EditorUtility.DisplayDialog("Species Creator", "Open the simulation scene (with a simulator and a spawner) first.", "OK");
@@ -171,7 +171,7 @@ public class AnimalCreator : EditorWindow
 
         // The spawner refreshes from a SimulationClock. If the template's clock lives on another object,
         // give the copy its own clock with the same settings.
-        foreach (var clock in Object.FindObjectsByType<SimulationClock>(FindObjectsSortMode.None))
+        foreach (var clock in Object.FindObjectsByType<SimulationClock>())
         {
             if (clock.spawner != template || clock.gameObject == template.gameObject) continue;
             var own = copy.AddComponent<SimulationClock>();

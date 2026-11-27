@@ -46,7 +46,7 @@ public class SimHud : MonoBehaviour
             if (root.GetComponent<EventSystem>() != null)
             {
                 bool another = false;
-                foreach (var es in FindObjectsByType<EventSystem>(FindObjectsSortMode.None)) if (es.gameObject != root) another = true;
+                foreach (var es in FindObjectsByType<EventSystem>()) if (es.gameObject != root) another = true;
                 if (another) root.SetActive(false);
                 continue;
             }
@@ -114,8 +114,8 @@ public class SimHud : MonoBehaviour
             if (!byName.TryGetValue(key, out var l)) byName[key] = l = new List<Transform>();
             l.Add(t);
         }
-        speed = FindFirstObjectByType<SimulationSpeedController>();
-        clock = FindFirstObjectByType<ClockService>();
+        speed = FindAnyObjectByType<SimulationSpeedController>();
+        clock = FindAnyObjectByType<ClockService>();
         Active = true;
         SeeThrough();
 

@@ -184,4 +184,97 @@ public class FieldJournalTests
         labelled.transform.GetChild(0).gameObject.AddComponent<TMPro.TextMeshProUGUI>().text = "Start";
         Assert.IsNull(ButtonCaption.Ensure(labelled, "x"), "buttons with their own text are left alone");
     }
+
+    // ---------- Observation notes ----------
+
+    static PopulationHistory History(params (float sheep, float leopards, float grass)[] days)
+    {
+        var h = new PopulationHistory(100);
+        for (int i = 0; i < days.Length; i++)
+            h.Add(i, new Dictionary<string, float> { { "BlueSheep", days[i].sheep }, { "SnowLeopard", days[i].leopards }, { "Grass", days[i].grass } });
+        return h;
+    }
+
+    static List<PopulationSeries> FoodChain() => new()
+    {
+        new PopulationSeries { Key = "BlueSheep", Label = "Blue Sheep", Visible = true, Eats = new List<string> { "Grass" } },
+        new PopulationSeries { Key = "SnowLeopard", Label = "Snow Leopard", Visible = true, Eats = new List<string> { "BlueSheep" } },
+        new PopulationSeries { Key = "Grass", Label = "Grass", IsResource = true },
+    };
+
+    [Test]
+    public void Notes_SmallWobblesAreIgnored()
+    {
+        var h = History((10, 2, 100), (11, 2, 95), (9, 2, 90), (10, 2, 92));
+        CollectionAssert.IsEmpty(ObservationNotes.Find(h, FoodChain()));
+    }
+
+    [Test]
+    public void Notes_BiggestRiseAndFall_InTheOrderTheyHappened()
+    {
+        var h = History((10, 2, 100), (16, 2, 100), (20, 2, 100), (12, 2, 100), (4, 2, 100), (6, 2, 100));
+        var notes = ObservationNotes.Find(h, FoodChain());
+        Assert.AreEqual(2, notes.Count);
+        Assert.AreEqual(2, notes[0].Index);
+        StringAssert.StartsWith("Blue Sheep reached 20", notes[0].Text);
+        Assert.AreEqual(4, notes[1].Index);
+        StringAssert.StartsWith("Blue Sheep fell to 4", notes[1].Text);
+    }
+
+    [Test]
+    public void Notes_DyingOut_AndResourceRunningOutThenGrowingBack()
+    {
+        var h = History((10, 2, 100), (10, 1, 50), (10, 0, 20), (10, 0, 40), (10, 0, 70));
+        var notes = ObservationNotes.Find(h, FoodChain()).ConvertAll(n => n.Text);
+        Assert.IsTrue(notes.Exists(t => t.StartsWith("The last Snow Leopard is gone.")), string.Join("\n", notes));
+        Assert.IsTrue(notes.Exists(t => t.StartsWith("The Grass is running out.")), string.Join("\n", notes));
+        Assert.IsTrue(notes.Exists(t => t.StartsWith("The Grass grew back.")), string.Join("\n", notes));
+    }
+
+    [Test]
+    public void Notes_PointAtTheFoodChainLine_InsteadOfGivingTheAnswer()
+    {
+        // Grass runs out first, then the sheep fall: the sheep note asks the player to look at the grass.
+        var h = History((10, 2, 100), (10, 2, 25), (4, 2, 20));
+        var sheepFell = ObservationNotes.Find(h, FoodChain()).Find(n => n.Text.StartsWith("Blue Sheep fell"));
+        Assert.IsNotNull(sheepFell);
+        StringAssert.Contains("Look at the Grass line", sheepFell.Text);
+
+        // Many leopards first, then the sheep fall: it points at the hunters.
+        h = History((10, 2, 100), (10, 6, 100), (4, 6, 100));
+        sheepFell = ObservationNotes.Find(h, FoodChain()).Find(n => n.Text.StartsWith("Blue Sheep fell"));
+        StringAssert.Contains("Look at the Snow Leopard line", sheepFell.Text);
+
+        // Nothing related changed before: no prompt.
+        h = History((10, 2, 100), (4, 2, 100));
+        sheepFell = ObservationNotes.Find(h, FoodChain()).Find(n => n.Text.StartsWith("Blue Sheep fell"));
+        StringAssert.DoesNotContain("Look at", sheepFell.Text);
+    }
+
+    [Test]
+    public void Notes_CasesFoundArePinnedToTheirDay_OldOnesSkipped()
+    {
+        var h = new PopulationHistory(3);
+        for (int t = 0; t < 5; t++) h.Add(t * 10, new Dictionary<string, float> { { "BlueSheep", 10 } });   // keeps ticks 20, 30, 40
+        var notes = ObservationNotes.Find(h, FoodChain(), new[] { (30, "Too Many Sheep"), (0, "Dropped") });
+        Assert.AreEqual(1, notes.Count);
+        Assert.AreEqual(1, notes[0].Index);
+        Assert.AreEqual(30, notes[0].Tick);
+        Assert.AreEqual("Case found: Too Many Sheep!", notes[0].Text);
+    }
+
+    [Test]
+    public void BuildSeries_RemembersWhatEachSpeciesEats()
+    {
+        var grass = Make<ResourceDefinition>("Grass");
+        var sheep = Make<SpeciesDefinition>("BlueSheep");
+        var leopard = Make<SpeciesDefinition>("SnowLeopard");
+        sheep.SetRelationship(RelationshipType.Eats, grass);
+        leopard.SetRelationship(RelationshipType.Eats, sheep);
+
+        var series = PopulationGraphMath.BuildSeries(new[] { "BlueSheep", "SnowLeopard", "Grass" }, new[] { sheep, leopard }, new[] { grass });
+        CollectionAssert.AreEqual(new[] { "Grass" }, series[0].Eats);
+        CollectionAssert.AreEqual(new[] { "BlueSheep" }, series[1].Eats);
+        CollectionAssert.IsEmpty(series[2].Eats);
+    }
 }

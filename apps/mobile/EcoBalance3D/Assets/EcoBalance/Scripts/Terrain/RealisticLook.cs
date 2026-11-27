@@ -26,7 +26,7 @@ public static class RealisticLook
     {
         if (!Enabled || scene.name != ScreenFlow.Simulation) return;
 
-        var volume = Object.FindFirstObjectByType<Volume>();
+        var volume = Object.FindAnyObjectByType<Volume>();
         if (volume != null && volume.isGlobal)
         {
             var p = volume.profile;   // instance copy
@@ -48,7 +48,7 @@ public static class RealisticLook
             if (p.TryGet(out Vignette vig)) { vig.active = true; vig.intensity.Override(0.22f); }
         }
 
-        foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+        foreach (var l in Object.FindObjectsByType<Light>())
         {
             if (l.type != LightType.Directional) continue;
             l.shadows = LightShadows.Soft;

@@ -181,16 +181,16 @@ public partial class GuidedChallenge : MonoBehaviour
         ResetChapters();
         instance = this;
         // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
-        var sim = FindFirstObjectByType<EcosystemSimulator>();
+        var sim = FindAnyObjectByType<EcosystemSimulator>();
         if (sim != null) sim.mode = EcosystemSimulator.SimulationMode.Events;
-        foreach (var sp in FindObjectsByType<CreatureSpawner>(FindObjectsSortMode.None)) sp.populationPerVisual = 1f;
+        foreach (var sp in FindObjectsByType<CreatureSpawner>()) sp.populationPerVisual = 1f;
         BuildEvents();
     }
 
     void Start()
     {
-        clock = FindFirstObjectByType<ClockService>();
-        speed = FindFirstObjectByType<SimulationSpeedController>();
+        clock = FindAnyObjectByType<ClockService>();
+        speed = FindAnyObjectByType<SimulationSpeedController>();
         BuildUI();
     }
 
@@ -212,6 +212,10 @@ public partial class GuidedChallenge : MonoBehaviour
         if (day > ChallengeDays) { Finish(); return; }               // end of Day 20
 
         if (!string.IsNullOrEmpty(StoryOverReason)) { Finish(); return; }   // SCRUM-374: e.g. main animal died
+
+        // The run keeps going under the Field Journal: the intro, chapter cards, fires and decisions wait until
+        // the player is back to see them (an ending still shows: Finish closes the journal first).
+        if (ScreenFlow.JournalOpen) return;
 
         if (!introDone) { ShowIntro(); return; }
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
@@ -282,6 +286,7 @@ public partial class GuidedChallenge : MonoBehaviour
         finished = true;
         DeleteSave();   // SCRUM-375: an ended story can't be continued
         if (speed != null) speed.Pause();
+        ScreenFlow.CloseJournalOverlay();   // the ending would be hidden under the journal
         int i = PickEnding();
         int mask = PlayerPrefs.GetInt(GalleryKey, 0);
         bool isNew = (mask & (1 << i)) == 0;

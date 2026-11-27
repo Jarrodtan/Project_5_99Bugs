@@ -618,7 +618,7 @@ public class TerrainEditTool : MonoBehaviour
     // surface and keep its current destination.
     static void SnapAgentsToNavMesh()
     {
-        foreach (var agent in FindObjectsByType<UnityEngine.AI.NavMeshAgent>(FindObjectsSortMode.None))
+        foreach (var agent in FindObjectsByType<UnityEngine.AI.NavMeshAgent>())
         {
             if (agent == null || !agent.enabled || !agent.gameObject.activeInHierarchy) continue;
             if (!UnityEngine.AI.NavMesh.SamplePosition(agent.transform.position, out var hit, 50f, UnityEngine.AI.NavMesh.AllAreas)) continue;

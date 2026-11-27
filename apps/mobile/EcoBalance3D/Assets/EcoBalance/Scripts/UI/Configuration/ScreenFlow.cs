@@ -30,6 +30,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         // from the last run: start fresh.
         GuidedMode = false;
         journalReturn = Home;
+        journalLoading = closeJournalWhenLoaded = false;
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
@@ -86,6 +87,13 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
                 Mascot.SetMenuLine(scene, Mascot.ConfigureLine);
                 break;
             case Journal:
+                journalLoading = false;
+                if (mode == LoadSceneMode.Additive && closeJournalWhenLoaded)   // closed (e.g. a Guided ending) while it was loading
+                {
+                    closeJournalWhenLoaded = false;
+                    SceneManager.UnloadSceneAsync(scene);
+                    break;
+                }
                 if (mode == LoadSceneMode.Additive) { SetUpJournalOverlay(scene); On("BackBtn", CloseJournalOverlay); }
                 else On("BackBtn", () => Load(journalReturn));
                 FieldJournalScreen.Attach(scene);   // tabs, Investigations and Observations pages
@@ -131,7 +139,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
     /// <summary>Adds the simulation's Back button (once per scene). Free mode calls it when Configuration starts the run.</summary>
     public static void AddLeaveButton(bool ownButton = true)
     {
-        if (Object.FindFirstObjectByType<LeaveMarker>() != null) return;
+        if (Object.FindAnyObjectByType<LeaveMarker>() != null) return;
         var canvasGo = new GameObject("[Leave Canvas]", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(LeaveMarker));
         var canvas = canvasGo.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -144,7 +152,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         var confirm = Rect(canvasGo.transform, "Confirm", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
         var card = Rect(confirm.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
         Text(card.transform, GuidedMode ? "Leave the story?\n<size=70%>Save & Exit to continue it later.</size>" : "Leave the simulation?\n<size=70%>Your ecosystem in this run will be lost.</size>", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(820f, 200f));
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
+        var speed = Object.FindAnyObjectByType<SimulationSpeedController>();
         bool wasRunning = false;
         // SCRUM-375: Guided gets a third button, Save & Exit, and a wider card to fit it.
         bool canSave = GuidedMode;
@@ -217,17 +225,23 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
     }
 
     // ---------- Field Journal on top of a running simulation ----------
-    static bool journalWasRunning;
 
-    /// <summary>Opens the Field Journal over the simulation, paused; its Back button returns to the same run.</summary>
+    /// <summary>The Field Journal is open (on top of a simulation or on its own), or opening: it loads over a few
+    /// frames, and nothing should start talking or pop up under it meanwhile.</summary>
+    public static bool JournalOpen => journalLoading || SceneManager.GetSceneByName(Journal).isLoaded;
+    static bool journalLoading, closeJournalWhenLoaded;
+
+    /// <summary>
+    /// Opens the Field Journal over the simulation; its Back button returns to the same run. The run keeps
+    /// going as it was (running or paused), so the Observations graph moves while the player watches it.
+    /// </summary>
     public static void OpenJournalOverlay()
     {
-        if (SceneManager.GetSceneByName(Journal).isLoaded) return;
+        if (JournalOpen) return;
         Mascot.NoteJournalOpened();
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
-        journalWasRunning = speed != null && speed.IsRunning;
-        if (speed != null) speed.Pause();
+        Mascot.Hide();   // like the Leave box: a mascot line may have paused the run, and it would be hidden under the journal
         OverlayAudio.Hush();   // same as the Ending Gallery: music on, river and animals quiet (restored when it closes)
+        journalLoading = true;
         SceneManager.LoadSceneAsync(Journal, LoadSceneMode.Additive);
     }
 
@@ -243,11 +257,11 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         }
     }
 
-    static void CloseJournalOverlay()
+    /// <summary>Closes the journal opened over the simulation (Back, or the Guided challenge ending).</summary>
+    public static void CloseJournalOverlay()
     {
-        SceneManager.UnloadSceneAsync(Journal);
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
-        if (journalWasRunning && speed != null) speed.Play();
+        if (SceneManager.GetSceneByName(Journal).isLoaded) SceneManager.UnloadSceneAsync(Journal);
+        else if (journalLoading) closeJournalWhenLoaded = true;
     }
 
     // ---------- Volume: Music / Voice / Sounds sliders (AudioPrefs), kept between runs ----------
