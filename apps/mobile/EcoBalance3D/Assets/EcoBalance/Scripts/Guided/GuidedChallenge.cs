@@ -319,6 +319,7 @@ public partial class GuidedChallenge : MonoBehaviour
         DeleteSave();   // SCRUM-375: an ended story can't be continued
         if (speed != null) speed.Pause();
         ScreenFlow.CloseJournalOverlay();   // the ending would be hidden under the journal
+        UnlockFinishedMissions();   // a badge earned just before the end is not lost
         int i = PickEnding();
         bool isNew = GuidedEndings.Unlock(i);
         var result = new GuidedScreens.Result {

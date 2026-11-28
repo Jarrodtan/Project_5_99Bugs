@@ -203,19 +203,44 @@ public class GuidedStoryPlayTests
         yield return AnswerEventCard();
         yield return Wait(0.5f);
 
+        // Mission 1 is finished (decision made, an animal inspected, Day 1 over) but the story ends before its badge
+        // card can show: the badge must still be earned. The challenge is paused here so the card can't open first.
+        ((HashSet<string>)Field(challenge, "resolved")).Add(GuidedAchievements.InspectStep);
+        challenge.enabled = false;
+        var speed = Object.FindAnyObjectByType<SimulationSpeedController>();
+        var clock = Object.FindAnyObjectByType<ClockService>();
+        float until = Time.realtimeSinceStartup + 120f;
+        while (clock.Day < 2 && Time.realtimeSinceStartup < until)
+        {
+            if (Mascot.Showing) Mascot.Hide();
+            if (!speed.IsRunning) speed.Play();
+            yield return null;
+        }
+        Assert.GreaterOrEqual(clock.Day, 2, "Day 1 ended");
+        Assert.IsFalse(GuidedAchievements.IsUnlocked(GuidedAchievements.Id.ResourceExplorer), "no badge card yet");
+
         // Snowy runs out of food: the story ends now, by itself (doc: evaluated when the focal animal dies).
         var snowy = FamilyManager.MainAnimal;
         Assert.IsNotNull(snowy, "Snowy is alive at the start");
-        snowy.Brain.curr_hunger = 0f;
-        typeof(FamilyManager).GetMethod("OnStarved", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(FamilyManager.Instance, new object[] { snowy.Brain });
-        Assert.IsTrue(FamilyManager.MainAnimalDead);
+        // Through the real simulation: empty food and no health left, the next sim step starves her.
+        var snowyBrain = snowy.Brain;
+        snowyBrain.curr_hunger = 0f;
+        snowyBrain.curr_health = 0f;
+        yield return Until(() => FamilyManager.MainAnimalDead, 20f, "Snowy to starve in the simulation");
+        Assert.IsTrue(snowyBrain.IsCaught, "Snowy is out of the population");
+        int leopardsLeft = 0;
+        foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught && a.IsPredatorSpecies) leopardsLeft++;
+        challenge.enabled = true;
         yield return Until(() => SceneManager.GetSceneByName(GuidedScreens.EndingScene).isLoaded, 20f, "the early ending");
         yield return Wait(0.6f);
         Shot("60_snowy_early_ending");
         var result = GuidedChallenge.LastResult;
-        Assert.LessOrEqual(result.day, 2, "ended early, not at the last day");
+        Assert.Less(result.day, GuidedChallenge.ChallengeDays, "ended early, not at the last day");
+        Assert.AreEqual(leopardsLeft, result.leopards, "the ending counts the surviving Snow Leopards (not Snowy)");
+        Assert.IsTrue(GuidedAchievements.IsUnlocked(GuidedAchievements.Id.ResourceExplorer), "Mission 1's badge is not lost when the story ends");
+        CollectionAssert.Contains(result.newBadges, "Resource Explorer", "and shows as new on the ending screen");
         string line = SceneText(GuidedScreens.EndingScene, "CompletionSubtitleTxt");
-        StringAssert.Contains("Snowy could not find enough food", line);
+        StringAssert.Contains("Snowy could not find enough food and died on Day " + result.day, line);
         StringAssert.Contains("ended early", line);
         StringAssert.DoesNotContain("you", line.ToLowerInvariant(), "never blames the player");
         Assert.AreEqual(GuidedEndings.All[result.ending].description, SceneText(GuidedScreens.EndingScene, "OutcomeDescriptionTxt"));

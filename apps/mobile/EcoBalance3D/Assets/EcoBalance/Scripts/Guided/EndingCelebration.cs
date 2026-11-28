@@ -303,7 +303,7 @@ public static class EndingCelebration
         var c = layer.gameObject.AddComponent<Canvas>();   // above everything on that screen, never catching taps
         c.overrideSorting = true;
         c.sortingOrder = 200;
-        layer.gameObject.AddComponent<ConfettiLayer>().Begin(snow ? 45 : count, snow, Party);
+        layer.gameObject.AddComponent<ConfettiLayer>().Begin(snow ? 60 : count, snow, Party);
     }
 
     // ---------- Helpers ----------
@@ -361,11 +361,11 @@ public class ConfettiLayer : MaskableGraphic
         {
             var p = new Piece
             {
-                size = snow ? Random.Range(8f, 18f) : Random.Range(14f, 26f),
+                size = snow ? Random.Range(12f, 24f) : Random.Range(14f, 26f),
                 rot = Random.Range(0f, 360f),
                 spin = Random.Range(-360f, 360f),
                 wobble = Random.Range(0f, 10f),
-                color = snow ? new Color(1f, 1f, 1f, Random.Range(0.6f, 0.95f)) : palette[i % palette.Length],
+                color = snow ? Color.Lerp(new Color(0.55f, 0.74f, 0.93f), new Color(0.8f, 0.9f, 1f), Random.value) * new Color(1f, 1f, 1f, Random.Range(0.75f, 0.95f)) /* soft blue: shows on the cream screens */ : palette[i % palette.Length],
             };
             if (snow) { p.pos = new Vector2(Random.Range(r.xMin, r.xMax), r.yMax + Random.Range(0f, r.height)); p.vel = new Vector2(0f, -Random.Range(60f, 120f)); }
             else

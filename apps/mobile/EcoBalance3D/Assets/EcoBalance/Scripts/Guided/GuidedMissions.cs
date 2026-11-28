@@ -264,6 +264,18 @@ public partial class GuidedChallenge
         return sb.ToString();
     }
 
+    /// <summary>The story is ending (last day, or Miloy / Snowy died) before a finished mission's badge card could
+    /// show: the badge is still earned, and appears as new on the ending screen.</summary>
+    void UnlockFinishedMissions()
+    {
+        foreach (var m in GuidedAchievements.All)
+        {
+            if (Day > m.day) resolved.Add(GuidedAchievements.DayDone(m.day));
+            if (!GuidedAchievements.IsComplete(m, resolved) || !resolved.Add(GuidedAchievements.Celebrated(m.id))) continue;
+            if (GuidedAchievements.Unlock(m.id)) newBadges.Add(m.badge);
+        }
+    }
+
     void ShowMissionComplete(GuidedAchievements.Mission m)
     {
         resolved.Add(GuidedAchievements.Celebrated(m.id));
