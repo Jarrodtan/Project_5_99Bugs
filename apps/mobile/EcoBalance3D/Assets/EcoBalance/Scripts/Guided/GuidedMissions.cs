@@ -299,8 +299,7 @@ public partial class GuidedChallenge
         foreach (var o in objectives) if (o.done) found += $"\n- {o.feedback}";
         doneText.text = text + (found.Length > 0 ? $"\n<size=80%>{found}</size>" : "");
         missionDone.SetActive(true);
-        Mascot.Hide();   // its bubble would sit under the completion card's dim layer
-        Mascot.Speak(text.Split('\n')[0]);   // the completion line (not the "50% faster" note under it)
+        Mascot.Hide();   // the card is read, not voiced (same as the mission card); the HUD mascot would sit under its dim layer
     }
 
     void CloseMission()
