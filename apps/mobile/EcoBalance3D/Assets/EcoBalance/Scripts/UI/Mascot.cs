@@ -370,7 +370,7 @@ public class Mascot : MonoBehaviour
 
     // Other popups come first: no mascot over the Guided intro/event cards, a question, or the journal.
     static bool ModalOpen() =>
-        ContextualQuestions.Showing || (GuidedChallenge.PopupOpen && !GuidedChallenge.MissionSearching) ||   // 28 Nov: the mascot talks while a mission has the player finding things
+        ContextualQuestions.Showing || GuidedChallenge.PopupOpen ||
         ScreenFlow.JournalOpen ||
         SceneManager.GetSceneByName(GuidedScreens.GalleryScene).isLoaded;
 

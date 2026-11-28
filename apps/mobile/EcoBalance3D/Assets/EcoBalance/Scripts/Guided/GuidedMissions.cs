@@ -32,7 +32,7 @@ public partial class GuidedChallenge
     bool missionPlanting;      // BS02 "Grow More Grass" in progress
     int missionPlanted;
     float missionStartedAt;
-    string missionCompletion, missionChallenge;
+    string missionCompletion, missionChallenge, lastFound;
 
     GameObject eventCardGo, missionTracker, missionDone, trackerBack, trackerSkip;
     TextMeshProUGUI eventCardTitle, missionText, trackerTitle, trackerList, doneTitle, doneText;
@@ -177,6 +177,7 @@ public partial class GuidedChallenge
         HideSideUiNow();
         eventCardGo.SetActive(true);
         missionChallenge = challenge;
+        lastFound = null;
     }
 
     void BeginInvestigation()
@@ -186,7 +187,6 @@ public partial class GuidedChallenge
         trackerBack.SetActive(false);
         RefreshTracker();
         missionTracker.SetActive(true);
-        MascotSaysChallenge();
         if (AllObjectivesDone()) CompleteMission(missionCompletion);   // nothing left to find (e.g. no animals alive)
     }
 
@@ -198,14 +198,6 @@ public partial class GuidedChallenge
         trackerBack.SetActive(true);
         RefreshTracker();
         missionTracker.SetActive(true);
-        MascotSaysChallenge();
-    }
-
-    // 28 Nov: the mascot stays with the player while they search: it shows up with the challenge (same voiced line as
-    // the card) and then says each "You found…" line as the player finds things.
-    void MascotSaysChallenge()
-    {
-        if (!string.IsNullOrEmpty(missionChallenge)) Mascot.Announce(missionChallenge);
     }
 
     void ChooseLetNatureGrow()
@@ -273,7 +265,7 @@ public partial class GuidedChallenge
             if (at == null) continue;
             o.done = true;
             PlantSparkle(at.Value);
-            DramaDirector.Announce(o.feedback);
+            lastFound = o.feedback;   // shown in the tracker as text (Shumin's VO script has no mission lines: no voice)
             RefreshTracker();
             break;
         }
@@ -356,6 +348,7 @@ public partial class GuidedChallenge
         }
         string s = "";
         foreach (var o in objectives) s += (o.done ? $"<color=#2E8B57><b>Done!</b></color>  <s>{o.label}</s>" : $"-  {o.label}") + "\n";
+        if (!string.IsNullOrEmpty(lastFound)) s += $"<color=#2E8B57><i>{lastFound}</i></color>";   // the doc's narrative feedback for the last find
         trackerList.text = s.TrimEnd();
     }
 

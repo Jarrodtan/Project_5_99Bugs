@@ -286,7 +286,7 @@ public partial class GuidedChallenge
         body += $"<b>{m.unlockText}</b>\n<size=80%>Learning: {m.objective}" + (isNew ? "" : " · You already have this badge. Great work again!") + "</size>";
         OpenMissionCard($"MISSION {(int)m.id + 1} COMPLETE!", isNew ? $"New badge: {m.badge}!" : m.badge, body, m, ("Yay! Continue", CloseMissionCard));
         EndingCelebration.Burst(missionPanel.transform, isNew ? 110 : 60);
-        Mascot.Speak(isNew ? $"You earned the {m.badge} badge!" : "Mission complete!");
+        // 28 Nov: no voice here: Shumin's VO script has no badge / mission-complete line (the card shows the text).
     }
 
     // Ecosystem Guardian: "identify how one species affects another".
