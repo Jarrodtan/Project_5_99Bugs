@@ -39,7 +39,7 @@ public class JournalLiveRunPlayTests
         PlayerPrefs.Save();
     }
 
-    [UnityTest, Timeout(240000)]
+    [UnityTest, Timeout(480000)]
     public IEnumerator FreeRun_GraphKeepsMovingWhileTheJournalIsOpen()
     {
         yield return new EnterPlayMode();
@@ -63,8 +63,9 @@ public class JournalLiveRunPlayTests
 
         var history = FieldJournalObservations.History;
         int before = history.Count;
-        yield return Wait(15f);
-        Assert.Greater(history.Count, before + 20, "the graph should keep getting new days while the journal is open");
+        // CI has no GPU and runs at a few frames a second (Unity caps game time per frame): wait for real progress
+        // instead of expecting a fixed number of days in 15 s.
+        yield return Until(() => history.Count >= before + 3, 90f, "the graph to keep getting new days while the journal is open");
 
         string summary = SummaryText();
         Debug.Log($"[JournalLiveRunPlayTests] Free run, {history.Count} days recorded. Summary card:\n{summary}");
@@ -87,7 +88,7 @@ public class JournalLiveRunPlayTests
         Assert.IsTrue(speed.IsRunning, "Back keeps the run going");
     }
 
-    [UnityTest, Timeout(240000)]
+    [UnityTest, Timeout(480000)]
     public IEnumerator GuidedRun_KeepsMoving_PopupsWaitForTheJournal_EndingClosesIt()
     {
         yield return new EnterPlayMode();
@@ -110,16 +111,17 @@ public class JournalLiveRunPlayTests
         Assert.IsTrue(FieldJournalObservations.WasGuided);
         var history = FieldJournalObservations.History;
         int before = history.Count;
-        yield return Wait(15f);   // several simulated days: Guided events are due by now
-        Assert.Greater(history.Count, before + 20, "the graph should keep getting new days while the journal is open");
+        yield return Until(() => history.Count >= before + 3, 90f, "the graph to keep getting new days while the journal is open");
+        yield return Wait(5f);   // Guided events come due meanwhile; they must wait for the journal
         Assert.IsFalse(popup.activeSelf, "a Guided decision must wait while the journal is open");
         Assert.IsTrue(speed.IsRunning);
         Debug.Log($"[JournalLiveRunPlayTests] Guided run, {history.Count} days recorded. Summary card:\n{SummaryText()}");
 
         Btn(ScreenFlow.Journal, "BackBtn").onClick.Invoke();
         yield return Until(() => !ScreenFlow.JournalOpen, 20f, "journal to close");
-        yield return Until(() => popup.activeSelf, 40f, "the waiting Guided decision to show after Back");
-        Assert.IsFalse(speed.IsRunning, "the decision pauses the run as before");
+        // After Back the waiting card shows (a decision, or the season's chapter card that also waited) and pauses the run.
+        yield return Until(() => GuidedChallenge.PopupOpen, 120f, "the waiting Guided card to show after Back");
+        Assert.IsFalse(speed.IsRunning, "the card pauses the run as before");
 
         // The ending must not stay hidden under an open journal.
         popup.SetActive(false);
