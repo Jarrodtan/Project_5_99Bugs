@@ -118,16 +118,19 @@ public class FoodWaterGraphPlayTests
         return null;
     }
 
+    // The mascot pauses the run while it talks (M3 feedback) and waits for Got It: tap it away like a player would.
+    static void DismissMascot() { if (Mascot.Showing) Mascot.Hide(); }
+
     static IEnumerator Wait(float realSeconds)
     {
         float end = Time.realtimeSinceStartup + realSeconds;
-        while (Time.realtimeSinceStartup < end) yield return null;
+        while (Time.realtimeSinceStartup < end) { DismissMascot(); yield return null; }
     }
 
     static IEnumerator Until(System.Func<bool> done, float realSeconds, string what)
     {
         float end = Time.realtimeSinceStartup + realSeconds;
-        while (!done() && Time.realtimeSinceStartup < end) yield return null;
+        while (!done() && Time.realtimeSinceStartup < end) { DismissMascot(); yield return null; }
         Assert.IsTrue(done(), $"timed out waiting for {what}");
     }
 }

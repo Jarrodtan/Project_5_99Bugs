@@ -91,10 +91,13 @@ public class JournalLiveRunPlayTests
     public IEnumerator GuidedRun_KeepsMoving_PopupsWaitForTheJournal_EndingClosesIt()
     {
         yield return new EnterPlayMode();
-        SceneManager.LoadScene(ScreenFlow.Modes);
-        yield return Until(() => Btn(ScreenFlow.Modes, "StartGuidedBtn") != null, 20f, "mode selection screen");
-        Btn(ScreenFlow.Modes, "StartGuidedBtn").onClick.Invoke();
+        // The Guided button now opens the family picker (or Continue / New Story): start a fresh story directly.
+        ScreenFlow.RestartGuided();
         yield return Until(() => SimHud.Active && Object.FindAnyObjectByType<GuidedChallenge>() != null, 30f, "Guided simulation + HUD");
+        // The run waits, paused, on the intro card until Start.
+        yield return Until(() => Btn(SimHud.SceneName, "StartBtn") != null || !GuidedChallenge.IntroPending, 30f, "Guided intro card");
+        Btn(SimHud.SceneName, "StartBtn")?.onClick.Invoke();
+        yield return Until(() => !GuidedChallenge.IntroPending, 10f, "the Guided story to start");
 
         var challenge = Object.FindAnyObjectByType<GuidedChallenge>();
         var popup = (GameObject)typeof(GuidedChallenge).GetField("popup", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(challenge);
@@ -154,16 +157,19 @@ public class JournalLiveRunPlayTests
         return null;
     }
 
+    // The mascot pauses the run while it talks (M3 feedback) and waits for Got It: tap it away like a player would.
+    static void DismissMascot() { if (Mascot.Showing) Mascot.Hide(); }
+
     static IEnumerator Wait(float realSeconds)
     {
         float end = Time.realtimeSinceStartup + realSeconds;
-        while (Time.realtimeSinceStartup < end) yield return null;
+        while (Time.realtimeSinceStartup < end) { DismissMascot(); yield return null; }
     }
 
     static IEnumerator Until(System.Func<bool> done, float realSeconds, string what)
     {
         float end = Time.realtimeSinceStartup + realSeconds;
-        while (!done() && Time.realtimeSinceStartup < end) yield return null;
+        while (!done() && Time.realtimeSinceStartup < end) { DismissMascot(); yield return null; }
         Assert.IsTrue(done(), $"timed out waiting for {what}");
     }
 }
