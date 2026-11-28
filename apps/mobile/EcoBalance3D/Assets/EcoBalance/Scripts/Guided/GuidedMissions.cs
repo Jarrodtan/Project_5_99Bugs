@@ -11,7 +11,8 @@ using UnityEngine.UI;
 /// BS01 Miloy's First Summer (Investigation), BS02 A Season of Plenty (Decision + planting) and
 /// BS03-F A Predator's Home (Investigation). The player does something in the 3D world instead of only
 /// picking a button: find and tap animals, grass and water, or plant grass.
-/// Days are scaled to the game's 20-day story (the doc's 96 days): BS01 Day 2, BS02 Day 3, BS03-F Day 6.
+/// Days are scaled to the game's 20-day story (the doc's 96 days): BS01 Day 2, BS02 Day 3, BS03-F Day 4.
+/// All four are Summer events (chapter 1, Days 1-5): they are skipped if Summer ends first (GuidedChallenge.Due).
 /// </summary>
 public partial class GuidedChallenge
 {
@@ -59,23 +60,23 @@ public partial class GuidedChallenge
                 id = "BS01", title = "Miloy's First Summer", mission = StartBS01,
                 text = "Summer has arrived in the highlands! Miloy and his herd are surrounded by fresh grass and open mountain landscapes. " +
                        "As Miloy explores his home, he needs food and water to grow and stay healthy. Let's discover where he can find them!",
-                eligible = () => BlueSheepStory && Day >= 2 },
+                eligible = () => BlueSheepStory && Day >= 2, chapter = 1 },
             new GuidedEvent {
                 id = "BS02", title = "A Season of Plenty", mission = StartBS02,
                 text = "Summer brings plenty of fresh grass to the highlands. As the sheep eat, the grass slowly grows back. " +
                        "Should we help more grass grow, or let nature take care of itself?",
-                eligible = () => BlueSheepStory && Day >= 3 && resolved.Contains("BS01") },
+                eligible = () => BlueSheepStory && Day >= 3 && resolved.Contains("BS01"), chapter = 1 },
             new GuidedEvent {
                 id = "BS03-F", title = "A Predator's Home", mission = StartBS03F,
                 text = "Snow Leopards share the highlands with Miloy's herd. They can be dangerous to Blue Sheep, " +
                        "but they also play an important role in the ecosystem.",
-                eligible = () => BlueSheepStory && Day >= 6 && resolved.Contains("BS02") },
+                eligible = () => BlueSheepStory && Day >= 4 && resolved.Contains("BS02"), chapter = 1 },   // doc: Day 22 of 24, late Summer (was Day 6 = Autumn)
             // Snow Leopard library (Snowy's story).
             new GuidedEvent {
                 id = "SL01", title = "Snowy's First Summer", mission = StartSL01,
                 text = "Summer has arrived in the highlands! Snowy is a young Snow Leopard living with her mother and sibling. " +
                        "While the cubs grow and explore, their mother searches for Blue Sheep to keep the family fed. Let's discover Snowy's family and the animals they depend on.",
-                eligible = () => !BlueSheepStory && Day >= 2 },
+                eligible = () => !BlueSheepStory && Day >= 2, chapter = 1 },
         };
         events.InsertRange(0, list);   // before the older GE events, so a mission wins when both are due
     }

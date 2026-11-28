@@ -17,6 +17,7 @@ public partial class GuidedChallenge : MonoBehaviour
 {
     public const int ChallengeDays = 20;
     const float QuietSecondsBetweenEvents = 12f;   // real seconds of watching between two popups
+    const float QuietDaysBetweenEvents = 0.2f;     // ...or this much of a game day if shorter (12 s at 1x; see QuietGapSeconds)
     public const string GalleryKey = "EcoBalance.GuidedEndings";
 
     // ---------- Events (GE01-GE06 core, GE07-GE08 additional) ----------
@@ -30,6 +31,9 @@ public partial class GuidedChallenge : MonoBehaviour
         public Action environment;       // applied whatever the player picks
         public Choice[] choices;
         public Action<GuidedEvent> mission;   // M3 (Shumin's event library): a mission the player plays in the world instead of choices
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): 1-4 = only during that season's chapter (Summer, Autumn, Winter,
+        // Spring); 0 = any time. Doc, Event Triggering Rules: "An event must ... belong to the current seasonal chapter."
+        public int chapter;
     }
 
     List<GuidedEvent> events;
@@ -68,7 +72,7 @@ public partial class GuidedChallenge : MonoBehaviour
             new GuidedEvent {
                 id = "GE04", title = "Harsh Winter",
                 text = "The weather is getting colder! Grass is growing more slowly, and the Blue Sheep may struggle to find enough food. What should we do?",
-                eligible = () => Day >= 11,
+                eligible = () => Day >= 11, chapter = 3,   // its text says winter
                 environment = () => GuidedEffects.Add(GuidedEffects.Kind.PlantRegen, 0.5f, 3),
                 choices = new[] {
                     new Choice { label = "Help the grass grow", feedback = "Grass keeps growing at its normal speed for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.PlantRegen, 2f, 3) },
@@ -85,7 +89,7 @@ public partial class GuidedChallenge : MonoBehaviour
             new GuidedEvent {
                 id = "GE06", title = "Spring Recovery",
                 text = "Spring has arrived! The highlands have a chance to recover as the weather becomes warmer. What would you like to do?",
-                eligible = () => Day >= 16,
+                eligible = () => Day >= 16, chapter = 4,   // its text says spring
                 choices = new[] {
                     new Choice { label = "Help the grass recover", feedback = "The grass grew back a little!", apply = () => { foreach (var p in ResourcePatch.All) if (p != null) p.Restore(15f); } },
                     new Choice { label = "Support the animals", feedback = "Every animal had a good meal and a drink!", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) a.Refresh(15f, 15f); } },
@@ -254,11 +258,14 @@ public partial class GuidedChallenge : MonoBehaviour
         if (UpdateMission()) return;                                 // M3: a BS/SL event mission is running (GuidedMissions.cs)
         if (Mascot.Showing) return;                                  // 28 Nov: let the mascot finish its line (e.g. the intro) before a new card
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
-        if (UpdateMissionCards()) return;                            // a mission decision, badge or question
+        // A story event due today goes first; while it waits out its break, Dillon's cards wait too (they restarted it).
+        var story = showing || missionCardOpen ? null : DueStoryEvent();
+        if (story != null && EventGapOver) { Show(story); return; }
+        if (story == null && UpdateMissionCards()) return;           // a mission decision, badge or question
         if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
         if (!showing) UpdatePlanting();                              // player action: plant grass on brown patches
         // The run keeps going under the Field Journal: decisions wait until the player is back to see them.
-        if (showing || Time.unscaledTime < quietUntil || ScreenFlow.JournalOpen) return;
+        if (showing || !EventGapOver || ScreenFlow.JournalOpen) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
     }
@@ -266,9 +273,43 @@ public partial class GuidedChallenge : MonoBehaviour
     GuidedEvent NextEvent(bool conditionBased)
     {
         foreach (var e in events)
-            if (e.conditionBased == conditionBased && !resolved.Contains(e.id) && e.eligible()) return e;
+            if (e.conditionBased == conditionBased && Due(e)) return e;
         return null;
     }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): a season-bound event that didn't fit into its season is skipped
+    // (doc: "Invalidated events are skipped"), so "Summer brings plenty..." can't show in Spring.
+    bool Due(GuidedEvent e) =>
+        !resolved.Contains(e.id) && (e.chapter == 0 || e.chapter == ChapterForDay(Day)) && e.eligible();
+
+    /// <summary>
+    /// A story event (BS/SL mission or season-bound GE event) whose day has come. It goes before Dillon's mission
+    /// cards and the condition-based events, so it shows on its own day at any speed: before, Dillon's cards kept
+    /// restarting the break and at 8x BS01, BS02 and BS03-F all piled up at the end of Summer.
+    /// </summary>
+    GuidedEvent DueStoryEvent()
+    {
+        foreach (var e in events)
+            if (e.chapter != 0 && Due(e)) return e;
+        return null;
+    }
+
+    /// <summary>
+    /// The break after a card: 12 real seconds, or a fifth of a game day if that is shorter. At 1x that is still
+    /// 12 s; at 8x it is 1.5 s, the same share of a day, so the player sees the same amount happen after a decision
+    /// at every speed instead of losing a day and a half to every break.
+    /// </summary>
+    float QuietGapSeconds
+    {
+        get
+        {
+            float realSecondsPerDay = ClockService.DaySeconds / Mathf.Max(1f, speed != null ? speed.CurrentSpeed : 1f);
+            return Mathf.Min(QuietSecondsBetweenEvents, QuietDaysBetweenEvents * realSecondsPerDay);
+        }
+    }
+
+    // quietUntil is set to "closed + 12 s" when a card closes; the break itself is QuietGapSeconds.
+    bool EventGapOver => Time.unscaledTime >= quietUntil - QuietSecondsBetweenEvents + QuietGapSeconds;
 
     // ---------- Decision popup ----------
 
