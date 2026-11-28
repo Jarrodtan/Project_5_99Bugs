@@ -207,7 +207,7 @@ public class ContextualQuestions : MonoBehaviour
         Count();
         if (runStartDay < 0f && sheep + leopards > 0) runStartDay = Day;
 
-        if (watching != null && !Showing)
+        if (watching != null && !Showing && !OtherPopupOpen())   // 28 Nov: the outcome waits for the Field Journal to close (it paused the run under it)
         {
             foreach (var o in watching.outcomes)
                 if (o.happened()) { ShowOutcome(watching, o); break; }
