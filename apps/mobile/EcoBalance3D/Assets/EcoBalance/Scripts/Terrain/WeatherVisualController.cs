@@ -209,6 +209,7 @@ public class WeatherVisualController : MonoBehaviour
         // a winter day that is "clear" does not.
         isSnowActive = c.Contains("snow") || (isWinter && !hasCondition);
         isRainActive = c.Contains("rain");
+        if (AmbientAudio.Instance != null) AmbientAudio.Instance.SetRaining(isRainActive);
         bool isHeatwave = c.Contains("drought");
         // A cold drought (below 5 °C) is dry and clear, not a heatwave: no straw grass or dust haze.
         bool hot = isHeatwave && SeasonWeather.Temperature >= 5f;
