@@ -137,7 +137,7 @@ public partial class GuidedChallenge : MonoBehaviour
     /// </summary>
     public static string FocalOutcome(string name, bool died, int day, FamilyDeathCause cause, int lastDay)
     {
-        if (!died) return $"{name} made it through all {lastDay} days!";
+        if (!died) return $"{name} made it through all four seasons!";   // 28 Nov: no "20 days" (Shumin dropped the day limit from the UI)
         return cause switch
         {
             FamilyDeathCause.Caught => $"{name} was caught by a Snow Leopard on Day {day}. The story ended early.",

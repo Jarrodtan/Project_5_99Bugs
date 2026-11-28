@@ -68,7 +68,7 @@ public class GuidedEndingsTests
     [Test]
     public void FocalOutcome_SaysWhetherTheAnimalSurvived_WithoutBlame()
     {
-        Assert.AreEqual("Miloy made it through all 20 days!", GuidedChallenge.FocalOutcome("Miloy", false, 20, FamilyDeathCause.Other, 20));
+        Assert.AreEqual("Miloy made it through all four seasons!", GuidedChallenge.FocalOutcome("Miloy", false, 20, FamilyDeathCause.Other, 20));
         StringAssert.Contains("caught by a Snow Leopard on Day 7", GuidedChallenge.FocalOutcome("Miloy", true, 7, FamilyDeathCause.Caught, 20));
         StringAssert.Contains("enough food", GuidedChallenge.FocalOutcome("Snowy", true, 9, FamilyDeathCause.Hunger, 20));
         StringAssert.Contains("enough water", GuidedChallenge.FocalOutcome("Snowy", true, 9, FamilyDeathCause.Thirst, 20));

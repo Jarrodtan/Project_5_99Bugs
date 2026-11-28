@@ -109,7 +109,7 @@ public static class GuidedScreens
         SetText(root, "EndingTitleTxt", e.title);
         // Doc, Ending Presentation: say whether Miloy / Snowy survived to the end or died earlier.
         string focal = !string.IsNullOrEmpty(last.focal) ? last.focal
-            : last.day >= GuidedChallenge.ChallengeDays ? $"You finished all {GuidedChallenge.ChallengeDays} days!" : $"The challenge ended on Day {last.day}.";
+            : last.day >= GuidedChallenge.ChallengeDays ? "You made it through all four seasons!" : $"The challenge ended on Day {last.day}.";
         SetText(root, "CompletionSubtitleTxt", focal);
         SetText(root, "OutcomeDescriptionTxt", e.description);
         SetText(root, "LearningDescriptionTxt", e.takeaway);
