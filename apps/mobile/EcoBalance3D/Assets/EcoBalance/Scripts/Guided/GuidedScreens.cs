@@ -53,7 +53,7 @@ public static class GuidedScreens
     public static void OpenGallery()
     {
         if (SceneManager.GetSceneByName(GalleryScene).isLoaded || !Application.CanStreamedLevelBeLoaded(GalleryScene)) return;
-        var speed = Object.FindAnyObjectByType<SimulationSpeedController>();
+        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         galleryPausedRun = speed != null && speed.IsRunning;
         if (galleryPausedRun) speed.Pause();
         // The river and animal sounds kept playing behind the gallery. Pause the world audio; the music, the click sound
@@ -67,7 +67,7 @@ public static class GuidedScreens
     static void CloseGallery()
     {
         SceneManager.UnloadSceneAsync(GalleryScene);
-        var speed = Object.FindAnyObjectByType<SimulationSpeedController>();
+        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
         if (galleryPausedRun && speed != null) speed.Play();
     }
 
@@ -278,7 +278,7 @@ public static class GuidedScreens
             for (int n = 0; n < dots.Count; n++)
                 dots[n].color = n == first ? new Color(0.3f, 0.62f, 0.38f) : Color.white;
             // At the start / end there is nothing more that way: hide that arrow so it does not look broken.
-            var la = Find(overview, "LArrowBtn"); if (la != null) la.gameObject.SetActive(first > 0);   // (overview)
+            var la = Find(overview, "LArrowBtn"); if (la != null) la.gameObject.SetActive(first > 0);
             var ra = Find(overview, "RArrowBtn"); if (ra != null) ra.gameObject.SetActive(first < last);
         }
         void Move(int step) { first = Mathf.Clamp(first + step, 0, last); Show(); }

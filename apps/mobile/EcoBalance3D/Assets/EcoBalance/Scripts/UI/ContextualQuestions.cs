@@ -158,8 +158,8 @@ public class ContextualQuestions : MonoBehaviour
     void Start()
     {
         BuildQuestions();
-        clock = FindAnyObjectByType<ClockService>();
-        speed = FindAnyObjectByType<SimulationSpeedController>();
+        clock = FindFirstObjectByType<ClockService>();
+        speed = FindFirstObjectByType<SimulationSpeedController>();
         predictionPanel = Find(root, "PredictionPanel");
         confirmPanel = Find(root, "ConfirmPredictionPanel");
         occurredPanel = Find(root, "EventOccuredPanel");

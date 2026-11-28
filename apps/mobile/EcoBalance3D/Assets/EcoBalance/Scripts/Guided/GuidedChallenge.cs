@@ -196,9 +196,9 @@ public partial class GuidedChallenge : MonoBehaviour
         ResetChapters();
         instance = this;
         // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
-        var sim = FindAnyObjectByType<EcosystemSimulator>();
+        var sim = FindFirstObjectByType<EcosystemSimulator>();
         if (sim != null) sim.mode = EcosystemSimulator.SimulationMode.Events;
-        foreach (var sp in FindObjectsByType<CreatureSpawner>()) sp.populationPerVisual = 1f;
+        foreach (var sp in FindObjectsByType<CreatureSpawner>(FindObjectsSortMode.None)) sp.populationPerVisual = 1f;
         BuildEvents();
     }
 

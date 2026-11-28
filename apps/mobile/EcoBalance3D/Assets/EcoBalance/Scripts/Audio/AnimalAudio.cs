@@ -101,7 +101,7 @@ public class AnimalAudio : MonoBehaviour
     [ContextMenu("Log all playing AudioSources")]
     void LogPlayingSources()
     {
-        AudioSource[] all = FindObjectsByType<AudioSource>();
+        AudioSource[] all = FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
         int playing = 0;
         foreach (AudioSource a in all)
         {
@@ -146,7 +146,7 @@ public class AnimalAudio : MonoBehaviour
 
         AnimalAudio nearest = null;
         float best = float.MaxValue;
-        foreach (AnimalAudio a in FindObjectsByType<AnimalAudio>())
+        foreach (AnimalAudio a in FindObjectsByType<AnimalAudio>(FindObjectsSortMode.None))
         {
             if (!a.isActiveAndEnabled) continue;
             float d = Vector3.Distance(l.position, a.transform.position);
@@ -204,7 +204,7 @@ public class AnimalAudio : MonoBehaviour
         if (listener == null || !listener.TryGetComponent(out AudioListener cur) || !cur.isActiveAndEnabled)
         {
             listener = null;
-            foreach (var l in FindObjectsByType<AudioListener>())
+            foreach (var l in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))
                 if (l.isActiveAndEnabled) { listener = l.transform; break; }
         }
         return listener;
@@ -243,7 +243,7 @@ public class AnimalAudio : MonoBehaviour
         if (Time.time < nextAuditTime) return;
         nextAuditTime = Time.time + 8f;
 
-        AudioSource[] all = FindObjectsByType<AudioSource>();
+        AudioSource[] all = FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
         int stray = 0;
         foreach (AudioSource a in all)
         {

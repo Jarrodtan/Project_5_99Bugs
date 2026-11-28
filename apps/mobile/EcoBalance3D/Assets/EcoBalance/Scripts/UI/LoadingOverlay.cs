@@ -42,7 +42,7 @@ public class LoadingOverlay : MonoBehaviour
         // Set ShowCard back to true to bring "Building the Himalayas" back.
         if (!ShowCard) return;
         if (scene.name != ScreenFlow.Simulation) return;
-        var b = FindAnyObjectByType<HimalayaWorldBuilder>();
+        var b = FindFirstObjectByType<HimalayaWorldBuilder>();
         if (b == null || b.IsReady) return;
         var go = new GameObject("[Loading Overlay]");
         SceneManager.MoveGameObjectToScene(go, scene);   // goes away with the scene

@@ -300,7 +300,7 @@ public class Mascot : MonoBehaviour
     {
         if (watchTarget != null)
         {
-            var cam = FindAnyObjectByType<TerrainCameraController>();
+            var cam = FindFirstObjectByType<TerrainCameraController>();
             if (cam != null) cam.Follow(watchTarget);
             Dismiss();
             return;
@@ -314,7 +314,7 @@ public class Mascot : MonoBehaviour
     bool pausedSim;
     void PauseSimWhileTalking()
     {
-        var sim = FindAnyObjectByType<SimulationSpeedController>();
+        var sim = FindFirstObjectByType<SimulationSpeedController>();
         if (sim == null || !sim.IsRunning) return;
         sim.Pause();
         pausedSim = true;
@@ -324,7 +324,7 @@ public class Mascot : MonoBehaviour
     {
         if (!pausedSim) return;
         pausedSim = false;
-        var sim = FindAnyObjectByType<SimulationSpeedController>();
+        var sim = FindFirstObjectByType<SimulationSpeedController>();
         if (sim != null && !sim.IsRunning && !ModalOpen()) sim.Play();
     }
 

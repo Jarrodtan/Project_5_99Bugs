@@ -46,7 +46,7 @@ public class SceneSmokeTests
         Assume.That(path, Is.Not.Null, "HimalayaSimulation is not in Build Settings");
         EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
 
-        var sims = Object.FindObjectsByType<EcosystemSimulator>();
+        var sims = Object.FindObjectsByType<EcosystemSimulator>(FindObjectsSortMode.None);
         Assert.AreEqual(1, sims.Length, "expected exactly one EcosystemSimulator in HimalayaSimulation");
         var sim = sims[0];
         Assert.IsNotEmpty(sim.species, "simulator has no species");

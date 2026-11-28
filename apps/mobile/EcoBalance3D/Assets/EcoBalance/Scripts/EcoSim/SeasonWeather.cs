@@ -45,8 +45,8 @@ public class SeasonWeather : MonoBehaviour
 
     void Start()
     {
-        clock = FindAnyObjectByType<ClockService>();
-        simulator = FindAnyObjectByType<EcosystemSimulator>();
+        clock = FindFirstObjectByType<ClockService>();
+        simulator = FindFirstObjectByType<EcosystemSimulator>();
         if (simulator != null)
         {
             simulator.EatRecorded += OnEatRecorded;

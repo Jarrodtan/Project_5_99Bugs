@@ -210,8 +210,8 @@ public class FamilyManager : MonoBehaviour
 
     void Start()
     {
-        clock = FindAnyObjectByType<ClockService>();
-        speed = FindAnyObjectByType<SimulationSpeedController>();
+        clock = FindFirstObjectByType<ClockService>();
+        speed = FindFirstObjectByType<SimulationSpeedController>();
         gameObject.AddComponent<FamilyMarkers>();
     }
 
