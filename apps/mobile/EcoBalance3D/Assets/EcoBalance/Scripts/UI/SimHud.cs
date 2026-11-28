@@ -73,6 +73,9 @@ public class SimHud : MonoBehaviour
     ClockService clock;
 
     GameObject inspection, expanded, overview;
+    static GameObject inspectionPanel;
+    /// <summary>True while Shu Min's Animal Inspection panel is showing (the camera view bar hides so it does not overlap).</summary>
+    public static bool InspectionOpen => inspectionPanel != null && inspectionPanel.activeInHierarchy;
     AnimalBrain shown;
     AnimalBrain factAnimal;   // the animal the current fun fact was picked for
     string fact;
@@ -117,6 +120,7 @@ public class SimHud : MonoBehaviour
         SeeThrough();
 
         inspection = Find("AnimalInspectionPanel")?.gameObject;
+        inspectionPanel = inspection;
         current = this;
         expanded = Find("ExpandedOverviewPanel")?.gameObject;
         overview = Find("EcosystemOverviewPanel")?.gameObject;
@@ -225,11 +229,19 @@ public class SimHud : MonoBehaviour
                     var brt = (RectTransform)bg.transform;
                     brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0f, 1f);
                     Vector2 size = txt.GetPreferredValues(txt.text);
-                    brt.anchoredPosition = rt.anchoredPosition + new Vector2(-14f, 8f);
-                    brt.sizeDelta = size + new Vector2(28f, 16f);
+                    brt.anchoredPosition = rt.anchoredPosition + new Vector2(-30f, 14f);
+                    brt.sizeDelta = size + new Vector2(60f, 28f);
                     var img = bg.GetComponent<Image>();
                     img.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
                     img.raycastTarget = false;
+                    // M3: same cream panel + dark ink as Shu Min's title box, so the HUD reads as one set.
+                    var cream = ScreenFlow.ShuminSprite("SpeedBtn", "FieldJournalBtn");
+                    if (cream != null) { img.sprite = cream; img.type = Image.Type.Sliced; img.color = Color.white; }
+                    else img.color = new Color(0.98f, 0.94f, 0.84f, 0.95f);
+                    txt.color = new Color(0.22f, 0.16f, 0.1f);
+                    var font = ScreenFlow.ShuminFont("Playpen");
+                    if (font != null) txt.font = font;
+                    txt.fontSize *= 0.8f;   // smaller than the title box, it is secondary info
                     bg.AddComponent<FitBehindText>().text = txt;   // keep it sized to the text as it changes
                 }
                 if (withHud && t is RectTransform r2 && movedWeather.Contains(r2)) moved = true;
@@ -325,6 +337,7 @@ public class SimHud : MonoBehaviour
     void RefreshOverview()
     {
         int day = clock != null ? clock.Day : 1;
+        // Weather icon beside the day pill (its text is unchanged): sun, rain, snow or heatwave at a glance.
         if (!ScreenFlow.GuidedMode)   // Guided's day panel is filled by GuidedChallenge
         {
             StyleFreeDayPanel();
@@ -467,11 +480,12 @@ public class SimHud : MonoBehaviour
         ? (a.CurrentAction == AnimalBrain.AnimalAction.Fleeing ? "Swimming away!" : "Swimming")
         : a.CurrentAction switch
     {
-        AnimalBrain.AnimalAction.EatingGrass => "Grazing",
-        AnimalBrain.AnimalAction.DrinkingWater => "Drinking",
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): only "Grazing"/"Drinking" once it is at the grass or water
+        AnimalBrain.AnimalAction.EatingGrass => a.IsHeadDown ? "Grazing" : "Going to eat",
+        AnimalBrain.AnimalAction.DrinkingWater => a.IsHeadDown ? "Drinking" : "Going to drink",
         AnimalBrain.AnimalAction.Hunting => a.IsStalking ? "Stalking" : "Hunting",
         AnimalBrain.AnimalAction.Fleeing => "Running away!",
-        AnimalBrain.AnimalAction.Reproducing => "Looking for a mate",
+        AnimalBrain.AnimalAction.Reproducing => a.IsMating ? "With a partner" : "Looking for a mate",
         _ => a.IsLookingAround ? "Looking around" : "Exploring",
     };
 
@@ -487,8 +501,10 @@ public class SimHud : MonoBehaviour
             };
         return a.CurrentAction switch
         {
-            AnimalBrain.AnimalAction.EatingGrass => $"{who} is eating grass to stay full.",
-            AnimalBrain.AnimalAction.DrinkingWater => $"{who} is drinking from the stream.",
+            AnimalBrain.AnimalAction.EatingGrass => a.IsHeadDown ? $"{who} is eating grass to stay full."
+                                                                 : $"{who} is hungry and walking to some grass.",
+            AnimalBrain.AnimalAction.DrinkingWater => a.IsHeadDown ? $"{who} is drinking from the stream."
+                                                                   : $"{who} is thirsty and walking to the stream.",
             AnimalBrain.AnimalAction.Hunting => a.IsStalking ? $"{who} is creeping up quietly on the herd." : $"{who} is chasing a Blue Sheep!",
             AnimalBrain.AnimalAction.Fleeing => $"{who} spotted a Snow Leopard and is running to safety.",
             AnimalBrain.AnimalAction.Reproducing => $"{who} is well fed and looking for a partner.",
@@ -521,17 +537,17 @@ public class SimHud : MonoBehaviour
         if (panel == null) return;
         float right = panel.anchoredPosition.x + (1f - panel.pivot.x) * panel.sizeDelta.x;
         panel.pivot = new Vector2(1f, panel.pivot.y);
-        panel.sizeDelta = new Vector2(Mathf.Max(panel.sizeDelta.x, 480f), panel.sizeDelta.y);
+        panel.sizeDelta = new Vector2(Mathf.Max(panel.sizeDelta.x, 620f), panel.sizeDelta.y);   // 28 Nov: 480 still squeezed "Summer · Snow · -8°C"
         panel.anchoredPosition = new Vector2(right, panel.anchoredPosition.y);
         if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
-        bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+        ScreenFlow.CreamPanel(bg);   // M3: cream like the rest of the HUD
         bg.raycastTarget = false;
         var t = Txt("Text (TMP)", panel);
         if (t == null) return;
         var rt = t.rectTransform;
         rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
         rt.offsetMin = new Vector2(16f, 4f); rt.offsetMax = new Vector2(-16f, -4f);
-        t.color = Color.white;
+        t.color = ScreenFlow.InkColor;
         t.alignment = TextAlignmentOptions.Center;
         t.textWrappingMode = TextWrappingModes.NoWrap;
         t.enableAutoSizing = true;
@@ -597,7 +613,7 @@ public class FitBehindText : MonoBehaviour
         if (text.text == last) return;
         last = text.text;
         var rt = (RectTransform)transform;
-        rt.anchoredPosition = text.rectTransform.anchoredPosition + new Vector2(-14f, 8f);
-        rt.sizeDelta = text.GetPreferredValues(text.text) + new Vector2(28f, 16f);
+        rt.anchoredPosition = text.rectTransform.anchoredPosition + new Vector2(-30f, 14f);
+        rt.sizeDelta = text.GetPreferredValues(text.text) + new Vector2(60f, 28f);
     }
 }

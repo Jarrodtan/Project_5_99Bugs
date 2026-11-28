@@ -34,7 +34,7 @@ public static class HimalayaRiver
     public static readonly List<List<Vector3>> Tributaries = new List<List<Vector3>>();
     const float RiverStartMeters = 4950f;   // Khumbu Glacier snout is about 4,900-5,000 m
     const int TributaryCount = 5;   // a stream in most side valleys, like the real Khumbu
-    const float StreamSourceWidth = 2f, StreamMouthWidth = 3.5f;   // wide enough to see on the 200 m map
+    const float StreamSourceWidth = 3f, StreamMouthWidth = 6f;     // M3: wider for the 900 m map and 1.5x animals
     const float FordEvery = 30f, FordWidth = 4f;                     // a shallow crossing every 30 m
     /// <summary>NavMesh area of the fords (ProjectSettings/NavMeshAreas: "Ford"). Walkable if the area is missing.</summary>
     public static int FordArea { get { int a = UnityEngine.AI.NavMesh.GetAreaFromName("Ford"); return a >= 0 ? a : 0; } }

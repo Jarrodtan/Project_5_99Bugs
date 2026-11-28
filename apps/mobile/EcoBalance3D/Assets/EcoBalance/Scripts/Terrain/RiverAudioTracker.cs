@@ -76,8 +76,14 @@ public class RiverAudioTracker : MonoBehaviour
             source.Play();
 
         // 3. Keep the sound on the nearest river point
+        float refindAt = Time.unscaledTime + 10f;
         while (true)
         {
+            // Water that appears later (lakes, side streams, online river data) joins in.
+            if (Time.unscaledTime >= refindAt) { refindAt = Time.unscaledTime + 10f; FindWater(); }
+            // The camera hands its AudioListener to an "ears" point on the ground: always use the enabled one.
+            foreach (var l in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))
+                if (l.isActiveAndEnabled) { listener = l.transform; break; }
             UpdateTarget();
             yield return new WaitForSeconds(0.2f);
         }
@@ -85,6 +91,7 @@ public class RiverAudioTracker : MonoBehaviour
 
     void Update()
     {
+        if (source != null) source.volume = volume * AudioPrefs.Sounds;   // Sounds slider
         if (hasTarget)
             transform.position = Vector3.MoveTowards(transform.position, target, followSpeed * Time.deltaTime);
     }
@@ -93,6 +100,18 @@ public class RiverAudioTracker : MonoBehaviour
     {
         points.Clear();
         fallbackRenderers.Clear();
+
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): M3 - every kind of water makes sound, not only the main river's
+        // drinking spots: the traced river, its glacier side streams, lakes and painted streams. Points every ~4 units,
+        // so there are no silent gaps along a long river.
+        AddLine(HimalayaRiver.Path);
+        foreach (var t in HimalayaRiver.Tributaries) AddLine(t);
+        foreach (Transform t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
+        {
+            string n = t.name;
+            if (!(n.StartsWith("Lake") || n.StartsWith("Stream") || n.StartsWith("Glacier stream"))) continue;
+            foreach (var r in t.GetComponentsInChildren<Renderer>()) fallbackRenderers.Add(r);
+        }
 
         foreach (Transform t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
         {
@@ -116,6 +135,17 @@ public class RiverAudioTracker : MonoBehaviour
                 else points.Add(t.position);
             }
         }
+    }
+
+    void AddLine(List<Vector3> line)
+    {
+        if (line == null) return;
+        for (int i = 0; i + 1 < line.Count; i++)
+        {
+            int steps = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(line[i], line[i + 1]) / 4f));
+            for (int k = 0; k < steps; k++) points.Add(Vector3.Lerp(line[i], line[i + 1], k / (float)steps));
+        }
+        if (line.Count > 0) points.Add(line[line.Count - 1]);
     }
 
     void UpdateTarget()

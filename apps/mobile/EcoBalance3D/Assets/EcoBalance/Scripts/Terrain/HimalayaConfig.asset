@@ -12,28 +12,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 995966ac76ded464aa6e2e5f3f377d4b, type: 3}
   m_Name: HimalayaConfig
   m_EditorClassIdentifier: Assembly-CSharp::HimalayaConfig
-  west: 86.72
-  south: 27.78
-  east: 86.97
-  north: 28.03
+  west: 86.595
+  south: 27.64
+  east: 87.095
+  north: 28.14
   tileZoom: 11
   heightmapResolution: 513
-  worldWidth: 200
+  worldWidth: 900
   verticalExaggeration: 1
-  areaSizeKm: 25
-  landCover: {fileID: 0}
-  treeLineMeters: 4200
+  areaSizeKm: 50
+  landCover: {fileID: 2800000, guid: f6d98535ab794042979f0ae6f3694e82, type: 3}
+  treeLineMeters: 4800
   treeFadeMeters: 800
   maxTreeSlope: 35
   treeSpacing: 4
-  maxTrees: 0
+  maxTrees: 1500
   treesPerCount: 40
   treeDensity: 0.8
   snowLineMeters: 5200
-  rockSlope: 38
+  rockSlope: 30
   grassClasses: 1e00000014000000i
-  grassPatches: 40
-  maxWaterPatches: 60
+  grassPatches: 100
+  maxWaterPatches: 160
   waterPatchSpacing: 12
   overpassUrl: https://overpass-api.de/api/interpreter
   useCache: 1

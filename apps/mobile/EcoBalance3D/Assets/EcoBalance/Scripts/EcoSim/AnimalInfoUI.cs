@@ -4,6 +4,8 @@ using UnityEngine;
 public class AnimalInfoUI : MonoBehaviour
 {
     public static AnimalInfoUI Instance { get; private set; }
+    /// <summary>True while the Animal Inspection card is showing (the camera view bar hides so it does not cover its title).</summary>
+    public static bool IsOpen => Instance != null && Instance.panel != null && Instance.panel.activeSelf;
 
     [Header("Panel")]
     public GameObject panel;
@@ -193,7 +195,7 @@ public class AnimalInfoUI : MonoBehaviour
     private void PlayPop()
     {
         if (popSound == null || uiAudio == null) return;
-        uiAudio.PlayOneShot(popSound, popVolume);
+        uiAudio.PlayOneShot(popSound, popVolume * AudioPrefs.Sounds);
     }
     // [AI-GENERATED END]
 
@@ -262,7 +264,7 @@ public class AnimalInfoUI : MonoBehaviour
             actionText.text =
                 HimalayaRiver.InWater(selectedAnimal.transform.position, AnimalMotionBridge.SwimWithin)
                     ? "Currently: Swimming"   // [AI-GENERATED] Claude Code (Claude Opus 5.5): crossing at a ford
-                    : $"Currently: {GetActionText(selectedAnimal.CurrentAction)}";
+                    : $"Currently: {GetActionText(selectedAnimal.CurrentAction, selectedAnimal.IsHeadDown)}";
         }
 
         // Target
@@ -295,15 +297,15 @@ public class AnimalInfoUI : MonoBehaviour
 
 
     private string GetActionText(
-        AnimalBrain.AnimalAction action)
+        AnimalBrain.AnimalAction action, bool atTarget)   // [AI-GENERATED] Claude Code (Claude Opus 5.5): walking there vs eating/drinking
     {
         switch (action)
         {
             case AnimalBrain.AnimalAction.EatingGrass:
-                return "Eating Grass";
+                return atTarget ? "Eating Grass" : "Going to Grass";
 
             case AnimalBrain.AnimalAction.DrinkingWater:
-                return "Drinking Water";
+                return atTarget ? "Drinking Water" : "Going to Water";
 
             case AnimalBrain.AnimalAction.Hunting:
                 return "Hunting";

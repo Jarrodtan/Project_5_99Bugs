@@ -50,6 +50,8 @@ public partial class GuidedChallenge
         CurrentChapter = 1;
         StoryOverReason = null;   // statics survive Play without a domain reload
         snapshots.Clear();
+        ResetFires();   // SCRUM-390
+        ResetPlanting();
     }
 
     ChapterSnapshot Snapshot() => new ChapterSnapshot { sheep = Sheep, leopards = Leopards, grass = Vegetation };
@@ -60,7 +62,7 @@ public partial class GuidedChallenge
         if (chapterOpen) return true;
         if (snapshots.Count == 0) snapshots.Add(Snapshot());   // chapter 1 starts when the intro closes
         int ch = ChapterForDay(day);
-        if (ch <= CurrentChapter || showing) return false;
+        if (ch <= CurrentChapter || showing || ScreenFlow.JournalOpen) return false;   // 28 Nov: the chapter card waits for the Field Journal (it paused the run under it)
         CurrentChapter = ch;
         ShowChapter(ch);
         return true;
@@ -84,7 +86,7 @@ public partial class GuidedChallenge
             $"{text}\n\n<b>Since {prev}</b>\n" +
             $"Blue Sheep: {before.sheep} → {now.sheep}{Change(now.sheep - before.sheep)}\n" +
             $"Snow Leopards: {before.leopards} → {now.leopards}{Change(now.leopards - before.leopards)}\n" +
-            $"Grass: {before.grass:0}% → {now.grass:0}%";
+            $"Grass: {before.grass:0}% → {now.grass:0}%" + FireRecap() + PlantRecap();
         chapterPanel.SetActive(true);
     }
 
@@ -107,6 +109,7 @@ public partial class GuidedChallenge
         chapterTitle = Label(card.transform, "", 60f, new Color(0.12f, 0.16f, 0.2f), 60f, 40f, 620f, TextAlignmentOptions.Top);
         chapterText = Label(card.transform, "", 36f, new Color(0.2f, 0.24f, 0.28f), 80f, 150f, 170f, TextAlignmentOptions.Top);
         Button(card.transform, "Continue", new Vector2(0f, 50f), new Color(0.3f, 0.62f, 0.38f), CloseChapter);
+        ScreenFlow.StyleLikeShumin(card, null);   // cream card, brown edge, Chewy font, Shu Min's green button
         chapterPanel.SetActive(false);
     }
 }

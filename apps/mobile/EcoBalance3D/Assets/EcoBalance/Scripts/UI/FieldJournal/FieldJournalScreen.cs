@@ -13,18 +13,32 @@ using UnityEngine.UI;
 /// page), EcosystemBtn / InvestigationBtn / ObservationBtn / DYKBtn (tabs), PreviousBtn / NextBtn (page through tabs).
 /// Adds three pages in code:
 ///   Investigations (wireframes 04/05): every case, locked ones with their clue, unlocked ones with what happened.
-///   Observations (wireframe 06): the population graph of the run going on now, or of the last run.
+///   Observations (wireframe 06): the population graph of the run going on now (it keeps moving while the
+///     journal is open), or of the last run, with numbered "What we noticed" notes pinned on it and, in Free
+///     Exploration, the clue of a case still to find. Two views: Animals (how many of each) and Food &amp; Water
+///     (grass and water left, grass eaten and water drunk in the last day, famine and thirst levels, with
+///     "eaten today" tiles and green-to-red famine / thirst meters next to it).
 ///   Did You Know? (wireframe 02): fun facts about the animals.
 /// Opens on Observations inside a run, on the discovered case from the popup, otherwise on Ecosystem.
 /// Attached by <see cref="ScreenFlow"/> when the scene loads; BackBtn is wired there.
 /// </summary>
 public class FieldJournalScreen : MonoBehaviour
 {
-    public enum Page { Ecosystem, Investigations, Observations, Facts }
-    const int PageCount = 4;
+    public enum Page { Ecosystem, Investigations, Observations, Facts, Runs}
+    const int PageCount = 5;
 
     static Page? requestedPage;
     static string requestedCaseKey;
+
+    // My Runs
+    GameObject runsPage;
+    List<MyRuns> pastRuns = new();      // newest first
+    int selectedRun;
+    RectTransform runsContent;
+    TextMeshProUGUI runsSub, runTitle, runBody, runLegend;
+    RawImage runGraph;
+    Texture2D runTex;
+    TextMeshProUGUI starsHint;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() { requestedPage = null; requestedCaseKey = null; }   // domain reload is off
@@ -127,10 +141,27 @@ public class FieldJournalScreen : MonoBehaviour
     // Observations
     PopulationGraph graph;
     TextMeshProUGUI obsSub, summary;
-    // Play / Pause and speed for the run behind the journal (it opens paused, so the graph would never move).
+    List<ObservationNote> shownNotes = new();
+    // Play / Pause and speed for the run behind the journal, which keeps running while the journal is open.
     SimulationSpeedController liveSpeed;
     Image playBg;
     TextMeshProUGUI playLabel, speedLabel;
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5): the Food & Water view
+    bool foodView;
+    Image animalsTab, foodTab;
+    TextMeshProUGUI animalsTabLabel, foodTabLabel;
+    GameObject foodWidgets;
+    TextMeshProUGUI grassTileValue, grassTileFoot, waterTileValue, waterTileFoot;
+    Meter famineMeter, thirstMeter;
+
+    sealed class Meter
+    {
+        public TextMeshProUGUI band;
+        public RectTransform needle;
+        public RingDotGraphic needleDot;
+        public float left, width;
+    }
+    // [AI-GENERATED END]
 
     /// <summary>A Free Exploration run is open behind the journal, so locked cases can still be found in it.</summary>
     static bool InFreeRun => FieldJournalObservations.IsLive && !FieldJournalObservations.WasGuided;
@@ -167,6 +198,7 @@ public class FieldJournalScreen : MonoBehaviour
         Tab("InvestigationBtn", Page.Investigations);
         Tab("ObservationBtn", Page.Observations);
         Tab("DYKBtn", Page.Facts);
+        Tab("RunsBtn", Page.Runs);
         Wire("PreviousBtn", () => Show(Previous(current)));
         Wire("NextBtn", () => Show(Next(current)));
         // The arrows are blank squares in the scene: label them with the page they lead to.
@@ -177,6 +209,7 @@ public class FieldJournalScreen : MonoBehaviour
         BuildInvestigations();
         BuildObservations();
         BuildFacts();
+        BuildRuns();      // new
 
         selected = cases.PickInitial(seen, requestedCaseKey);
         // Inside a run the journal is mostly for watching that run, so open on its graph.
@@ -188,6 +221,7 @@ public class FieldJournalScreen : MonoBehaviour
     void OnDestroy()
     {
         if (cases?.Detector != null) cases.Detector.CaseUnlocked -= OnCaseUnlocked;
+        if (runTex != null) Destroy(runTex);
     }
 
     void OnCaseUnlocked(InvestigationCase _)
@@ -202,11 +236,13 @@ public class FieldJournalScreen : MonoBehaviour
         foreach (var go in ecosystemPage) if (go != null) go.SetActive(page == Page.Ecosystem);
         if (investigationsPage != null) investigationsPage.SetActive(page == Page.Investigations);
         if (observationsPage != null) observationsPage.SetActive(page == Page.Observations);
+        if (runsPage != null) runsPage.SetActive(page == Page.Runs);
         if (factsPage != null) factsPage.SetActive(page == Page.Facts);
         foreach (var kv in tabs) kv.Value.image.color = kv.Key == page ? TabSelected : kv.Value.normal;
         if (previousCaption != null) previousCaption.text = $"<size=220%>‹</size>\n{titles[Previous(page)]}";
         if (nextCaption != null) nextCaption.text = $"<size=220%>›</size>\n{titles[Next(page)]}";
         if (page == Page.Investigations) RefreshInvestigations();
+        if (page == Page.Runs) RefreshRuns();
         RefreshBadge();
     }
 
@@ -366,21 +402,30 @@ public class FieldJournalScreen : MonoBehaviour
         Header(p, "Observations");
         obsSub = Sub(p, "");
 
-        var graphBox = Box(p, "GraphCard", new Vector2(-370f, -60f), new Vector2(1540f, 880f), Card);
+        var graphBox = Box(p, "GraphCard", new Vector2(-500f, -60f), new Vector2(1260f, 880f), Card);
+        bool hasFood = FieldJournalObservations.FoodSeries != null;
+        if (hasFood)
+        {
+            // Two views of the same run: the animals, and the food and water they need.
+            animalsTab = ViewTab(graphBox, "AnimalsViewBtn", "Animals", 24f, false, out animalsTabLabel);
+            foodTab = ViewTab(graphBox, "FoodWaterViewBtn", "Food & Water", 24f + 330f, true, out foodTabLabel);
+        }
         var inner = new GameObject("Inner", typeof(RectTransform)).GetComponent<RectTransform>();
         inner.SetParent(graphBox, false);
         inner.anchorMin = Vector2.zero; inner.anchorMax = Vector2.one;
-        inner.offsetMin = new Vector2(24f, 16f); inner.offsetMax = new Vector2(-24f, -24f);
+        inner.offsetMin = new Vector2(24f, 16f); inner.offsetMax = new Vector2(-24f, hasFood ? -112f : -24f);
         graph = PopulationGraph.Create(inner, subTemplate != null ? subTemplate.font : null);
         graph.labelSize = 30f;
         graph.textColor = Body;
+        graph.pillSprite = roundSprite;
 
-        var side = Box(p, "SummaryCard", new Vector2(720f, -60f), new Vector2(440f, 880f), Card);
-        summary = Text(side, "", 32f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        var side = Box(p, "SummaryCard", new Vector2(550f, -60f), new Vector2(780f, 880f), Card);
+        summary = Text(side, "", 30f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);   // first text in the card (tests read it)
+        if (hasFood) BuildFoodWidgets(side);
 
         // Inside a run: let the player run it from here and watch the lines move, at any speed.
         liveSpeed = FieldJournalObservations.IsLive ? FindAnyObjectByType<SimulationSpeedController>() : null;
-        Place(summary.rectTransform, new Vector2(36f, -36f), new Vector2(368f, liveSpeed != null ? 680f : 808f));
+        PlaceSummary();
         if (liveSpeed != null)
         {
             playBg = RunButton(side, "GraphPlayBtn", 36f, Green, () =>
@@ -392,10 +437,162 @@ public class FieldJournalScreen : MonoBehaviour
             RefreshRunControls();
         }
 
-        // The run going on now, or the last one (kept after leaving it).
+        // The run going on now, or the last one (kept after leaving it). The notes are worked out on every
+        // redraw, so the numbered pins on the graph and the list next to it always match.
+        graph.MarkerSource = NoteMarkers;
         graph.Redrawn += RefreshSummary;
-        graph.Bind(FieldJournalObservations.History, FieldJournalObservations.Series, FieldJournalObservations.Days);
+        ShowView(false);
     }
+
+    // [AI-GENERATED BEGIN] Claude Code (Claude Opus 5.5, claude-opus-5-5)
+    /// <summary>Animals (counts) or Food &amp; Water (grass, water, eaten, drunk, famine and thirst levels, all in %).</summary>
+    public void ShowView(bool food)
+    {
+        foodView = food && FieldJournalObservations.FoodSeries != null;
+        graph.valueSuffix = foodView ? "%" : "";
+        graph.minAxisMax = foodView ? 100f : 0f;
+        graph.Bind(FieldJournalObservations.History, foodView ? FieldJournalObservations.FoodSeries : FieldJournalObservations.Series, FieldJournalObservations.Days);
+        if (animalsTab != null)
+        {
+            animalsTab.color = foodView ? Row : Green;
+            foodTab.color = foodView ? Green : Row;
+            animalsTabLabel.color = foodView ? Body : Color.white;
+            foodTabLabel.color = foodView ? Color.white : Body;
+        }
+        if (foodWidgets != null) foodWidgets.SetActive(foodView);
+        PlaceSummary();
+    }
+
+    public bool FoodViewShown => foodView;
+
+    // Food & Water: the summary text goes under the tiles and meters.
+    void PlaceSummary()
+    {
+        float top = foodView ? 452f : 36f;
+        float bottom = liveSpeed != null ? 160f : 36f;
+        Place(summary.rectTransform, new Vector2(36f, -top), new Vector2(708f, 880f - top - bottom));
+    }
+
+    Image ViewTab(Transform card, string name, string text, float x, bool food, out TextMeshProUGUI label)
+    {
+        var b = Box(card, name, Vector2.zero, new Vector2(310f, 72f), Row);
+        b.anchorMin = b.anchorMax = b.pivot = new Vector2(0f, 1f);
+        b.anchoredPosition = new Vector2(x, -22f);
+        b.gameObject.AddComponent<Button>().onClick.AddListener(() => ShowView(food));
+        label = Text(b, text, 32f, Body, FontStyles.Bold, TextAlignmentOptions.Center);
+        Fill(label.rectTransform);
+        return b.GetComponent<Image>();
+    }
+
+    // Two "eaten in the last day" tiles, then the famine and thirst meters (green = full, red = starving).
+    void BuildFoodWidgets(Transform card)
+    {
+        var root = new GameObject("FoodWaterWidgets", typeof(RectTransform)).GetComponent<RectTransform>();
+        root.SetParent(card, false);
+        Fill(root);
+        foodWidgets = root.gameObject;
+
+        Tile(root, "GrassTile", 36f, FoodWater.GrassColor, "of the grass eaten in the last day", out grassTileValue, out grassTileFoot);
+        Tile(root, "WaterTile", 402f, FoodWater.WaterColor, "of the water drunk in the last day", out waterTileValue, out waterTileFoot);
+        famineMeter = MeterRow(root, "FamineMeter", "Famine level", 214f, "Well fed", "Starving");
+        thirstMeter = MeterRow(root, "ThirstMeter", "Thirst level", 334f, "Not thirsty", "Very thirsty");
+        foodWidgets.SetActive(false);
+    }
+
+    void Tile(Transform parent, string name, float x, Color color, string caption, out TextMeshProUGUI value, out TextMeshProUGUI foot)
+    {
+        var tint = Color.Lerp(color, Color.white, 0.86f);
+        var tile = Box(parent, name, Vector2.zero, new Vector2(342f, 160f), tint);
+        tile.anchorMin = tile.anchorMax = tile.pivot = new Vector2(0f, 1f);
+        tile.anchoredPosition = new Vector2(x, -30f);
+        var stripe = Box(tile, "Stripe", Vector2.zero, new Vector2(12f, 0f), color);
+        stripe.anchorMin = Vector2.zero; stripe.anchorMax = new Vector2(0f, 1f); stripe.pivot = new Vector2(0f, 0.5f);
+        stripe.offsetMin = new Vector2(14f, 18f); stripe.offsetMax = new Vector2(26f, -18f);
+        value = Text(tile, "-", 60f, color, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        Place(value.rectTransform, new Vector2(42f, -10f), new Vector2(290f, 70f));
+        var cap = Text(tile, caption, 24f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        Place(cap.rectTransform, new Vector2(42f, -78f), new Vector2(290f, 36f));
+        foot = Text(tile, "", 22f, Muted, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        Place(foot.rectTransform, new Vector2(42f, -116f), new Vector2(290f, 32f));
+    }
+
+    Meter MeterRow(Transform parent, string name, string title, float top, string low, string high)
+    {
+        var m = new Meter { left = 36f, width = 708f };
+        var t = Text(parent, $"<b>{title}</b>", 30f, Ink, FontStyles.Normal, TextAlignmentOptions.MidlineLeft);
+        t.name = name + "Title";
+        Place(t.rectTransform, new Vector2(m.left, -top), new Vector2(m.width, 44f));
+        m.band = Text(parent, "", 30f, Ink, FontStyles.Bold, TextAlignmentOptions.MidlineRight);
+        m.band.name = name + "Band";
+        Place(m.band.rectTransform, new Vector2(m.left, -top), new Vector2(m.width, 44f));
+
+        // Rounded track (the card sprite as a mask) with the green-to-red gradient inside it.
+        var track = Box(parent, name, Vector2.zero, new Vector2(m.width, 30f), Color.white);
+        track.anchorMin = track.anchorMax = track.pivot = new Vector2(0f, 1f);
+        track.anchoredPosition = new Vector2(m.left, -(top + 52f));
+        track.gameObject.AddComponent<Mask>().showMaskGraphic = true;
+        var bar = new GameObject("Gradient", typeof(RectTransform)).AddComponent<GradientBarGraphic>();
+        bar.transform.SetParent(track, false);
+        bar.raycastTarget = false;
+        Fill(bar.rectTransform);
+
+        var endsLeft = Text(parent, low, 22f, Muted, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        Place(endsLeft.rectTransform, new Vector2(m.left, -(top + 86f)), new Vector2(m.width, 28f));
+        var endsRight = Text(parent, high, 22f, Muted, FontStyles.Normal, TextAlignmentOptions.TopRight);
+        Place(endsRight.rectTransform, new Vector2(m.left, -(top + 86f)), new Vector2(m.width, 28f));
+
+        // Needle: a ringed dot sitting on the bar at the current level.
+        m.needleDot = new GameObject(name + "Needle", typeof(RectTransform)).AddComponent<RingDotGraphic>();
+        m.needleDot.transform.SetParent(parent, false);
+        m.needleDot.raycastTarget = false;
+        m.needleDot.color = Color.white;
+        m.needle = m.needleDot.rectTransform;
+        m.needle.anchorMin = m.needle.anchorMax = new Vector2(0f, 1f);
+        m.needle.pivot = new Vector2(0.5f, 0.5f);
+        m.needle.sizeDelta = new Vector2(44f, 44f);
+        m.needle.anchoredPosition = new Vector2(m.left, -(top + 67f));
+        m.needle.gameObject.SetActive(false);
+        return m;
+    }
+
+    static void SetMeter(Meter m, PopulationHistory.Sample s, string key, System.Func<float, (string label, Color color)> band)
+    {
+        if (m == null) return;
+        bool has = s != null && s.Has(key);
+        m.needle.gameObject.SetActive(has);
+        if (!has)
+        {
+            bool noneLeft = s != null && s.Has(FoodWater.Animals) && s.Get(FoodWater.Animals) < 0.5f;
+            m.band.text = noneLeft ? "<color=#73808A>No animals left</color>" : "<color=#73808A>Waiting for the animals...</color>";
+            return;
+        }
+        float level = Mathf.Clamp(s.Get(key), 0f, 100f);
+        var (label, color) = band(level);
+        m.band.text = $"<color=#{Hex(color)}>{label}</color>  <color=#73808A>{level:0}%</color>";
+        m.needleDot.ring = color;
+        m.needleDot.SetVerticesDirty();
+        var pos = m.needle.anchoredPosition;
+        m.needle.anchoredPosition = new Vector2(m.left + m.width * level / 100f, pos.y);
+    }
+
+    static void SetTile(TextMeshProUGUI value, TextMeshProUGUI foot, PopulationHistory.Sample s, string perDayKey, string totalKey, string verb)
+    {
+        if (value == null) return;
+        if (s == null || !s.Has(perDayKey)) { value.text = "-"; foot.text = ""; return; }
+        value.text = $"{s.Get(perDayKey):0}%";
+        float total = s.Get(totalKey);
+        foot.text = $"{FoodWater.Amount(total)} full {(verb == "eaten" ? "patches" : "pools")} {verb} so far";
+    }
+
+    void RefreshFoodWidgets(PopulationHistory.Sample latest)
+    {
+        if (foodWidgets == null) return;
+        SetTile(grassTileValue, grassTileFoot, latest, FoodWater.GrassEaten, FoodWater.GrassEatenTotal, "eaten");
+        SetTile(waterTileValue, waterTileFoot, latest, FoodWater.WaterDrunk, FoodWater.WaterDrunkTotal, "drunk");
+        SetMeter(famineMeter, latest, FoodWater.Famine, FoodWater.FamineBand);
+        SetMeter(thirstMeter, latest, FoodWater.Thirst, FoodWater.ThirstBand);
+    }
+    // [AI-GENERATED END]
 
     RectTransform RunButton(Transform card, string name, float x, Color color, UnityAction onClick, out TextMeshProUGUI label)
     {
@@ -425,14 +622,40 @@ public class FieldJournalScreen : MonoBehaviour
         if (current == Page.Observations) RefreshRunControls();
     }
 
+    IReadOnlyList<PopulationGraph.Marker> NoteMarkers()
+    {
+        // Notes come from both views' lines, so they stay the same whichever view is open, and "the grass ran
+        // out" can point at the Blue Sheep line (and the famine level at the grass).
+        var noteSeries = FieldJournalObservations.FoodSeries != null ? FieldJournalObservations.AllSeries : (IReadOnlyList<PopulationSeries>)graph.Series;
+        var all = ObservationNotes.Find(graph.History, noteSeries, FieldJournalObservations.CasesFoundInShownRun);
+        shownNotes = all.Count > ObservationNotes.MaxShown ? all.GetRange(all.Count - ObservationNotes.MaxShown, ObservationNotes.MaxShown) : all;
+        var markers = new List<PopulationGraph.Marker>(shownNotes.Count);
+        for (int i = 0; i < shownNotes.Count; i++)
+        {
+            // Notes on the same day share one pin ("1,2") instead of printing over each other.
+            int last = markers.Count - 1;
+            if (last >= 0 && markers[last].Index == shownNotes[i].Index)
+            {
+                var m = markers[last];
+                m.Label += $",{i + 1}";
+                markers[last] = m;
+                continue;
+            }
+            markers.Add(new PopulationGraph.Marker { Index = shownNotes[i].Index, Label = (i + 1).ToString(), Color = shownNotes[i].Color });
+        }
+        return markers;
+    }
+
     void RefreshSummary()
     {
         var h = graph.History;
         bool live = FieldJournalObservations.IsLive;
+        RefreshFoodWidgets(h != null && h.Count > 0 ? h.Latest : null);
         if (h == null || h.Count == 0)
         {
-            obsSub.text = "How each animal's number changes over time.";
-            summary.text = "<b>Nothing observed yet</b>\n\nStart an exploration and the journal records how many animals there are every day.";
+            obsSub.text = foodView ? "How much food and water there is, and how hungry the animals are." : "How each animal's number changes over time.";
+            summary.text = "<b>Nothing observed yet</b>\n\nStart an exploration and the journal records how many animals there are every day, "
+                           + "how much grass and water they use, then writes down what it notices.";
             return;
         }
         var first = h[0];
@@ -440,26 +663,266 @@ public class FieldJournalScreen : MonoBehaviour
         string day = graph.TimeLabel(last.Tick);
         string mode = FieldJournalObservations.WasGuided ? "Guided Exploration" : "Free Exploration";
         obsSub.text = (live ? $"This {mode} run so far." : $"Your last {mode} run, up to {day}.")
-                      + " Tap a name to show or hide its line.";
+                      + " The numbers on the graph match the notes. Tap a name to show or hide its line.";
 
+        // Right now: one line per animal (and per resource line that is switched on).
         // A long or fast run fills the history and its oldest days are dropped: compare with the first day still kept.
         string since = h.Count >= h.Capacity ? $"since {graph.TimeLabel(first.Tick)}" : "since the start";
         var sb = new StringBuilder();
         sb.Append("<b>").Append(live ? "Right now" : "At the end").Append(" · ").Append(day).Append("</b>\n");
-        foreach (var s in graph.Series)
+        if (foodView) AppendFoodNow(sb, h, last, since);
+        else
+            foreach (var s in graph.Series)
+            {
+                if (s.IsResource && !s.Visible) continue;
+                float now = last.Get(s.Key), change = now - first.Get(s.Key);
+                string trend = Mathf.Abs(change) < 0.5f ? $"no change {since}"
+                    : change > 0 ? $"up {change:0} {since}" : $"down {-change:0} {since}";
+                sb.Append("<color=#").Append(Hex(s.Color)).Append("><b>").Append(s.Label).Append("</b></color>  ")
+                  .Append("<b>").Append(now.ToString("0")).Append("</b>  <color=#73808A>").Append(trend).Append("</color>\n");
+            }
+
+        // What we noticed: the numbered notes, oldest first, same numbers as the pins on the graph.
+        sb.Append("\n<b>What we noticed</b>\n");
+        if (shownNotes.Count == 0)
+            sb.Append("<color=#73808A>Nothing big yet. ")
+              .Append(live ? "Keep the simulation running: notes appear here when an animal's number changes a lot."
+                           : "Nothing changed much in that run.")
+              .Append("</color>\n");
+        for (int i = 0; i < shownNotes.Count; i++)
         {
-            if (s.IsResource && !s.Visible) continue;
-            float now = last.Get(s.Key), start = first.Get(s.Key), hi = float.MinValue, lo = float.MaxValue;
-            for (int i = 0; i < h.Count; i++) { float v = h[i].Get(s.Key); hi = Mathf.Max(hi, v); lo = Mathf.Min(lo, v); }
-            float change = now - start;
-            string trend = Mathf.Abs(change) < 0.5f ? $"no change {since}"
-                : change > 0 ? $"up {change:0} {since}" : $"down {-change:0} {since}";
-            sb.Append("\n<color=#").Append(ColorUtility.ToHtmlStringRGB(s.Color)).Append("><b>").Append(s.Label).Append("</b></color>\n")
-              .Append("<size=120%><b>").Append(now.ToString("0")).Append("</b></size>  ").Append(trend).Append('\n')
-              .Append("<color=#73808A>Highest ").Append(hi.ToString("0")).Append(" · Lowest ").Append(lo.ToString("0")).Append("</color>\n");
+            var note = shownNotes[i];
+            sb.Append("<color=#").Append(Hex(note.Color)).Append("><b>").Append(i + 1).Append("</b></color>  ")
+              .Append("<color=#73808A>").Append(graph.TimeLabel(note.Tick)).Append(" · </color>")
+              .Append(note.Text).Append('\n');
         }
-        summary.text = sb.ToString();
+
+        // In Free Exploration the graph is how cases are found: show what to watch for next.
+        var clue = InFreeRun ? NextClue() : null;
+        if (clue != null) sb.Append("\n<b>Clue to watch for</b>\n").Append(clue).Append('\n');
+        summary.text = sb.ToString().TrimEnd();
     }
+
+
+    // ---------- My Runs ----------
+
+    void BuildRuns()
+    {
+        runsPage = PageRoot("RunsPage");
+        var p = runsPage.transform;
+        Header(p, "My Runs");
+        runsSub = Sub(p, "");
+
+        // Left: scrolling list of saved runs (same setup as the case list).
+        var view = Box(p, "RunList", new Vector2(-640f, -60f), new Vector2(980f, 880f), new Color(1f, 1f, 1f, 0f));
+        view.gameObject.AddComponent<RectMask2D>();
+        runsContent = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
+        runsContent.SetParent(view, false);
+        runsContent.anchorMin = new Vector2(0f, 1f); runsContent.anchorMax = Vector2.one; runsContent.pivot = new Vector2(0.5f, 1f);
+        runsContent.sizeDelta = Vector2.zero;
+        var v = runsContent.gameObject.AddComponent<VerticalLayoutGroup>();
+        v.spacing = 20f; v.childControlWidth = v.childControlHeight = true; v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+        runsContent.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        var scroll = view.gameObject.AddComponent<ScrollRect>();
+        scroll.content = runsContent; scroll.viewport = view; scroll.horizontal = false;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+
+        // Right: the selected run.
+        var detail = Box(p, "RunDetail", new Vector2(450f, -60f), new Vector2(980f, 880f), Card);
+        runTitle = Text(detail, "", 52f, Ink, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        Place(runTitle.rectTransform, new Vector2(56f, -40f), new Vector2(868f, 80f));
+
+        var go = new GameObject("RunGraph", typeof(RectTransform), typeof(RawImage));
+        go.transform.SetParent(detail, false);
+        runGraph = go.GetComponent<RawImage>();
+        runGraph.raycastTarget = false;
+        Place(runGraph.rectTransform, new Vector2(56f, -130f), new Vector2(868f, 300f));
+
+        runLegend = Text(detail, "", 30f, Body, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        Place(runLegend.rectTransform, new Vector2(56f, -440f), new Vector2(868f, 50f));
+        runBody = Text(detail, "", 36f, Body, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        Place(runBody.rectTransform, new Vector2(56f, -510f), new Vector2(868f, 270f));
+
+        starsHint = Text(detail,
+            $"<b>How to earn stars</b>\n" +
+            $"1 star: last {RunRewards.SeasonDays} days  ·  2 stars: both animals still alive at the end  ·  3 stars: last all {RunRewards.FullRunDays} days",
+            28f, Muted, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        Place(starsHint.rectTransform, new Vector2(56f, -790f), new Vector2(868f, 80f));
+    }
+
+    void RefreshRuns()
+    {
+        if (runsContent == null) return;
+        pastRuns = RunHist.Load().runs;
+        pastRuns.Reverse();                                   // newest first
+        selectedRun = Mathf.Clamp(selectedRun, 0, Mathf.Max(0, pastRuns.Count - 1));
+
+        runsSub.text = pastRuns.Count == 0
+            ? "No runs saved yet. Finish a run and it will show up here."
+            : $"Your last {pastRuns.Count} runs. Tap one to see how it went.";
+
+        // The longest run gets the BEST tag (the newest one if there is a tie).
+        int best = -1;
+        for (int i = 0; i < pastRuns.Count; i++)
+            if (best < 0 || pastRuns[i].days_survived > pastRuns[best].days_survived) best = i;
+
+        foreach (Transform c in runsContent) { c.gameObject.SetActive(false); Destroy(c.gameObject); }
+        for (int i = 0; i < pastRuns.Count; i++) RunRow(i, i == best);
+        ShowRunDetail();
+    }
+
+    static string RunDate(MyRuns r) =>
+        System.DateTime.TryParse(r.start, out var dt)
+            ? dt.ToString("d MMM, HH:mm", System.Globalization.CultureInfo.InvariantCulture)
+            : r.id;
+
+    void RunRow(int index, bool isBest)
+    {
+        var r = pastRuns[index];
+        var row = Box(runsContent, $"Run_{index + 1}", Vector2.zero, Vector2.zero, index == selectedRun ? RowSelected : Row);
+        row.gameObject.AddComponent<LayoutElement>().preferredHeight = 150f;
+        int i = index;
+        row.gameObject.AddComponent<Button>().onClick.AddListener(() => { selectedRun = i; RefreshRuns(); });
+
+        var title = Text(row, RunDate(r), 40f, Ink, FontStyles.Bold, TextAlignmentOptions.MidlineLeft);
+        title.rectTransform.anchorMin = Vector2.zero; title.rectTransform.anchorMax = Vector2.one;
+        title.rectTransform.offsetMin = new Vector2(40f, 50f); title.rectTransform.offsetMax = new Vector2(-230f, -16f);
+
+        var sub = Text(row, $"{r.mode} · lasted {r.days_survived} days", 28f, Muted, FontStyles.Normal, TextAlignmentOptions.MidlineLeft);
+        sub.rectTransform.anchorMin = Vector2.zero; sub.rectTransform.anchorMax = new Vector2(1f, 0f);
+        sub.rectTransform.pivot = new Vector2(0.5f, 0f);
+        sub.rectTransform.offsetMin = new Vector2(40f, 16f); sub.rectTransform.offsetMax = new Vector2(-230f, 60f);
+
+        var pill = Box(row, "Pill", Vector2.zero, new Vector2(180f, 56f), isBest ? Orange : Green);
+        pill.anchorMin = pill.anchorMax = pill.pivot = new Vector2(1f, 0.5f);
+        pill.anchoredPosition = new Vector2(-32f, 0f);
+        Fill(Text(pill, isBest ? "BEST" : $"{r.stars} / 3 stars", 28f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center).rectTransform);
+    }
+
+    void ShowRunDetail()
+    {
+        if (pastRuns.Count == 0)
+        {
+            runTitle.text = "No runs yet";
+            runBody.text = "Play an exploration. When you leave it, the run is saved here so you can compare it next time.";
+            runLegend.text = "";
+            runGraph.gameObject.SetActive(false);
+            return;
+        }
+        runGraph.gameObject.SetActive(true);
+        var r = pastRuns[selectedRun];
+        var before = selectedRun + 1 < pastRuns.Count ? pastRuns[selectedRun + 1] : null;   // the run just before this one
+
+        runTitle.text = $"{RunDate(r)} · {r.mode}";
+        DrawRunGraph(r);
+        runLegend.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Blue)}>Blue sheep</color>    " +
+                         $"<color=#{ColorUtility.ToHtmlStringRGB(Orange)}>Snow leopards</color>    " +
+                         $"<color=#{ColorUtility.ToHtmlStringRGB(Green)}>Trees</color>";
+
+        var sb = new StringBuilder();
+        sb.Append("<b>").Append(CompareRuns(r, before)).Append("</b>\n\n");
+        sb.Append(OutcomeText(r.outcome)).Append("\n\n");
+        sb.Append("Most blue sheep: ").Append(r.peaksheep).Append('\n');
+        sb.Append("Most snow leopards: ").Append(r.peakleopard).Append('\n');
+        sb.Append("At the end: ").Append(r.endsheep).Append(" sheep, ").Append(r.endleopard).Append(" leopards, ").Append(r.endtrees).Append(" trees");
+        if (r.cases != null && r.cases.Count > 0) sb.Append("\nCases found: ").Append(r.cases.Count);
+        runBody.text = sb.ToString();
+    }
+
+    static string CompareRuns(MyRuns now, MyRuns before)
+    {
+        if (before == null) return "This was your first saved run. Come back and beat it!";
+        int diff = now.days_survived - before.days_survived;
+        string head = $"Run before: {before.days_survived} days. This run: {now.days_survived} days.";
+        return diff > 0 ? $"{head}\nYou lasted {diff} days longer!"
+             : diff < 0 ? $"{head}\nSo close! Can you beat {before.days_survived} days?"
+             : $"{head}\nSame as last time. Try something different!";
+    }
+
+    static string OutcomeText(string outcome) => outcome switch
+    {
+        "BothSurvived" => "Both animals made it to the end!",
+        "SheepDied" => "The blue sheep ran out. What could help them next time?",
+        "LeopardDied" => "The snow leopards ran out. What could help them next time?",
+        _ => ""
+    };
+
+    // Small line graph drawn straight into a texture, so it doesn't depend on PopulationGraph.
+    void DrawRunGraph(MyRuns r)
+    {
+        const int W = 868, H = 300;
+        if (runTex != null) Destroy(runTex);
+        runTex = new Texture2D(W, H, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        var px = new Color32[W * H];
+        for (int i = 0; i < px.Length; i++) px[i] = new Color32(255, 255, 255, 255);
+
+        int max = 1;
+        foreach (var v in r.sheep) max = Mathf.Max(max, v);
+        foreach (var v in r.leopard) max = Mathf.Max(max, v);
+        foreach (var v in r.trees) max = Mathf.Max(max, v);
+
+        PlotLine(px, W, H, r.trees, max, Green);
+        PlotLine(px, W, H, r.sheep, max, Blue);
+        PlotLine(px, W, H, r.leopard, max, Orange);
+
+        runTex.SetPixels32(px);
+        runTex.Apply();
+        runGraph.texture = runTex;
+    }
+
+    static void PlotLine(Color32[] px, int W, int H, List<int> s, int max, Color color)
+    {
+        int n = s.Count;
+        if (n == 0) return;
+        Color32 c = color;
+        int prevY = -1;
+        for (int x = 0; x < W; x++)
+        {
+            float f = n == 1 ? 0f : x * (n - 1f) / (W - 1f);
+            int i0 = (int)f, i1 = Mathf.Min(i0 + 1, n - 1);
+            float val = Mathf.Lerp(s[i0], s[i1], f - i0);
+            int y = 6 + Mathf.RoundToInt(val / max * (H - 12));
+            int a = prevY < 0 ? y : Mathf.Min(prevY, y);
+            int b = prevY < 0 ? y : Mathf.Max(prevY, y);
+            for (int yy = Mathf.Max(0, a - 2); yy <= Mathf.Min(H - 1, b + 2); yy++) px[yy * W + x] = c;
+            prevY = y;
+        }
+    }
+
+    // The clue of the first case not found yet (the one selected on the Investigations page if it is locked).
+    string NextClue()
+    {
+        if (cases == null || cases.Cases.Count == 0) return null;
+        if (selected >= 0 && selected < cases.Cases.Count && !cases.IsUnlocked(cases.Cases[selected]))
+            return cases.Cases[selected].hint;
+        foreach (var c in cases.Cases)
+            if (!cases.IsUnlocked(c) && !string.IsNullOrWhiteSpace(c.hint)) return c.hint;
+        return null;
+    }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): Food & Water "right now": grass and water left with their
+    // trend, and a warning line when animals are starving or have no water right now.
+    void AppendFoodNow(StringBuilder sb, PopulationHistory h, PopulationHistory.Sample last, string since)
+    {
+        foreach (var s in FieldJournalObservations.FoodSeries)
+        {
+            if (!s.IsResource || !last.Has(s.Key)) continue;
+            int from = 0;
+            while (from < h.Count && !h[from].Has(s.Key)) from++;
+            float now = last.Get(s.Key), change = now - h[from].Get(s.Key);
+            string trend = Mathf.Abs(change) < 0.5f ? $"no change {since}"
+                : change > 0 ? $"up {change:0}% {since}" : $"down {-change:0}% {since}";
+            sb.Append("<color=#").Append(Hex(s.Color)).Append("><b>").Append(s.Label).Append(" left</b></color>  ")
+              .Append("<b>").Append(now.ToString("0")).Append("%</b>  <color=#73808A>").Append(trend).Append("</color>\n");
+        }
+        int starving = Mathf.RoundToInt(last.Get(FoodWater.Starving)), parched = Mathf.RoundToInt(last.Get(FoodWater.Dehydrated));
+        string warn = Hex(FoodWater.FamineColor);
+        if (starving > 0) sb.Append("<color=#").Append(warn).Append("><b>").Append(starving).Append(starving == 1 ? " animal is" : " animals are").Append(" starving right now!</b></color>\n");
+        if (parched > 0) sb.Append("<color=#").Append(warn).Append("><b>").Append(parched).Append(parched == 1 ? " animal is" : " animals are").Append(" out of water and getting weak!</b></color>\n");
+        if (last.Has(FoodWater.Animals) && last.Get(FoodWater.Animals) < 0.5f) sb.Append("<color=#73808A>No animals are left to eat or drink.</color>\n");
+    }
+
+    static string Hex(Color c) => ColorUtility.ToHtmlStringRGB(c);
 
     // ---------- Did You Know? ----------
 
@@ -498,7 +961,8 @@ public class FieldJournalScreen : MonoBehaviour
         if (b.TryGetComponent(out Image img)) tabs[page] = (img, img.color);
         var label = b.GetComponentInChildren<TMP_Text>(true);
         if (label != null && !string.IsNullOrWhiteSpace(label.text))
-            titles[page] = label.text.Trim().Trim('\'', '"').Replace(" Facts", "").Trim();
+            titles[page] = label.text.Replace("\n", " ").Replace("\r", " ")
+                               .Trim().Trim('\'', '"').Replace(" Facts", "").Trim();
         Rewire(b, () => Show(page));
     }
 

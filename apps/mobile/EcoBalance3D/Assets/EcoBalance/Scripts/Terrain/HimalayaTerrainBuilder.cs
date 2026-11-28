@@ -183,6 +183,11 @@ public class HimalayaTerrainBuilder : MonoBehaviour
         // Work on a copy so the TerrainData asset in the project isn't overwritten.
         var source = terrain.terrainData;
         var previous = _runtimeTerrainData;
+        // The template still lists an old M2 "Grass" tree prototype (not a real tree), so Unity warns
+        // "must use the Nature/Soft Occlusion shader" on every copy. Trees are placed as objects now
+        // (HimalayaTreePlacer), so the template needs no tree prototypes at all.
+        if (source.treePrototypes != null && source.treePrototypes.Length > 0)
+            source.treePrototypes = new TreePrototype[0];
         var td = Instantiate(source);
         _runtimeTerrainData = td;
         terrain.terrainData = td;
@@ -248,7 +253,7 @@ public class HimalayaTerrainBuilder : MonoBehaviour
     {
         surface.collectObjects = CollectObjects.All;
         surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
-        surface.layerMask = ~0;
+        surface.layerMask = ~(1 << 2);   // skip "Ignore Raycast" (decor trees)
         surface.defaultArea = 0;
         // Narrow valley strips on a steep DEM are smaller than the default 2 m² cutoff.
         surface.minRegionArea = 0.1f;

@@ -140,6 +140,9 @@ public partial class GuidedChallenge : MonoBehaviour
 
     /// <summary>The challenge card or an event card is open (the mascot's hints and Help wait).</summary>
     public static bool PopupOpen { get; private set; }
+    /// <summary>Guided run loaded but Start not pressed yet (intro card coming or showing).</summary>
+    public static bool IntroPending { get; private set; }
+    bool weatherShown;
     float quietUntil;
 
     int Day => clock != null ? clock.Day : 1;
@@ -175,9 +178,12 @@ public partial class GuidedChallenge : MonoBehaviour
         if (ScreenFlow.GuidedMode) new GameObject("[GuidedChallenge]").AddComponent<GuidedChallenge>();
     }
 
+    void OnDestroy() => IntroPending = false;   // leaving the run: nothing waits for Start any more
+
     void Awake()
     {
         PopupOpen = false;   // statics survive Play without a domain reload
+        IntroPending = true;
         ResetChapters();
         instance = this;
         // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
@@ -197,6 +203,11 @@ public partial class GuidedChallenge : MonoBehaviour
     void Update()
     {
         if (finished) return;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): until Start, keep the live weather box, name tags, ring and
+        // camera buttons hidden: they flashed on load (also while the animals are still spawning) before the intro card.
+        IntroPending = !introDone;
+        if (!introDone) SimHud.SetWeatherVisible(false);   // every frame: the weather box can appear a moment later
+        else if (!weatherShown) { SimHud.SetWeatherVisible(true); weatherShown = true; }
         int day = Day;
         if (day != lastDay) { lastDay = day; GuidedEffects.NewDay(day); }
         if (!started)   // wait for the animals to spawn
@@ -215,7 +226,10 @@ public partial class GuidedChallenge : MonoBehaviour
 
         if (!introDone) { ShowIntro(); return; }
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
-        if (showing || Time.unscaledTime < quietUntil) return;
+        if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
+        if (!showing) UpdatePlanting();                              // player action: plant grass on brown patches
+        // The run keeps going under the Field Journal: decisions wait until the player is back to see them.
+        if (showing || Time.unscaledTime < quietUntil || ScreenFlow.JournalOpen) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
     }
@@ -270,11 +284,17 @@ public partial class GuidedChallenge : MonoBehaviour
 
     // ---------- Ending ----------
 
+    public void FinishForPresentation()
+    {
+        Finish();
+    }
+
     void Finish()
     {
         finished = true;
         DeleteSave();   // SCRUM-375: an ended story can't be continued
         if (speed != null) speed.Pause();
+        ScreenFlow.CloseJournalOverlay();   // the ending would be hidden under the journal
         int i = PickEnding();
         int mask = PlayerPrefs.GetInt(GalleryKey, 0);
         bool isNew = (mask & (1 << i)) == 0;
@@ -326,11 +346,28 @@ public partial class GuidedChallenge : MonoBehaviour
         if (shuminRoot == null) return false;
         introPanel = Find(shuminRoot, "IntroPanel");
         eventPanel = Find(shuminRoot, "EventPanel");
-        eventCard = Find(eventPanel, "EventCard");
-        feedbackCard = Find(eventPanel, "FeedbackCard");
+        // Shumin's 27 Nov UI renamed the cards (Decision / Investigation event, Completion popup); the old
+        // names stay as a fallback so an older GuidedExploration scene still works.
+        eventCard = Find(eventPanel, "EventCard-DecisionMission") ?? Find(eventPanel, "EventCard");
+        feedbackCard = Find(eventPanel, "OptionFeedbackCard") ?? Find(eventPanel, "FeedbackCard");
         introMascot = Find(shuminRoot, "IntroMascotPanel");
         eventMascot = Find(eventPanel, "MascotPanel");
-        feedbackMascot = Find(eventPanel, "MascotPanel(FeedbackVer)");
+        feedbackMascot = Find(eventPanel, "MascotPanel(CompletionVer)") ?? Find(eventPanel, "MascotPanel(FeedbackVer)");
+        // Not used yet (no investigation events in the event list): keep them hidden.
+        foreach (var unused in new[] { "EventCard-InvestigationMission", "InvestigationCompleteCard" })
+        {
+            var t = Find(eventPanel, unused);
+            if (t != null) t.gameObject.SetActive(false);
+        }
+        // The intro mascot panel is a see-through, screen-sized image drawn over the intro card: it ate every tap
+        // (Start could not be pressed). Only its bubble and buttons should catch taps.
+        foreach (var m in new[] { introMascot, eventMascot, feedbackMascot })
+        {
+            if (m == null) continue;
+            if (m.TryGetComponent(out Image mascotBg)) mascotBg.raycastTarget = false;
+            var mascotArt = Find(m, "Mascot");
+            if (mascotArt != null && mascotArt.TryGetComponent(out Image art)) art.raycastTarget = false;
+        }
         if (eventPanel != null) eventPanel.gameObject.SetActive(false);
         if (introPanel != null) introPanel.gameObject.SetActive(false);
         if (introMascot != null) introMascot.gameObject.SetActive(false);
@@ -360,8 +397,20 @@ public partial class GuidedChallenge : MonoBehaviour
         var panel = Find(shuminRoot, "DayPanel");
         if (panel == null) return;
         if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
-        bg.color = new Color(0.08f, 0.1f, 0.14f, 0.75f);
+        ScreenFlow.CreamPanel(bg);   // M3: same cream pill as the rest of Shu Min's HUD (was a dark pill)
         bg.raycastTarget = false;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): "Day 1 / 20  Summer · Snow · -8°C" was squeezed to the
+        // smallest size in the 467-wide pill; widen it into the free space before Field Journal (keeps its centre).
+        // Grows leftwards only: its right edge stays a clear gap before the Field Journal button.
+        if (panel is RectTransform prt && prt.sizeDelta.x < 620f)
+        {
+            float right = prt.anchoredPosition.x + (1f - prt.pivot.x) * prt.sizeDelta.x;
+            if (Find(shuminRoot, "FieldJournalBtn") is RectTransform fj && fj.parent == prt.parent)
+                right = Mathf.Min(right, fj.anchoredPosition.x - fj.pivot.x * fj.sizeDelta.x - 24f);
+            prt.pivot = new Vector2(1f, prt.pivot.y);
+            prt.sizeDelta = new Vector2(620f, prt.sizeDelta.y);
+            prt.anchoredPosition = new Vector2(right, prt.anchoredPosition.y);
+        }
         foreach (var name in new[] { "SeasonTxt", "Divider" })
         {
             var hide = Find(panel, name);
@@ -373,7 +422,7 @@ public partial class GuidedChallenge : MonoBehaviour
             var rt = t.rectTransform;
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
             rt.offsetMin = new Vector2(16f, 4f); rt.offsetMax = new Vector2(-16f, -4f);
-            t.color = Color.white;
+            t.color = ScreenFlow.InkColor;
             t.alignment = TextAlignmentOptions.Center;
             t.textWrappingMode = TextWrappingModes.NoWrap;
             t.enableAutoSizing = true;
@@ -494,9 +543,13 @@ public partial class GuidedChallenge : MonoBehaviour
                 var btn = (RectTransform)Instantiate(hudNext.gameObject, bubble, false).transform;
                 btn.name = "GotItBtn";
                 // The button's top-right corner sits just under the bubble's bottom-right corner.
-                btn.anchorMin = btn.anchorMax = new Vector2(1f, 0f);
+                // Shumin's 27 Nov bubble is turned 180° to mirror its tail: its left edge is then the
+                // screen's right, so pick that corner and keep the button itself unturned (readable).
+                bool flipped = bubble.right.x < 0f;
+                btn.anchorMin = btn.anchorMax = new Vector2(flipped ? 0f : 1f, 0f);
                 btn.pivot = new Vector2(1f, 1f);
-                btn.anchoredPosition = new Vector2(-10f, -8f);
+                btn.rotation = Quaternion.identity;
+                btn.anchoredPosition = new Vector2(flipped ? 10f : -10f, -8f);
                 foreach (var t in btn.GetComponentsInChildren<TMP_Text>(true)) t.text = "Got It";
                 btn.gameObject.SetActive(true);
             }
@@ -518,7 +571,12 @@ public partial class GuidedChallenge : MonoBehaviour
         if (feedbackMascot != null)
         {
             feedbackMascot.gameObject.SetActive(feedback);
-            if (feedback) { SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine); Mascot.Speak(Mascot.DecisionLine); }
+            if (feedback)
+            {
+                SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine);
+                SetText(feedbackMascot, "DynamicTxt-Completion Feedback", Mascot.DecisionLine);   // Shumin's 27 Nov name
+                Mascot.Speak(Mascot.DecisionLine);
+            }
         }
     }
 
@@ -593,7 +651,7 @@ public partial class GuidedChallenge : MonoBehaviour
         if (FindShuminUI())   // Shumin's DayPanel: "Day 12 / 20 | Summer" in the mock-up
         {
             // One line across the whole panel: the season box alone was too narrow to read on a tablet.
-            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");
+            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");   // weather word dropped: the icon beside the pill shows it
             if (!dayPanelStyled) StyleDayPanel();
         }
         if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it

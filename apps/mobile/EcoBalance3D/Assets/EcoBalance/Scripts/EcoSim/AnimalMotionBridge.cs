@@ -58,11 +58,14 @@ public class AnimalMotionBridge : MonoBehaviour
     static Vector3 GroundNormal(Vector3 pos)
     {
         var t = Terrain.activeTerrain;   // one terrain in this game; activeTerrains would allocate every call
-        if (t == null || t.terrainData == null) return Vector3.up;   // terrain torn down when play stops
+        // The terrain's data can already be gone while the scene closes (leaving the run, stopping Play),
+        // with the animals still getting one last Update: treat that as flat ground too.
+        var data = t != null ? t.terrainData : null;
+        if (data == null) return Vector3.up;
         Vector3 local = pos - t.GetPosition();
-        Vector3 size = t.terrainData.size;
+        Vector3 size = data.size;
         if (local.x < 0f || local.z < 0f || local.x > size.x || local.z > size.z) return Vector3.up;
-        return t.terrainData.GetInterpolatedNormal(local.x / size.x, local.z / size.z);
+        return data.GetInterpolatedNormal(local.x / size.x, local.z / size.z);
     }
 
     // Crossing a river or stream (the fords): swim instead of walking on the water. Checked a few times
