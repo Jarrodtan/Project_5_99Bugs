@@ -330,7 +330,7 @@ public class CameraModeController : MonoBehaviour
         // Hide the view bar while a Guided card is up (intro, chapter, event): it was drawn over them.
         // PopupOpen is static and can stay true after leaving Guided mid-card, so only trust it in Guided.
         // Free mode has no family story, so no view bar there (the player moves the camera freely).
-        bool popup = ScreenFlow.GuidedMode && (GuidedChallenge.PopupOpen || GuidedChallenge.IntroPending);   // nothing before Start
+        bool popup = ScreenFlow.GuidedMode && ((GuidedChallenge.PopupOpen && !GuidedChallenge.MissionSearching) || GuidedChallenge.IntroPending);   // nothing before Start; back while a mission asks the player to find things
         // Guided, or Free once its HUD is up (28 Nov: Free gets the same three side buttons, sandbox).
         bool show = (ScreenFlow.GuidedMode || (SimHud.Active && !ConfigurationScreen.Open)) && !ScreenFlow.JournalOpen && !ScreenFlow.LeaveOpen
                     && !popup && !AnimalInfoUI.IsOpen && !SimHud.InspectionOpen;   // the view bar covered the inspection card's title

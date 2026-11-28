@@ -37,6 +37,9 @@ public partial class GuidedChallenge
     TextMeshProUGUI missionTitle, missionText, trackerTitle, trackerList, doneTitle, doneText;
     GameObject missionGoBtn, missionGrowBtn, missionNatureBtn;
 
+    /// <summary>A mission's small tracker is up and the player is looking around the world (camera buttons stay usable).</summary>
+    public static bool MissionSearching => instance != null && instance.missionTracker != null && instance.missionTracker.activeInHierarchy;
+
     static bool BlueSheepStory => FamilyManager.SelectedStory == FamilyStory.BlueSheep;
 
     void AddMissionEvents()
