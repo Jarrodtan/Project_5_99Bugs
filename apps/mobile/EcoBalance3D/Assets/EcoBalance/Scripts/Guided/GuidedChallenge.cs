@@ -265,7 +265,8 @@ public partial class GuidedChallenge : MonoBehaviour
         if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
         if (!showing) UpdatePlanting();                              // player action: plant grass on brown patches
         // The run keeps going under the Field Journal: decisions wait until the player is back to see them.
-        if (showing || !EventGapOver || ScreenFlow.JournalOpen) return;
+        // ...and wait out Dillon's mission break too, so a due mission card (e.g. Mission 1) comes before GE events.
+        if (showing || !EventGapOver || !MissionGapOver || ScreenFlow.JournalOpen) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
     }

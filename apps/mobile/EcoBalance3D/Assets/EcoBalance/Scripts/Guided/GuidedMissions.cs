@@ -177,8 +177,6 @@ public partial class GuidedChallenge
         HideSideUiNow();
         eventCardGo.SetActive(true);
         missionChallenge = challenge;
-        ShowCardMascot(eventCardGo, challenge);
-        Mascot.Speak(challenge);   // Shumin's "Personal Challenge (Mascot Dialogue)" line
     }
 
     void BeginInvestigation()
@@ -205,29 +203,6 @@ public partial class GuidedChallenge
 
     // 28 Nov: the mascot stays with the player while they search: it shows up with the challenge (same voiced line as
     // the card) and then says each "You found…" line as the player finds things.
-    // 28 Nov: Shumin's mascot stands beside the mission and completion cards with the line in its bubble, as on her
-    // decision cards (a copy of her event card's MascotPanel, moved to whichever card is open).
-    Transform cardMascot;
-    void ShowCardMascot(GameObject dimRoot, string line)
-    {
-        if (eventMascot == null) FindShuminUI();
-        if (eventMascot == null) return;   // no Shumin UI in this build: the cards work without it
-        if (cardMascot == null)
-        {
-            cardMascot = Instantiate(eventMascot.gameObject).transform;
-            cardMascot.name = "MissionCardMascot";
-            foreach (var b in cardMascot.GetComponentsInChildren<Button>(true)) b.gameObject.SetActive(false);   // no Got It here
-        }
-        var src = (RectTransform)eventMascot;
-        var rt = (RectTransform)cardMascot;
-        rt.SetParent(dimRoot.transform, false);
-        rt.anchorMin = src.anchorMin; rt.anchorMax = src.anchorMax; rt.pivot = src.pivot;
-        rt.anchoredPosition = src.anchoredPosition; rt.sizeDelta = src.sizeDelta; rt.localScale = src.localScale;
-        SetText(cardMascot, "DynamicTxt", line);
-        cardMascot.gameObject.SetActive(true);
-        cardMascot.SetAsLastSibling();
-    }
-
     void MascotSaysChallenge()
     {
         if (!string.IsNullOrEmpty(missionChallenge)) Mascot.Announce(missionChallenge);
@@ -325,7 +300,6 @@ public partial class GuidedChallenge
         doneText.text = text + (found.Length > 0 ? $"\n<size=80%>{found}</size>" : "");
         missionDone.SetActive(true);
         Mascot.Hide();   // its bubble would sit under the completion card's dim layer
-        ShowCardMascot(missionDone, text.Split('\n')[0]);
         Mascot.Speak(text.Split('\n')[0]);   // the completion line (not the "50% faster" note under it)
     }
 
@@ -446,7 +420,7 @@ public partial class GuidedChallenge
 
         // Mission card: what is happening, the challenge, and how to start.
         eventCardGo = Dim(root, "Mission");
-        var card = Box(eventCardGo.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(-190f, 0f), new Vector2(1080f, 820f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        var card = Box(eventCardGo.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1200f, 820f), new Color(0.97f, 0.97f, 0.95f, 1f));
         eventCardTitle = Label(card.transform, "", 56f, ink, 60f, 40f, 700f, TextAlignmentOptions.Top);
         missionText = Label(card.transform, "", 34f, body, 70f, 140f, 190f, TextAlignmentOptions.Top);
         missionGoBtn = ButtonGo(card.transform, "Let's go!", new Vector2(0f, 50f), green, BeginInvestigation);
@@ -467,7 +441,7 @@ public partial class GuidedChallenge
 
         // Completion card.
         missionDone = Dim(root, "Mission complete");
-        var doneCard = Box(missionDone.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(-190f, 0f), new Vector2(1040f, 700f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        var doneCard = Box(missionDone.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 700f), new Color(0.97f, 0.97f, 0.95f, 1f));
         doneTitle = Label(doneCard.transform, "", 54f, ink, 60f, 40f, 580f, TextAlignmentOptions.Top);
         doneText = Label(doneCard.transform, "", 34f, body, 70f, 150f, 180f, TextAlignmentOptions.Top);
         ButtonGo(doneCard.transform, "Continue", new Vector2(0f, 50f), green, CloseMission);

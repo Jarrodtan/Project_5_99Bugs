@@ -63,7 +63,7 @@ public class GuidedStoryPlayTests
         Shot("10_guided_running");
 
         // Mission 1: its decision comes on Day 1, through Shu Min's event card.
-        yield return Until(() => (bool)Field(challenge, "showing"), 30f, "Mission 1 decision");
+        yield return Until(() => !FinishEventMission(challenge) && (bool)Field(challenge, "showing"), 60f, "Mission 1 decision");   // a Shumin mission due first is completed
         StringAssert.Contains("Mission 1", ShownEventTitle());
         Shot("11_mission1_decision");
         yield return AnswerEventCard();
@@ -223,7 +223,7 @@ public class GuidedStoryPlayTests
         Assert.AreEqual("Snowy", GuidedChallenge.FocalName);
 
         // Mission 1 talks about Snowy's family (her story's wording, not Miloy's herd).
-        yield return Until(() => (bool)Field(challenge, "showing"), 30f, "Mission 1 decision");
+        yield return Until(() => !FinishEventMission(challenge) && (bool)Field(challenge, "showing"), 60f, "Mission 1 decision");   // a Shumin mission due first is completed
         StringAssert.Contains("Mission 1", ShownEventTitle());
         var card = (Transform)Field(challenge, "eventCard");
         StringAssert.Contains("Snowy and her family", TextUnder(card, "EventDescriptionTxt", "EventDescriptionTxt"));
