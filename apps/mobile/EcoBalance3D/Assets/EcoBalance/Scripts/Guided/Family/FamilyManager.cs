@@ -91,7 +91,7 @@ public class FamilyManager : MonoBehaviour
 
     /// <summary>Research doc, Starting Population Configuration.</summary>
     public static (int sheep, int leopards) StartingPopulation(FamilyStory story) =>
-        story == FamilyStory.SnowLeopard ? (25, 3) : (20, 1);
+        story == FamilyStory.SnowLeopard ? (25, 3) : (20, 2);   // 28 Nov (Shumin): 2 leopards in Miloy's story so they can breed
 
     /// <summary>
     /// SCRUM-381, focal animal protection rule (research doc): predators can't target Milo while at least one

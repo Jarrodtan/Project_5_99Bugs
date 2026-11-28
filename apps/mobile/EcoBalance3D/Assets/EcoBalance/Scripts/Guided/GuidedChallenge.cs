@@ -29,6 +29,7 @@ public partial class GuidedChallenge : MonoBehaviour
         public Func<bool> eligible;
         public Action environment;       // applied whatever the player picks
         public Choice[] choices;
+        public Action<GuidedEvent> mission;   // M3 (Shumin's event library): a mission the player plays in the world instead of choices
     }
 
     List<GuidedEvent> events;
@@ -108,6 +109,7 @@ public partial class GuidedChallenge : MonoBehaviour
                     new Choice { label = "Help the animals recover", feedback = "Every animal had a big drink!", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) a.Refresh(0f, 10f); } },
                     Nature() } },
         };
+        AddMissionEvents();   // BS01, BS02, BS03-F (GuidedMissions.cs)
     }
 
     // ---------- Endings (priority order from the research) ----------
@@ -206,7 +208,9 @@ public partial class GuidedChallenge : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): until Start, keep the live weather box, name tags, ring and
         // camera buttons hidden: they flashed on load (also while the animals are still spawning) before the intro card.
         IntroPending = !introDone;
-        if (!introDone) SimHud.SetWeatherVisible(false);   // every frame: the weather box can appear a moment later
+        // 28 Nov (Shumin): the weather box was drawn over event cards and popups: hide it while any card is up too.
+        bool weatherWanted = introDone && !showing && !chapterOpen;
+        if (!weatherWanted) { SimHud.SetWeatherVisible(false); weatherShown = false; }   // every frame: it can appear a moment later
         else if (!weatherShown) { SimHud.SetWeatherVisible(true); weatherShown = true; }
         int day = Day;
         if (day != lastDay) { lastDay = day; GuidedEffects.NewDay(day); }
@@ -225,6 +229,7 @@ public partial class GuidedChallenge : MonoBehaviour
         if (!string.IsNullOrEmpty(StoryOverReason)) { Finish(); return; }   // SCRUM-374: e.g. main animal died
 
         if (!introDone) { ShowIntro(); return; }
+        if (UpdateMission()) return;                                 // M3: a BS mission is running
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
         if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
         if (!showing) UpdatePlanting();                              // player action: plant grass on brown patches
@@ -248,6 +253,7 @@ public partial class GuidedChallenge : MonoBehaviour
         showing = true;
         PopupOpen = true;
         if (speed != null) speed.Pause();
+        if (e.mission != null) { Mascot.Hide(); e.mission(e); return; }   // BS missions: their own cards (GuidedMissions.cs)
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): Shumin's event card has its own mascot beside it (GE-M05);
         // the HUD mascot would sit under the card, so it closes. The code-built popup keeps the HUD line.
         if (FindShuminUI()) { Mascot.Hide(); ShowShumin(e); return; }
@@ -292,6 +298,7 @@ public partial class GuidedChallenge : MonoBehaviour
     void Finish()
     {
         finished = true;
+        HideMissionUI();
         DeleteSave();   // SCRUM-375: an ended story can't be continued
         if (speed != null) speed.Pause();
         ScreenFlow.CloseJournalOverlay();   // the ending would be hidden under the journal
@@ -336,6 +343,38 @@ public partial class GuidedChallenge : MonoBehaviour
     Transform introMascot, eventMascot, feedbackMascot;   // Shumin's mascots beside the intro, event and feedback cards
     bool introDone, introShown;
 
+    // 28 Nov (Shumin): her Guided texts say "Miloy and his herd"; in Snowy's story use Snowy's name instead.
+    static void UseStoryNames(Transform root)
+    {
+        if (root == null || FamilyManager.SelectedStory != FamilyStory.SnowLeopard) return;
+        foreach (var t in root.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (string.IsNullOrEmpty(t.text) || !t.text.Contains("Milo")) continue;
+            t.text = t.text.Replace("Miloy and his herd", "Snowy and her family").Replace("Miloy's", "Snowy's")
+                           .Replace("Miloy", "Snowy").Replace("Milo and his family", "Snowy and her family").Replace("Milo", "Snowy");
+        }
+    }
+
+    // 28 Nov (Shumin): a dark see-through overlay behind the event cards and completion popup, so the busy world
+    // behind doesn't distract. It is the event panel's first child, so it sits under every card in it.
+    static void AddDimOverlay(Transform panel)
+    {
+        if (panel == null || panel.Find("[Dim Overlay]") != null) return;
+        var dim = new GameObject("[Dim Overlay]", typeof(RectTransform), typeof(Image));
+        var rt = (RectTransform)dim.transform;
+        rt.SetParent(panel, false);
+        rt.SetAsFirstSibling();
+        // Cover the whole screen even if the panel itself is smaller.
+        var canvas = panel.GetComponentInParent<Canvas>();
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        if (canvas != null && panel is RectTransform prt && prt.rect.width < ((RectTransform)canvas.transform).rect.width - 1f)
+            rt.sizeDelta = ((RectTransform)canvas.transform).rect.size * 1.5f;
+        var img = dim.GetComponent<Image>();
+        img.color = new Color(0f, 0f, 0f, 0.55f);
+        img.raycastTarget = true;   // taps on the world behind are blocked while a card is up
+    }
+
     bool FindShuminUI()
     {
         if (shuminRoot != null) return eventCard != null;
@@ -368,6 +407,8 @@ public partial class GuidedChallenge : MonoBehaviour
             var mascotArt = Find(m, "Mascot");
             if (mascotArt != null && mascotArt.TryGetComponent(out Image art)) art.raycastTarget = false;
         }
+        UseStoryNames(shuminRoot);
+        AddDimOverlay(eventPanel);
         if (eventPanel != null) eventPanel.gameObject.SetActive(false);
         if (introPanel != null) introPanel.gameObject.SetActive(false);
         if (introMascot != null) introMascot.gameObject.SetActive(false);
@@ -647,11 +688,11 @@ public partial class GuidedChallenge : MonoBehaviour
 
     void UpdatePill()
     {
-        if (pill != null) pill.text = $"Guided challenge · Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}";
+        if (pill != null) pill.text = $"Guided challenge · Day {Day}";   // 28 Nov (Shumin): no "/ 20", the story isn't a fixed day count
         if (FindShuminUI())   // Shumin's DayPanel: "Day 12 / 20 | Summer" in the mock-up
         {
             // One line across the whole panel: the season box alone was too narrow to read on a tablet.
-            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");   // weather word dropped: the icon beside the pill shows it
+            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Day}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");   // weather word dropped: the icon beside the pill shows it
             if (!dayPanelStyled) StyleDayPanel();
         }
         if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it
@@ -690,6 +731,7 @@ public partial class GuidedChallenge : MonoBehaviour
         popup.SetActive(false);
 
         BuildChapterUI(root);   // SCRUM-374
+        BuildMissionUI(root);   // M3 missions, under the ending screen
 
         // Ending screen.
         endPanel = Dim(root, "Ending");
