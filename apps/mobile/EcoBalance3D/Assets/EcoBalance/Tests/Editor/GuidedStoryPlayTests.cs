@@ -163,10 +163,25 @@ public class GuidedStoryPlayTests
         var clock = Object.FindAnyObjectByType<ClockService>();
         Assert.AreEqual(1, clock.Day, "back to Day 1");
 
-        // Start over is also in the Leave box during a story.
-        yield return Wait(1f);
-        var back = AnyButton("BackBtn") ?? AnyButton("Back");
-        if (back != null) { back.onClick.Invoke(); yield return Wait(0.3f); Shot("40_leave_box"); Assert.IsNotNull(AnyButton("Start over"), "Restart Story in the Leave box"); }
+        // Start over is also in the Leave box once the story is under way (before Start, Back just leaves).
+        var replay = Object.FindAnyObjectByType<GuidedChallenge>();
+        yield return Until(() => (bool)Field(replay, "introDone") || AnyButton("StartBtn") != null, 40f, "intro card again");
+        if (!(bool)Field(replay, "introDone")) AnyButton("StartBtn").onClick.Invoke();
+        yield return Until(() => (bool)Field(replay, "introDone"), 10f, "intro to close again");
+        yield return Wait(0.5f);
+        Mascot.Hide();
+        ScreenFlow.ShowLeaveConfirm();
+        yield return Wait(0.3f);
+        Assert.IsTrue(ScreenFlow.LeaveOpen, "Leave box open");
+        Shot("40_leave_box");
+        var startOver = AnyButton("Start over");
+        Assert.IsNotNull(startOver, "Restart Story in the Leave box");
+        startOver.onClick.Invoke();
+        yield return Until(() => SimHud.Active && Object.FindAnyObjectByType<GuidedChallenge>() != null && Object.FindAnyObjectByType<GuidedChallenge>() != replay, 40f, "Start over to restart the story");
+        Assert.AreEqual(FamilyStory.BlueSheep, FamilyManager.SelectedStory, "Start over keeps the story");
+        Assert.AreEqual(1, Object.FindAnyObjectByType<ClockService>().Day, "Start over goes back to Day 1");
+        Assert.AreEqual(3, GuidedAchievements.UnlockedCount, "badges kept after Start over");
+        Assert.IsTrue(GuidedEndings.IsUnlocked(result.ending), "endings kept after Start over");
     }
 
     // ---------- Graphs ----------
@@ -289,8 +304,9 @@ public class GuidedStoryPlayTests
 
     string ShownEventTitle()
     {
-        var t = FindInScene(SimHud.GuidedSceneName, "EventCard");
-        if (t != null) foreach (var tmp in t.GetComponentsInChildren<TMP_Text>()) if (tmp.name.StartsWith("FeedbackTitleTxt")) return tmp.text;
+        // The card the challenge fills (Shu Min renamed it to "EventCard-DecisionMission" on 27 Nov).
+        var t = (Transform)Field(Object.FindAnyObjectByType<GuidedChallenge>(), "eventCard");
+        if (t != null && t.gameObject.activeInHierarchy) foreach (var tmp in t.GetComponentsInChildren<TMP_Text>()) if (tmp.name.StartsWith("FeedbackTitleTxt")) return tmp.text;
         var popup = GameObject.Find("Decision");
         return popup != null ? popup.GetComponentInChildren<TMP_Text>().text : "";
     }

@@ -43,6 +43,7 @@ public partial class GuidedChallenge
     {
         var g = instance;
         if (g == null || g.finished || g.clock == null) return false;
+        if (!g.introDone) return false;   // 28 Nov: Start not pressed yet, nothing to continue (a resumed story counts as started)
         var d = new SaveData
         {
             day = g.clock.Day, timeOfDay = g.clock.TimeOfDay01, chapter = CurrentChapter,

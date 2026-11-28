@@ -173,9 +173,12 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         }
         StyleLikeShumin(card, "Leave");
         confirm.SetActive(false);
+        leaveConfirm = confirm;
         openConfirm = () =>
         {
             Mascot.Hide();   // stop the mascot talking first (it may have paused the sim itself)
+            // 28 Nov: Guided story not started yet (intro card still up): nothing to save or lose, just leave.
+            if (GuidedMode && GuidedChallenge.IntroPending) { Load(Modes); return; }
             wasRunning = speed != null && speed.IsRunning;
             if (speed != null) speed.Pause();
             confirm.SetActive(true);
@@ -199,6 +202,9 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
 
     class LeaveMarker : MonoBehaviour { }
     static System.Action openConfirm;
+    static GameObject leaveConfirm;
+    /// <summary>The "Leave the story / simulation?" box is up.</summary>
+    public static bool LeaveOpen => leaveConfirm != null && leaveConfirm.activeSelf;
 
     /// <summary>Opens the "Leave?" box (Back, Field Journal and View More in the simulation HUD).</summary>
     public static void ShowLeaveConfirm() { if (openConfirm != null) openConfirm(); else Load(Modes); }

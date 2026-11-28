@@ -352,7 +352,10 @@ public class WildlifeChecklist : MonoBehaviour
     void PlaceToast()
     {
         if (toastCard == null || panel == null) return;
-        toastCard.anchoredPosition = new Vector2(panel.anchoredPosition.x, panel.anchoredPosition.y - panel.sizeDelta.y - 12f);
+        // 28 Nov: over the list's own title bar for its 2 seconds (a banner on the card), not under the list:
+        // the left camera buttons sit under it.
+        toastCard.anchoredPosition = panel.anchoredPosition;
+        toastCard.SetAsLastSibling();
     }
 
     void BuildUI()

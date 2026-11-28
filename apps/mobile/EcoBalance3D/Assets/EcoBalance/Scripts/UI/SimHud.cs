@@ -537,7 +537,7 @@ public class SimHud : MonoBehaviour
         if (panel == null) return;
         float right = panel.anchoredPosition.x + (1f - panel.pivot.x) * panel.sizeDelta.x;
         panel.pivot = new Vector2(1f, panel.pivot.y);
-        panel.sizeDelta = new Vector2(Mathf.Max(panel.sizeDelta.x, 480f), panel.sizeDelta.y);
+        panel.sizeDelta = new Vector2(Mathf.Max(panel.sizeDelta.x, 620f), panel.sizeDelta.y);   // 28 Nov: 480 still squeezed "Summer · Snow · -8°C"
         panel.anchoredPosition = new Vector2(right, panel.anchoredPosition.y);
         if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
         ScreenFlow.CreamPanel(bg);   // M3: cream like the rest of the HUD
