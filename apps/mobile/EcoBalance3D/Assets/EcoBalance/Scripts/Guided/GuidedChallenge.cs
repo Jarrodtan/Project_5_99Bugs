@@ -712,6 +712,25 @@ public partial class GuidedChallenge : MonoBehaviour
     // Event card (wireframes 18-19): pick one of three options, then Confirm; the feedback card follows.
     // 28 Nov: the decision card left a big empty band between its title and the description: move the description
     // (keeping its size) up to sit just under the title. Done once; a later card reuses the moved text.
+    // 28 Nov visual check: the feedback card's effect text ran past the bottom of its box. Keep the text's top where
+    // Shumin put it, end it inside the box (the heading's parent), and let it shrink to fit.
+    void FitInside(Transform text, Transform effectHeadingBox)
+    {
+        if (!(text is RectTransform r) || effectHeadingBox == null || !(effectHeadingBox.parent is RectTransform box)) return;
+        if (!r.TryGetComponent(out TMP_Text t)) return;
+        if (!t.enableAutoSizing) { t.fontSizeMax = t.fontSize; t.fontSizeMin = t.fontSize * 0.6f; t.enableAutoSizing = true; }
+        var bc = new Vector3[4]; var rc = new Vector3[4];
+        box.GetWorldCorners(bc); r.GetWorldCorners(rc);
+        var parent = (RectTransform)r.parent;
+        float boxBottom = parent.InverseTransformPoint(bc[0]).y + 10f;
+        float textBottom = parent.InverseTransformPoint(rc[0]).y;
+        if (textBottom < boxBottom) r.offsetMin += new Vector2(0f, boxBottom - textBottom);   // raise only its bottom edge
+        // It only used a third of the box's width (long effects wrapped to 4 lines): use the box's width.
+        float boxRight = parent.InverseTransformPoint(bc[2]).x - 24f;
+        float textRight = parent.InverseTransformPoint(rc[2]).x;
+        if (textRight < boxRight) r.offsetMax += new Vector2(boxRight - textRight, 0f);
+    }
+
     readonly HashSet<Transform> gapsClosed = new HashSet<Transform>();
     /// <summary>Centres <paramref name="desc"/> in the space between <paramref name="title"/> and <paramref name="below"/>
     /// (decision card: "Choose an Option"; feedback card: the effect box). Once per text object.</summary>
@@ -805,6 +824,8 @@ public partial class GuidedChallenge : MonoBehaviour
             SetText(feedbackCard, "EffectDescriptionTxt (1)", chosen.feedback);
             SetText(feedbackCard, "ObservationDescriptionTxt (1)", WatchLine);
             feedbackCard.gameObject.SetActive(true);
+            Canvas.ForceUpdateCanvases();   // its rects are laid out now that it's shown
+            FitInside(Find(feedbackCard, "EffectDescriptionTxt (1)"), effectHeadingBox: Find(feedbackCard, "EffectDurationTxt"));
             var effectHeading = Find(feedbackCard, "EffectDurationTxt");
             CloseTitleGap(Find(feedbackCard, "FeedbackTitleTxt"), Find(feedbackCard, "FeedbackDescriptionTxt"), effectHeading != null ? effectHeading.parent : null);
             OnClick(feedbackCard, "ContinueBtn", () =>

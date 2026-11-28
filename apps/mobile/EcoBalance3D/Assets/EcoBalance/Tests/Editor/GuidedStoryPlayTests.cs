@@ -388,6 +388,8 @@ public class GuidedStoryPlayTests
             yield return null;
             AnyButton("ConfirmBtn")?.onClick.Invoke();
             yield return null;
+            yield return null;
+            Shot("11b_feedback_card_" + Time.frameCount);   // Shumin's feedback card, for the layout check
             var cont = AnyButton("ContinueBtn");
             if (cont != null) cont.onClick.Invoke();
         }

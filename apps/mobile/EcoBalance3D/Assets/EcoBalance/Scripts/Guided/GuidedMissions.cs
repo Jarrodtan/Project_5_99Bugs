@@ -417,8 +417,8 @@ public partial class GuidedChallenge
 
         // Mission card: what is happening, the challenge, and how to start.
         eventCardGo = Dim(root, "Mission");
-        var card = Box(eventCardGo.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1200f, 820f), new Color(0.97f, 0.97f, 0.95f, 1f));
-        eventCardTitle = Label(card.transform, "", 56f, ink, 60f, 40f, 700f, TextAlignmentOptions.Top);
+        var card = Box(eventCardGo.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), new Vector2(1200f, 740f)   /* clear of the Ecosystem Overview */, new Color(0.97f, 0.97f, 0.95f, 1f));
+        eventCardTitle = Label(card.transform, "", 56f, ink, 60f, 40f, 620f, TextAlignmentOptions.Top);
         missionText = Label(card.transform, "", 34f, body, 70f, 140f, 190f, TextAlignmentOptions.Top);
         missionGoBtn = ButtonGo(card.transform, "Let's go!", new Vector2(0f, 50f), green, BeginInvestigation);
         missionGrowBtn = ButtonGo(card.transform, "Grow More Grass", new Vector2(-230f, 50f), green, ChooseGrowGrass, 420f);
