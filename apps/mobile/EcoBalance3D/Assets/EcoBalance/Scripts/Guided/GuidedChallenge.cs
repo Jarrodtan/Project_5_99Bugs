@@ -17,6 +17,7 @@ public partial class GuidedChallenge : MonoBehaviour
 {
     public const int ChallengeDays = 20;
     const float QuietSecondsBetweenEvents = 12f;   // real seconds of watching between two popups
+    const float QuietDaysBetweenEvents = 0.2f;     // ...or this much of a game day if shorter (12 s at 1x; see QuietGapSeconds)
     public const string GalleryKey = "EcoBalance.GuidedEndings";
 
     // ---------- Events (GE01-GE06 core, GE07-GE08 additional) ----------
@@ -29,6 +30,10 @@ public partial class GuidedChallenge : MonoBehaviour
         public Func<bool> eligible;
         public Action environment;       // applied whatever the player picks
         public Choice[] choices;
+        public Action<GuidedEvent> mission;   // M3 (Shumin's event library): a mission the player plays in the world instead of choices
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): 1-4 = only during that season's chapter (Summer, Autumn, Winter,
+        // Spring); 0 = any time. Doc, Event Triggering Rules: "An event must ... belong to the current seasonal chapter."
+        public int chapter;
     }
 
     List<GuidedEvent> events;
@@ -67,7 +72,7 @@ public partial class GuidedChallenge : MonoBehaviour
             new GuidedEvent {
                 id = "GE04", title = "Harsh Winter",
                 text = "The weather is getting colder! Grass is growing more slowly, and the Blue Sheep may struggle to find enough food. What should we do?",
-                eligible = () => Day >= 11,
+                eligible = () => Day >= 11, chapter = 3,   // its text says winter
                 environment = () => GuidedEffects.Add(GuidedEffects.Kind.PlantRegen, 0.5f, 3),
                 choices = new[] {
                     new Choice { label = "Help the grass grow", feedback = "Grass keeps growing at its normal speed for 3 days.", apply = () => GuidedEffects.Add(GuidedEffects.Kind.PlantRegen, 2f, 3) },
@@ -84,7 +89,7 @@ public partial class GuidedChallenge : MonoBehaviour
             new GuidedEvent {
                 id = "GE06", title = "Spring Recovery",
                 text = "Spring has arrived! The highlands have a chance to recover as the weather becomes warmer. What would you like to do?",
-                eligible = () => Day >= 16,
+                eligible = () => Day >= 16, chapter = 4,   // its text says spring
                 choices = new[] {
                     new Choice { label = "Help the grass recover", feedback = "The grass grew back a little!", apply = () => { foreach (var p in ResourcePatch.All) if (p != null) p.Restore(15f); } },
                     new Choice { label = "Support the animals", feedback = "Every animal had a good meal and a drink!", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) a.Refresh(15f, 15f); } },
@@ -108,27 +113,38 @@ public partial class GuidedChallenge : MonoBehaviour
                     new Choice { label = "Help the animals recover", feedback = "Every animal had a big drink!", apply = () => { foreach (var a in AnimalBrain.All) if (a != null && !a.IsCaught) a.Refresh(0f, 10f); } },
                     Nature() } },
         };
+        AddMissionEvents();   // BS01, BS02, BS03-F (GuidedMissions.cs)
     }
 
-    // ---------- Endings (priority order from the research) ----------
+    // ---------- Endings: GuidedEndings.cs (doc text, END01-END05, classification) ----------
 
-    public static readonly (string title, string text, string lesson)[] Endings =
-    {
-        ("Ecosystem Collapse", "The Blue Sheep and Snow Leopards have both disappeared. The highlands have lost important parts of their ecosystem. What could we do differently next time?", "Changes in food and animal numbers can affect the whole ecosystem."),
-        ("Predator-Free Highlands", "The Blue Sheep are still living in the highlands, but the Snow Leopards have disappeared. Without predators, the sheep population may grow and eat more grass!", "Predators help keep prey numbers in balance."),
-        ("Disappearing Herd", "The Blue Sheep have disappeared from the highlands. The Snow Leopards are still here, but without their prey, they may struggle to find food!", "Predators depend on prey to survive."),
-        ("Thriving Highlands", "The highlands are full of life! The Blue Sheep have grass to eat, and the Snow Leopards still have prey to hunt. Both animals and plants are doing well!", "A thriving ecosystem needs plants, prey and predators together."),
-        ("Fragile Balance", "The Blue Sheep and Snow Leopards are still here, but the highlands are struggling. There may not be enough food or animals to keep everything balanced!", "An ecosystem can survive but still be at risk."),
-    };
+    int PickEnding() => GuidedEndings.Classify(Sheep, Leopards, Vegetation);
 
-    int PickEnding()
+    /// <summary>Miloy or Snowy (the focal animal of the chosen story).</summary>
+    public static string FocalName
     {
-        int s = Sheep, l = Leopards;
-        if (s == 0 && l == 0) return 0;
-        if (l == 0) return 1;
-        if (s == 0) return 2;
-        if (s >= 5 && l >= 1 && Vegetation >= 50f) return 3;
-        return 4;
+        get
+        {
+            var fm = FamilyManager.Instance;
+            bool sheep = FamilyManager.SelectedStory == FamilyStory.BlueSheep;
+            return fm != null ? (sheep ? fm.miloName : fm.snowyName) : (sheep ? "Miloy" : "Snowy");
+        }
+    }
+
+    /// <summary>
+    /// The ending screen's line about the focal animal (doc, Ending Presentation: acknowledge whether Milo or Snowy
+    /// survived until the last day or died earlier). Kind words, never blaming the player.
+    /// </summary>
+    public static string FocalOutcome(string name, bool died, int day, FamilyDeathCause cause, int lastDay)
+    {
+        if (!died) return $"{name} made it through all four seasons!";   // 28 Nov: no "20 days" (Shumin dropped the day limit from the UI)
+        return cause switch
+        {
+            FamilyDeathCause.Caught => $"{name} was caught by a Snow Leopard on Day {day}. The story ended early.",
+            FamilyDeathCause.Hunger => $"{name} could not find enough food and died on Day {day}. The story ended early.",
+            FamilyDeathCause.Thirst => $"{name} could not find enough water and died on Day {day}. The story ended early.",
+            _ => $"{name} did not survive past Day {day}. The story ended early.",
+        };
     }
 
     // ---------- State ----------
@@ -140,6 +156,9 @@ public partial class GuidedChallenge : MonoBehaviour
 
     /// <summary>The challenge card or an event card is open (the mascot's hints and Help wait).</summary>
     public static bool PopupOpen { get; private set; }
+    /// <summary>Guided run loaded but Start not pressed yet (intro card coming or showing).</summary>
+    public static bool IntroPending { get; private set; }
+    bool weatherShown;
     float quietUntil;
 
     int Day => clock != null ? clock.Day : 1;
@@ -170,6 +189,7 @@ public partial class GuidedChallenge : MonoBehaviour
     static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (scene.name != ScreenFlow.Simulation) return;
+        PopupOpen = false;   // a card left open by the last Guided run (Leave from its intro) must not silence the next run's mascot
         SeasonWeather.ForcedStartSeason = ScreenFlow.GuidedMode ? SeasonWeather.Season.Summer : (SeasonWeather.Season?)null;
         GuidedEffects.Clear();
         if (ScreenFlow.GuidedMode) new GameObject("[GuidedChallenge]").AddComponent<GuidedChallenge>();
@@ -178,6 +198,7 @@ public partial class GuidedChallenge : MonoBehaviour
     void Awake()
     {
         PopupOpen = false;   // statics survive Play without a domain reload
+        IntroPending = true;
         ResetChapters();
         instance = this;
         // Real animals and real deaths (Events mode), one model per animal so the counts match what children see.
@@ -187,16 +208,30 @@ public partial class GuidedChallenge : MonoBehaviour
         BuildEvents();
     }
 
+    void OnDestroy()   // leaving the run: no Guided card is open and nothing waits for Start any more
+    {
+        IntroPending = false;
+        if (instance == this) PopupOpen = false;
+    }
+
     void Start()
     {
-        clock = FindFirstObjectByType<ClockService>();
-        speed = FindFirstObjectByType<SimulationSpeedController>();
+        clock = FindAnyObjectByType<ClockService>();
+        speed = FindAnyObjectByType<SimulationSpeedController>();
+        missionEvents = MissionEvents();   // the chosen story's wording (Miloy or Snowy)
         BuildUI();
     }
 
     void Update()
     {
         if (finished) return;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): until Start, keep the live weather box, name tags, ring and
+        // camera buttons hidden: they flashed on load (also while the animals are still spawning) before the intro card.
+        IntroPending = !introDone;
+        // 28 Nov (Shumin): the weather box was drawn over event cards and popups: hide it while any card is up too.
+        bool weatherWanted = introDone && !showing && !chapterOpen && !missionCardOpen && !ScreenFlow.LeaveOpen;   // no weather box behind any card or the Leave box
+        if (!weatherWanted) { SimHud.SetWeatherVisible(false); weatherShown = false; }   // every frame: it can appear a moment later
+        else if (!weatherShown) { SimHud.SetWeatherVisible(true); weatherShown = true; }
         int day = Day;
         if (day != lastDay) { lastDay = day; GuidedEffects.NewDay(day); }
         if (!started)   // wait for the animals to spawn
@@ -208,16 +243,30 @@ public partial class GuidedChallenge : MonoBehaviour
         }
         UpdatePill();
 
+        if (FamilyManager.MainAnimalDead) { Finish(); return; }     // doc: Miloy / Snowy died = early ending, evaluated now
         if (Sheep == 0 && Leopards == 0) { Finish(); return; }       // early collapse
         if (day > ChallengeDays) { Finish(); return; }               // end of Day 20
 
         if (!string.IsNullOrEmpty(StoryOverReason)) { Finish(); return; }   // SCRUM-374: e.g. main animal died
 
+        // The run keeps going under the Field Journal: the intro, chapter cards, fires and decisions wait until
+        // the player is back to see them (an ending still shows: Finish closes the journal first).
+        if (ScreenFlow.JournalOpen) return;
+
         if (!introDone) { ShowIntro(); return; }
+        TrackMissionSteps(day);                                      // Badges and Achievement: Day 1-3 missions
+        if (UpdateMission()) return;                                 // M3: a BS/SL event mission is running (GuidedMissions.cs)
+        if (Mascot.Showing) return;                                  // 28 Nov: let the mascot finish its line (e.g. the intro) before a new card
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
+        // A story event due today goes first; while it waits out its break, Dillon's cards wait too (they restarted it).
+        var story = showing || missionCardOpen ? null : DueStoryEvent();
+        if (story != null && EventGapOver) { Show(story); return; }
+        if (story == null && UpdateMissionCards()) return;           // a mission decision, badge or question
         if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
         if (!showing) UpdatePlanting();                              // player action: plant grass on brown patches
-        if (showing || Time.unscaledTime < quietUntil) return;
+        // The run keeps going under the Field Journal: decisions wait until the player is back to see them.
+        // ...and wait out Dillon's mission break too, so a due mission card (e.g. Mission 1) comes before GE events.
+        if (showing || !EventGapOver || !MissionGapOver || ScreenFlow.JournalOpen) return;
         var next = NextEvent(true) ?? NextEvent(false);              // condition-based first, then scheduled
         if (next != null) Show(next);
     }
@@ -225,9 +274,43 @@ public partial class GuidedChallenge : MonoBehaviour
     GuidedEvent NextEvent(bool conditionBased)
     {
         foreach (var e in events)
-            if (e.conditionBased == conditionBased && !resolved.Contains(e.id) && e.eligible()) return e;
+            if (e.conditionBased == conditionBased && Due(e)) return e;
         return null;
     }
+
+    // [AI-GENERATED] Claude Code (Claude Opus 5.5): a season-bound event that didn't fit into its season is skipped
+    // (doc: "Invalidated events are skipped"), so "Summer brings plenty..." can't show in Spring.
+    bool Due(GuidedEvent e) =>
+        !resolved.Contains(e.id) && (e.chapter == 0 || e.chapter == ChapterForDay(Day)) && e.eligible();
+
+    /// <summary>
+    /// A story event (BS/SL mission or season-bound GE event) whose day has come. It goes before Dillon's mission
+    /// cards and the condition-based events, so it shows on its own day at any speed: before, Dillon's cards kept
+    /// restarting the break and at 8x BS01, BS02 and BS03-F all piled up at the end of Summer.
+    /// </summary>
+    GuidedEvent DueStoryEvent()
+    {
+        foreach (var e in events)
+            if (e.chapter != 0 && Due(e)) return e;
+        return null;
+    }
+
+    /// <summary>
+    /// The break after a card: 12 real seconds, or a fifth of a game day if that is shorter. At 1x that is still
+    /// 12 s; at 8x it is 1.5 s, the same share of a day, so the player sees the same amount happen after a decision
+    /// at every speed instead of losing a day and a half to every break.
+    /// </summary>
+    float QuietGapSeconds
+    {
+        get
+        {
+            float realSecondsPerDay = ClockService.DaySeconds / Mathf.Max(1f, speed != null ? speed.CurrentSpeed : 1f);
+            return Mathf.Min(QuietSecondsBetweenEvents, QuietDaysBetweenEvents * realSecondsPerDay);
+        }
+    }
+
+    // quietUntil is set to "closed + 12 s" when a card closes; the break itself is QuietGapSeconds.
+    bool EventGapOver => Time.unscaledTime >= quietUntil - QuietSecondsBetweenEvents + QuietGapSeconds;
 
     // ---------- Decision popup ----------
 
@@ -236,6 +319,8 @@ public partial class GuidedChallenge : MonoBehaviour
         showing = true;
         PopupOpen = true;
         if (speed != null) speed.Pause();
+        HideSideUiNow();
+        if (e.mission != null) { Mascot.Hide(); e.mission(e); return; }   // BS missions: their own cards (GuidedMissions.cs)
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): Shumin's event card has its own mascot beside it (GE-M05);
         // the HUD mascot would sit under the card, so it closes. The code-built popup keeps the HUD line.
         if (FindShuminUI()) { Mascot.Hide(); ShowShumin(e); return; }
@@ -261,6 +346,7 @@ public partial class GuidedChallenge : MonoBehaviour
         e.environment?.Invoke();
         c.apply();
         resolved.Add(e.id);
+        chosenLabels[e.id] = c.label;   // Mission 2's outcome card says what was chosen
         if (popup != null) popup.SetActive(false);
         showing = false;
         PopupOpen = false;
@@ -280,40 +366,51 @@ public partial class GuidedChallenge : MonoBehaviour
     void Finish()
     {
         finished = true;
+        HideMissionUI();
         DeleteSave();   // SCRUM-375: an ended story can't be continued
         if (speed != null) speed.Pause();
+        ScreenFlow.CloseJournalOverlay();   // the ending would be hidden under the journal
+        UnlockFinishedMissions();   // a badge earned just before the end is not lost
         int i = PickEnding();
-        int mask = PlayerPrefs.GetInt(GalleryKey, 0);
-        bool isNew = (mask & (1 << i)) == 0;
-        PlayerPrefs.SetInt(GalleryKey, mask | (1 << i));
-        PlayerPrefs.Save();
+        bool isNew = GuidedEndings.Unlock(i);
+        var result = new GuidedScreens.Result {
+            ending = i, isNew = isNew, day = Mathf.Min(Day, ChallengeDays),
+            sheep = Sheep, leopards = Leopards, vegetation = Vegetation,
+            focal = FocalLine(), focalDied = FamilyManager.MainAnimalDead, newBadges = newBadgesThisRun };
+        LastResult = result;
 
         // Shumin's Ending screen when it's in the build; otherwise the card below.
-        if (GuidedScreens.ShowEnding(new GuidedScreens.Result {
-                ending = i, isNew = isNew, day = Mathf.Min(Day, ChallengeDays),
-                sheep = Sheep, leopards = Leopards, vegetation = Vegetation }))
-            return;
+        if (GuidedScreens.ShowEnding(result)) return;
 
-        var (title, text, lesson) = Endings[i];
-        endTitle.text = title;
-        endText.text = $"{text}\n\n<i>{lesson}</i>\n\n<size=80%>Day {Mathf.Min(Day, ChallengeDays)} of {ChallengeDays} · Blue Sheep {Sheep} · Snow Leopards {Leopards} · Grass {Vegetation:0}%</size>"
+        var e = GuidedEndings.All[i];
+        endTitle.text = e.title;
+        endText.text = $"<b>{result.focal}</b>\n\n{e.description}\n\n<i>{e.takeaway}</i>\n\n<size=80%>Blue Sheep {Sheep} · Snow Leopards {Leopards} · Grass {Vegetation:0}%</size>"
                      + (isNew ? "\n<color=#E0A000>New ending unlocked!</color>" : "");
         endPanel.SetActive(true);
     }
 
+    /// <summary>The last ending this session (tests read it).</summary>
+    public static GuidedScreens.Result LastResult { get; private set; }
+
+    string FocalLine()
+    {
+        bool died = FamilyManager.MainAnimalDead;
+        int day = Mathf.Min(Day, ChallengeDays);
+        var cause = FamilyDeathCause.Other;
+        foreach (var loss in FamilyManager.Lost)
+            if (loss.Role == FamilyRole.Main) { day = loss.Day; cause = loss.Cause; }
+        return FocalOutcome(FocalName, died, day, cause, ChallengeDays);
+    }
+
     void ShowGallery()
     {
-        int mask = PlayerPrefs.GetInt(GalleryKey, 0);
         var sb = new System.Text.StringBuilder();
-        int found = 0;
-        // Gallery order: best to worst, as the children would read it.
-        foreach (int i in new[] { 3, 4, 1, 2, 0 })
+        foreach (int i in GuidedEndings.GalleryOrder)
         {
-            bool got = (mask & (1 << i)) != 0;
-            if (got) found++;
-            sb.Append(got ? $"<b>{Endings[i].title}</b>\n<size=80%>{Endings[i].text}</size>\n\n" : "<b>???</b>\n<size=80%>Not discovered yet. Try different choices!</size>\n\n");
+            var e = GuidedEndings.All[i];
+            sb.Append(GuidedEndings.IsUnlocked(i) ? $"<b>{e.title}</b>\n<size=80%>{e.card}</size>\n\n" : "<b>???</b>\n<size=80%>Not discovered yet. Try different choices!</size>\n\n");
         }
-        galleryText.text = $"Endings found: {found} of {Endings.Length}\n\n" + sb;
+        galleryText.text = GuidedEndings.Progress() + "\n\n" + sb;
         gallery.SetActive(true);
     }
 
@@ -322,6 +419,38 @@ public partial class GuidedChallenge : MonoBehaviour
     Transform shuminRoot, introPanel, eventPanel, eventCard, feedbackCard;
     Transform introMascot, eventMascot, feedbackMascot;   // Shumin's mascots beside the intro, event and feedback cards
     bool introDone, introShown;
+
+    // 28 Nov (Shumin): her Guided texts say "Miloy and his herd"; in Snowy's story use Snowy's name instead.
+    static void UseStoryNames(Transform root)
+    {
+        if (root == null || FamilyManager.SelectedStory != FamilyStory.SnowLeopard) return;
+        foreach (var t in root.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (string.IsNullOrEmpty(t.text) || !t.text.Contains("Milo")) continue;
+            t.text = t.text.Replace("Miloy and his herd", "Snowy and her family").Replace("Miloy's", "Snowy's")
+                           .Replace("Miloy", "Snowy").Replace("Milo and his family", "Snowy and her family").Replace("Milo", "Snowy");
+        }
+    }
+
+    // 28 Nov (Shumin): a dark see-through overlay behind the event cards and completion popup, so the busy world
+    // behind doesn't distract. It is the event panel's first child, so it sits under every card in it.
+    static void AddDimOverlay(Transform panel)
+    {
+        if (panel == null || panel.Find("[Dim Overlay]") != null) return;
+        var dim = new GameObject("[Dim Overlay]", typeof(RectTransform), typeof(Image));
+        var rt = (RectTransform)dim.transform;
+        rt.SetParent(panel, false);
+        rt.SetAsFirstSibling();
+        // Cover the whole screen even if the panel itself is smaller.
+        var canvas = panel.GetComponentInParent<Canvas>();
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        if (canvas != null && panel is RectTransform prt && prt.rect.width < ((RectTransform)canvas.transform).rect.width - 1f)
+            rt.sizeDelta = ((RectTransform)canvas.transform).rect.size * 1.5f;
+        var img = dim.GetComponent<Image>();
+        img.color = new Color(0f, 0f, 0f, 0.55f);
+        img.raycastTarget = true;   // taps on the world behind are blocked while a card is up
+    }
 
     bool FindShuminUI()
     {
@@ -333,11 +462,30 @@ public partial class GuidedChallenge : MonoBehaviour
         if (shuminRoot == null) return false;
         introPanel = Find(shuminRoot, "IntroPanel");
         eventPanel = Find(shuminRoot, "EventPanel");
-        eventCard = Find(eventPanel, "EventCard");
-        feedbackCard = Find(eventPanel, "FeedbackCard");
+        // Shumin's 27 Nov UI renamed the cards (Decision / Investigation event, Completion popup); the old
+        // names stay as a fallback so an older GuidedExploration scene still works.
+        eventCard = Find(eventPanel, "EventCard-DecisionMission") ?? Find(eventPanel, "EventCard");
+        feedbackCard = Find(eventPanel, "OptionFeedbackCard") ?? Find(eventPanel, "FeedbackCard");
         introMascot = Find(shuminRoot, "IntroMascotPanel");
         eventMascot = Find(eventPanel, "MascotPanel");
-        feedbackMascot = Find(eventPanel, "MascotPanel(FeedbackVer)");
+        feedbackMascot = Find(eventPanel, "MascotPanel(CompletionVer)") ?? Find(eventPanel, "MascotPanel(FeedbackVer)");
+        // Not used yet (no investigation events in the event list): keep them hidden.
+        foreach (var unused in new[] { "EventCard-InvestigationMission", "InvestigationCompleteCard" })
+        {
+            var t = Find(eventPanel, unused);
+            if (t != null) t.gameObject.SetActive(false);
+        }
+        // The intro mascot panel is a see-through, screen-sized image drawn over the intro card: it ate every tap
+        // (Start could not be pressed). Only its bubble and buttons should catch taps.
+        foreach (var m in new[] { introMascot, eventMascot, feedbackMascot })
+        {
+            if (m == null) continue;
+            if (m.TryGetComponent(out Image mascotBg)) mascotBg.raycastTarget = false;
+            var mascotArt = Find(m, "Mascot");
+            if (mascotArt != null && mascotArt.TryGetComponent(out Image art)) art.raycastTarget = false;
+        }
+        UseStoryNames(shuminRoot);
+        AddDimOverlay(eventPanel);
         if (eventPanel != null) eventPanel.gameObject.SetActive(false);
         if (introPanel != null) introPanel.gameObject.SetActive(false);
         if (introMascot != null) introMascot.gameObject.SetActive(false);
@@ -369,6 +517,18 @@ public partial class GuidedChallenge : MonoBehaviour
         if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
         ScreenFlow.CreamPanel(bg);   // M3: same cream pill as the rest of Shu Min's HUD (was a dark pill)
         bg.raycastTarget = false;
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): "Day 1 / 20  Summer · Snow · -8°C" was squeezed to the
+        // smallest size in the 467-wide pill; widen it into the free space before Field Journal (keeps its centre).
+        // Grows leftwards only: its right edge stays a clear gap before the Field Journal button.
+        if (panel is RectTransform prt && prt.sizeDelta.x < 620f)
+        {
+            float right = prt.anchoredPosition.x + (1f - prt.pivot.x) * prt.sizeDelta.x;
+            if (Find(shuminRoot, "FieldJournalBtn") is RectTransform fj && fj.parent == prt.parent)
+                right = Mathf.Min(right, fj.anchoredPosition.x - fj.pivot.x * fj.sizeDelta.x - 24f);
+            prt.pivot = new Vector2(1f, prt.pivot.y);
+            prt.sizeDelta = new Vector2(620f, prt.sizeDelta.y);
+            prt.anchoredPosition = new Vector2(right, prt.anchoredPosition.y);
+        }
         foreach (var name in new[] { "SeasonTxt", "Divider" })
         {
             var hide = Find(panel, name);
@@ -501,9 +661,13 @@ public partial class GuidedChallenge : MonoBehaviour
                 var btn = (RectTransform)Instantiate(hudNext.gameObject, bubble, false).transform;
                 btn.name = "GotItBtn";
                 // The button's top-right corner sits just under the bubble's bottom-right corner.
-                btn.anchorMin = btn.anchorMax = new Vector2(1f, 0f);
+                // Shumin's 27 Nov bubble is turned 180° to mirror its tail: its left edge is then the
+                // screen's right, so pick that corner and keep the button itself unturned (readable).
+                bool flipped = bubble.right.x < 0f;
+                btn.anchorMin = btn.anchorMax = new Vector2(flipped ? 0f : 1f, 0f);
                 btn.pivot = new Vector2(1f, 1f);
-                btn.anchoredPosition = new Vector2(-10f, -8f);
+                btn.rotation = Quaternion.identity;
+                btn.anchoredPosition = new Vector2(flipped ? 10f : -10f, -8f);
                 foreach (var t in btn.GetComponentsInChildren<TMP_Text>(true)) t.text = "Got It";
                 btn.gameObject.SetActive(true);
             }
@@ -511,7 +675,18 @@ public partial class GuidedChallenge : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): the card dims while the mascot speaks; Got It brings it back.
         OnClick(introMascot, "GotItBtn", () => { Mascot.StopVoice(); Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); });
         introMascot.gameObject.SetActive(true);
+        FitIntroMascot();
         Spotlight.Show(introMascot);
+    }
+
+    // 28 Nov visual check: the intro mascot's bubble + Got It sat on the Ecosystem Overview. Done once.
+    bool introMascotFitted;
+    void FitIntroMascot()
+    {
+        if (introMascotFitted || !(introMascot is RectTransform rt)) return;
+        introMascotFitted = true;
+        // Keep Shumin's spot and size; only lift it so the bubble and Got It sit above the Ecosystem Overview.
+        rt.anchoredPosition += new Vector2(0f, 70f);
     }
 
     // GE-M05 beside the event card, GE-M06 beside the feedback card (Shumin's two panels inside EventPanel).
@@ -525,16 +700,103 @@ public partial class GuidedChallenge : MonoBehaviour
         if (feedbackMascot != null)
         {
             feedbackMascot.gameObject.SetActive(feedback);
-            if (feedback) { SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine); Mascot.Speak(Mascot.DecisionLine); }
+            if (feedback)
+            {
+                SetText(feedbackMascot, "DynamicTxt", Mascot.DecisionLine);
+                SetText(feedbackMascot, "DynamicTxt-Completion Feedback", Mascot.DecisionLine);   // Shumin's 27 Nov name
+                Mascot.Speak(Mascot.DecisionLine);
+            }
         }
     }
 
     // Event card (wireframes 18-19): pick one of three options, then Confirm; the feedback card follows.
+    // 28 Nov: the decision card left a big empty band between its title and the description: move the description
+    // (keeping its size) up to sit just under the title. Done once; a later card reuses the moved text.
+    // 28 Nov visual check: the feedback card's effect text ran past the bottom of its box. Keep the text's top where
+    // Shumin put it, end it inside the box (the heading's parent), and let it shrink to fit.
+    void FitInside(Transform text, Transform effectHeadingBox)
+    {
+        if (effectHeadingBox != null) FitTextInBox(text, effectHeadingBox.parent as RectTransform, widen: true);
+    }
+
+    /// <summary>Ends <paramref name="text"/> inside <paramref name="box"/> (and shrinks it to fit). widen: also use
+    /// the box's width (not for option boxes: their radio button sits on the right).</summary>
+    void FitTextInBox(Transform text, RectTransform box, bool widen)
+    {
+        if (!(text is RectTransform r) || box == null || r.parent == null) return;
+        if (!r.TryGetComponent(out TMP_Text t)) return;
+        if (!baseFontSize.TryGetValue(t, out float baseSize)) baseFontSize[t] = baseSize = t.fontSize;
+        t.enableAutoSizing = false;
+        t.fontSize = baseSize;
+        var bc = new Vector3[4]; var rc = new Vector3[4];
+        box.GetWorldCorners(bc); r.GetWorldCorners(rc);
+        var parent = (RectTransform)r.parent;
+        float boxBottom = parent.InverseTransformPoint(bc[0]).y + 8f;
+        float textTop = parent.InverseTransformPoint(rc[1]).y;
+        float textBottom = parent.InverseTransformPoint(rc[0]).y;
+        if (textBottom < boxBottom) r.offsetMin += new Vector2(0f, boxBottom - textBottom);   // raise only its bottom edge
+        // It only used a third of the box's width (long effects wrapped to 4 lines): use the box's width.
+        if (widen)
+        {
+            float boxRight = parent.InverseTransformPoint(bc[2]).x - 24f;
+            float textRight = parent.InverseTransformPoint(rc[2]).x;
+            if (textRight < boxRight) r.offsetMax += new Vector2(boxRight - textRight, 0f);
+        }
+        // 28 Nov: auto-size didn't shrink it (the text area was already "big enough"): measure the wrapped text and
+        // step the font down until it really fits between its top and the bottom of the box.
+        float room = textTop - boxBottom;
+        float width = r.rect.width - t.margin.x - t.margin.z;
+        if (room <= 0f || width <= 0f) return;
+        for (float size = baseSize; size >= baseSize * 0.6f; size -= 0.5f)
+        {
+            t.fontSize = size;
+            if (t.GetPreferredValues(t.text, width, 0f).y <= room) break;
+        }
+    }
+    readonly Dictionary<TMP_Text, float> baseFontSize = new Dictionary<TMP_Text, float>();
+
+    readonly HashSet<Transform> gapsClosed = new HashSet<Transform>();
+    /// <summary>Centres <paramref name="desc"/> in the space between <paramref name="title"/> and <paramref name="below"/>
+    /// (decision card: "Choose an Option"; feedback card: the effect box). Once per text object.</summary>
+    void CloseTitleGap(Transform title, Transform desc, Transform below)
+    {
+        if (desc == null || gapsClosed.Contains(desc) || !(title is RectTransform t) || !(desc is RectTransform d) || d.parent == null) return;
+        gapsClosed.Add(desc);
+        // 28 Nov (2nd look): moving it up just moved the empty band below it. Instead the description fills the whole
+        // space between the title and "Choose an Option" (OptionTxt), with its text centred vertically in it, so the
+        // space is even above and below whatever the text length.
+        var parent = (RectTransform)d.parent;
+        var option = below as RectTransform;
+        if (option == null) return;
+        var tc = new Vector3[4]; var dc = new Vector3[4]; var oc = new Vector3[4];
+        t.GetWorldCorners(tc); d.GetWorldCorners(dc); option.GetWorldCorners(oc);
+        const float Margin = 20f;
+        float top = parent.InverseTransformPoint(tc[0]).y - Margin;      // under the title
+        float bottom = parent.InverseTransformPoint(oc[1]).y + Margin;   // above "Choose an Option"
+        float left = parent.InverseTransformPoint(dc[0]).x, right = parent.InverseTransformPoint(dc[2]).x;
+        if (top - bottom < 60f) return;   // unexpected layout: leave it as Shumin placed it
+        var pc = parent.rect.center;
+        d.anchorMin = d.anchorMax = new Vector2(0.5f, 0.5f);
+        d.pivot = new Vector2(0.5f, 0.5f);
+        d.sizeDelta = new Vector2(right - left, top - bottom);
+        d.anchoredPosition = new Vector2((left + right) * 0.5f - pc.x, (top + bottom) * 0.5f - pc.y);
+        if (d.TryGetComponent(out TMP_Text txt)) txt.verticalAlignment = VerticalAlignmentOptions.Middle;
+    }
+
     void ShowShumin(GuidedEvent e)
     {
         Choice picked = null;
         SetText(eventCard, "FeedbackTitleTxt", e.title);
+        // 28 Nov: long titles ("Mission 1: Find What You Need") wrapped onto two lines: shrink to fit one line instead.
+        var titleTf = Find(eventCard, "FeedbackTitleTxt");
+        if (titleTf != null && titleTf.TryGetComponent(out TMP_Text titleTxt))
+        {
+            if (!titleTxt.enableAutoSizing) { titleTxt.fontSizeMax = titleTxt.fontSize; titleTxt.fontSizeMin = titleTxt.fontSize * 0.6f; }
+            titleTxt.enableAutoSizing = true;
+            titleTxt.textWrappingMode = TextWrappingModes.NoWrap;
+        }
         SetText(eventCard, "EventDescriptionTxt", e.text);
+        CloseTitleGap(titleTf, Find(eventCard, "EventDescriptionTxt"), Find(eventCard, "OptionTxt"));
         var confirm = Find(eventCard, "ConfirmBtn");
         Button confirmButton = confirm != null ? confirm.GetComponent<Button>() : null;
         if (confirmButton != null) confirmButton.interactable = false;
@@ -548,6 +810,9 @@ public partial class GuidedChallenge : MonoBehaviour
             var c = e.choices[i];
             SetText(box, "Option Title", c.label);
             SetText(box, "EffectDescriptionTxt (1)", c.feedback);
+            // 28 Nov: two-line effects ran out of the bottom of their option box: shrink to fit instead.
+            // The text's own area reached below the box, so it never shrank: end it inside the box first.
+            FitTextInBox(Find(box, "EffectDescriptionTxt (1)"), box as RectTransform, widen: false);
             if (box.TryGetComponent(out Image boxImage)) boxImage.color = Color.white;
             SelectedDot.Set(Find(box, "SelectionBtn"), false);
             OnClick(box, "SelectionBtn", () =>
@@ -570,10 +835,18 @@ public partial class GuidedChallenge : MonoBehaviour
             if (feedbackCard == null) { eventPanel.gameObject.SetActive(false); Choose(e, chosen); return; }
             ShowEventMascot(true);   // GE-M06 beside the feedback card
             SetText(feedbackCard, "FeedbackTitleTxt", chosen.label);
-            SetText(feedbackCard, "FeedbackDescriptionTxt", chosen.feedback);
+            // 28 Nov: the effect was in the middle AND in the box, and the box heading still said "Option Name"
+            // (Shumin's placeholder): the middle asks the player to watch, the box holds the effect.
+            const string WatchLine = "Watch the animals and the grass over the next few days. What changes?";
+            SetText(feedbackCard, "FeedbackDescriptionTxt", WatchLine);
+            SetText(feedbackCard, "EffectDurationTxt", "Today's effect");
             SetText(feedbackCard, "EffectDescriptionTxt (1)", chosen.feedback);
-            SetText(feedbackCard, "ObservationDescriptionTxt (1)", "Watch the animals and the grass over the next few days. What changes?");
+            SetText(feedbackCard, "ObservationDescriptionTxt (1)", WatchLine);
             feedbackCard.gameObject.SetActive(true);
+            Canvas.ForceUpdateCanvases();   // its rects are laid out now that it's shown
+            FitInside(Find(feedbackCard, "EffectDescriptionTxt (1)"), effectHeadingBox: Find(feedbackCard, "EffectDurationTxt"));
+            var effectHeading = Find(feedbackCard, "EffectDurationTxt");
+            CloseTitleGap(Find(feedbackCard, "FeedbackTitleTxt"), Find(feedbackCard, "FeedbackDescriptionTxt"), effectHeading != null ? effectHeading.parent : null);
             OnClick(feedbackCard, "ContinueBtn", () =>
             {
                 feedbackCard.gameObject.SetActive(false);
@@ -596,11 +869,11 @@ public partial class GuidedChallenge : MonoBehaviour
 
     void UpdatePill()
     {
-        if (pill != null) pill.text = $"Guided challenge · Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}";
+        if (pill != null) pill.text = $"Guided challenge · Day {Day}";   // 28 Nov (Shumin): no "/ 20", the story isn't a fixed day count
         if (FindShuminUI())   // Shumin's DayPanel: "Day 12 / 20 | Summer" in the mock-up
         {
             // One line across the whole panel: the season box alone was too narrow to read on a tablet.
-            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Mathf.Min(Day, ChallengeDays)} / {ChallengeDays}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");   // weather word dropped: the icon beside the pill shows it
+            SetText(shuminRoot, "DayCounterTxt", $"<b>Day {Day}</b>   {SeasonWeather.CurrentSeason} · {SeasonWeather.Describe(SeasonWeather.CurrentWeather)} · {SeasonWeather.Temperature:0}°C");   // weather word dropped: the icon beside the pill shows it
             if (!dayPanelStyled) StyleDayPanel();
         }
         if (pillBox != null && pillBox.activeSelf == SimHud.Active) pillBox.SetActive(!SimHud.Active);   // Shumin's DayPanel shows it
@@ -623,6 +896,8 @@ public partial class GuidedChallenge : MonoBehaviour
         pillBox = Box(root, "Day pill", new Vector2(1f, 0f), new Vector2(-30f, 30f), new Vector2(520f, 70f), new Color(0.08f, 0.1f, 0.14f, 0.8f), new Vector2(1f, 0f));
         pill = Label(pillBox.transform, "", 30f, Color.white);
 
+        BuildMissionUI(root);   // tracker first, so every popup in this canvas draws over it
+
         // Decision popup.
         popup = Dim(root, "Decision");
         var card = Box(popup.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 760f), new Color(0.97f, 0.97f, 0.95f, 1f));
@@ -639,6 +914,7 @@ public partial class GuidedChallenge : MonoBehaviour
         popup.SetActive(false);
 
         BuildChapterUI(root);   // SCRUM-374
+        BuildEventMissionUI(root);   // M3 event missions (BS/SL), under the ending screen
 
         // Ending screen.
         endPanel = Dim(root, "Ending");

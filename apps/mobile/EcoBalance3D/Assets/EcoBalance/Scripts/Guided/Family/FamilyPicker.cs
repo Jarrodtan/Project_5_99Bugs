@@ -15,6 +15,8 @@ public static partial class ScreenFlow
     {
         if (familyPicker != null) return;
         Mascot.HoldForLoading();   // the Mode Selection mascot stops talking and hides while the picker is open
+        // Recorded VO (UXGD, VoiceOver_M3/Scripts/Animal Selection.wav), voice only.
+        Mascot.Speak("Every animal has a story to tell. Would you like to follow Milo the Blue Sheep, or Snowy the Snow Leopard, on their adventure?");
 
         var canvasGo = new GameObject("[Family Picker]", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         familyPicker = canvasGo;
@@ -40,7 +42,7 @@ public static partial class ScreenFlow
         backEdge.effectColor = Brown;
         backEdge.effectDistance = new Vector2(3f, -3f);
 
-        FamilyChoice(card.transform, new Vector2(-355f, -20f), FamilyStory.BlueSheep, false, "Milo", "Blue Sheep",
+        FamilyChoice(card.transform, new Vector2(-355f, -20f), FamilyStory.BlueSheep, false, "Miloy", "Blue Sheep",
             "A curious young lamb who lives with his mum and sibling in the herd. He eats grass and must watch out for Snow Leopards.");
         FamilyChoice(card.transform, new Vector2(355f, -20f), FamilyStory.SnowLeopard, true, "Snowy", "Snow Leopard",
             "A young cub who lives with her mother and sibling. Her mum hunts Blue Sheep to feed the family.");

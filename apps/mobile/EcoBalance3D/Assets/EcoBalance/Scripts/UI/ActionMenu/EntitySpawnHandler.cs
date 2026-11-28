@@ -446,7 +446,7 @@ public class EntitySpawnHandler : MonoBehaviour, IActionMenuCategoryHandler, IIs
 
         surface.collectObjects = CollectObjects.All;
         surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
-        surface.layerMask = ~0;
+        surface.layerMask = ~(1 << 2);   // skip "Ignore Raycast" (decor trees)
         surface.defaultArea = 0;
     }
 

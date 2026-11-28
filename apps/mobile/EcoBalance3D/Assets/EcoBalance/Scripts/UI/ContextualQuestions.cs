@@ -207,7 +207,7 @@ public class ContextualQuestions : MonoBehaviour
         Count();
         if (runStartDay < 0f && sheep + leopards > 0) runStartDay = Day;
 
-        if (watching != null && !Showing)
+        if (watching != null && !Showing && !OtherPopupOpen())   // 28 Nov: the outcome waits for the Field Journal to close (it paused the run under it)
         {
             foreach (var o in watching.outcomes)
                 if (o.happened()) { ShowOutcome(watching, o); break; }
@@ -244,8 +244,7 @@ public class ContextualQuestions : MonoBehaviour
         else { vegWasLow = false; lowVegSinceDay = -1f; }
     }
 
-    static bool OtherPopupOpen() =>
-        UnityEngine.SceneManagement.SceneManager.GetSceneByName(ScreenFlow.Journal).isLoaded;
+    static bool OtherPopupOpen() => ScreenFlow.JournalOpen;   // open or still loading
 
     // ---------- Flow: question -> prediction feedback -> (watch) -> what happened ----------
 

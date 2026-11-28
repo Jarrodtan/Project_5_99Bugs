@@ -30,6 +30,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         // from the last run: start fresh.
         GuidedMode = false;
         journalReturn = Home;
+        journalLoading = closeJournalWhenLoaded = false;
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
@@ -86,6 +87,13 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
                 Mascot.SetMenuLine(scene, Mascot.ConfigureLine);
                 break;
             case Journal:
+                journalLoading = false;
+                if (mode == LoadSceneMode.Additive && closeJournalWhenLoaded)   // closed (e.g. a Guided ending) while it was loading
+                {
+                    closeJournalWhenLoaded = false;
+                    SceneManager.UnloadSceneAsync(scene);
+                    break;
+                }
                 if (mode == LoadSceneMode.Additive) { SetUpJournalOverlay(scene); On("BackBtn", CloseJournalOverlay); }
                 else On("BackBtn", () => Load(journalReturn));
                 FieldJournalScreen.Attach(scene);   // tabs, Investigations and Observations pages
@@ -106,7 +114,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         On("SettingBtn", OpenVolume);
         if (buttons.TryGetValue("SettingBtn", out var settings))
             foreach (var b in settings) ButtonCaption.Ensure(b, "Sound", 20f);
-        AudioListener.volume = Volume;
+        AudioPrefs.Apply();
     }
 
     // Yande's FAB (add animals, island swap, season / weather / hazard) is a prototype: the design says
@@ -153,11 +161,24 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         Btn(card.transform, "Stay", new Vector2(-x, -110f), new Color(0.3f, 0.62f, 0.38f), () => { confirm.SetActive(false); if (wasRunning && speed != null) speed.Play(); });
         if (canSave) Btn(card.transform, "Save & Exit", new Vector2(0f, -110f), new Color(0.28f, 0.5f, 0.75f), () => { GuidedChallenge.SaveNow(); Load(Modes); });
         Btn(card.transform, "Leave", new Vector2(x, -110f), new Color(0.55f, 0.55f, 0.55f), () => Load(Modes));
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): doc, Reset & Replay Rules, "Restart Story": the same story from
+        // Day 1 (starting animals, grass, needs, time and season); endings and badges already found are kept.
+        if (canSave)
+        {
+            ((RectTransform)card.transform).sizeDelta = new Vector2(1160f, 560f);
+            var restart = Btn(card.transform, "Start over", new Vector2(0f, -225f), new Color(0.95f, 0.55f, 0.2f), RestartGuided);
+            ((RectTransform)restart.transform).sizeDelta = new Vector2(1060f, 90f);
+            foreach (Transform t in card.transform)
+                if (t != restart.transform && t.TryGetComponent(out RectTransform r)) r.anchoredPosition += new Vector2(0f, 70f);
+        }
         StyleLikeShumin(card, "Leave");
         confirm.SetActive(false);
+        leaveConfirm = confirm;
         openConfirm = () =>
         {
             Mascot.Hide();   // stop the mascot talking first (it may have paused the sim itself)
+            // 28 Nov: Guided story not started yet (intro card still up): nothing to save or lose, just leave.
+            if (GuidedMode && GuidedChallenge.IntroPending) { Load(Modes); return; }
             wasRunning = speed != null && speed.IsRunning;
             if (speed != null) speed.Pause();
             confirm.SetActive(true);
@@ -181,6 +202,9 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
 
     class LeaveMarker : MonoBehaviour { }
     static System.Action openConfirm;
+    static GameObject leaveConfirm;
+    /// <summary>The "Leave the story / simulation?" box is up.</summary>
+    public static bool LeaveOpen => leaveConfirm != null && leaveConfirm.activeSelf;
 
     /// <summary>Opens the "Leave?" box (Back, Field Journal and View More in the simulation HUD).</summary>
     public static void ShowLeaveConfirm() { if (openConfirm != null) openConfirm(); else Load(Modes); }
@@ -217,17 +241,23 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
     }
 
     // ---------- Field Journal on top of a running simulation ----------
-    static bool journalWasRunning;
 
-    /// <summary>Opens the Field Journal over the simulation, paused; its Back button returns to the same run.</summary>
+    /// <summary>The Field Journal is open (on top of a simulation or on its own), or opening: it loads over a few
+    /// frames, and nothing should start talking or pop up under it meanwhile.</summary>
+    public static bool JournalOpen => journalLoading || SceneManager.GetSceneByName(Journal).isLoaded;
+    static bool journalLoading, closeJournalWhenLoaded;
+
+    /// <summary>
+    /// Opens the Field Journal over the simulation; its Back button returns to the same run. The run keeps
+    /// going as it was (running or paused), so the Observations graph moves while the player watches it.
+    /// </summary>
     public static void OpenJournalOverlay()
     {
-        if (SceneManager.GetSceneByName(Journal).isLoaded) return;
+        if (JournalOpen) return;
         Mascot.NoteJournalOpened();
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
-        journalWasRunning = speed != null && speed.IsRunning;
-        if (speed != null) speed.Pause();
+        Mascot.Hide();   // like the Leave box: a mascot line may have paused the run, and it would be hidden under the journal
         OverlayAudio.Hush();   // same as the Ending Gallery: music on, river and animals quiet (restored when it closes)
+        journalLoading = true;
         SceneManager.LoadSceneAsync(Journal, LoadSceneMode.Additive);
     }
 
@@ -243,17 +273,14 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         }
     }
 
-    static void CloseJournalOverlay()
+    /// <summary>Closes the journal opened over the simulation (Back, or the Guided challenge ending).</summary>
+    public static void CloseJournalOverlay()
     {
-        SceneManager.UnloadSceneAsync(Journal);
-        var speed = Object.FindFirstObjectByType<SimulationSpeedController>();
-        if (journalWasRunning && speed != null) speed.Play();
+        if (SceneManager.GetSceneByName(Journal).isLoaded) SceneManager.UnloadSceneAsync(Journal);
+        else if (journalLoading) closeJournalWhenLoaded = true;
     }
 
-    // ---------- Volume (all sound: music, animals, river), kept between runs ----------
-    const string VolumeKey = "EcoBalance.Volume";
-    static float Volume => PlayerPrefs.GetFloat(VolumeKey, 1f);
-
+    // ---------- Volume: Music / Voice / Sounds sliders (AudioPrefs), kept between runs ----------
     static void OpenVolume()
     {
         var canvasGo = new GameObject("[Volume Canvas]", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -266,32 +293,42 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         scaler.matchWidthOrHeight = 0.5f;
 
         var dim = Rect(canvasGo.transform, "Dim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
-        dim.AddComponent<Button>().onClick.AddListener(() => Object.Destroy(canvasGo));   // tap outside to close
-        var card = Rect(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        dim.AddComponent<Button>().onClick.AddListener(() => { PlayerPrefs.Save(); Object.Destroy(canvasGo); });   // tap outside to close
+        var card = Rect(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 620f), new Color(0.97f, 0.97f, 0.95f, 1f));
         card.AddComponent<Button>().transition = UnityEngine.UI.Selectable.Transition.None;   // taps on the card don't close it
-        Text(card.transform, "Sound volume", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 130f), new Vector2(820f, 80f));
+        Text(card.transform, "Sound Settings", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 240f), new Vector2(820f, 80f));
 
-        var slider = DefaultControls.CreateSlider(new DefaultControls.Resources());
-        slider.transform.SetParent(card.transform, false);
-        var srt = (RectTransform)slider.transform;
-        srt.anchoredPosition = new Vector2(0f, 10f);
-        srt.sizeDelta = new Vector2(700f, 60f);
-        var handle = slider.transform.Find("Handle Slide Area/Handle") as RectTransform;
-        if (handle != null) handle.sizeDelta = new Vector2(60f, 0f);   // finger-sized
-        var fill = slider.transform.Find("Fill Area/Fill");
-        if (fill != null) fill.GetComponent<Image>().color = new Color(0.3f, 0.62f, 0.38f);
-        var s = slider.GetComponent<Slider>();
-        s.minValue = 0f; s.maxValue = 1f; s.value = Volume;
-        s.onValueChanged.AddListener(v =>
-        {
-            AudioListener.volume = v;
-            PlayerPrefs.SetFloat(VolumeKey, v);
-        });
+        VolumeRow(card.transform, "Music", 120f, AudioPrefs.Music, v => AudioPrefs.Music = v);
+        VolumeRow(card.transform, "Voice", 10f, AudioPrefs.Voice, v => AudioPrefs.Voice = v);
+        VolumeRow(card.transform, "Sound Effects", -100f, AudioPrefs.Sounds, v => AudioPrefs.Sounds = v);
 
-        Btn(card.transform, "Done", new Vector2(0f, -130f), new Color(0.3f, 0.62f, 0.38f), () => { PlayerPrefs.Save(); Object.Destroy(canvasGo); });
+        Btn(card.transform, "Done", new Vector2(0f, -230f), new Color(0.3f, 0.62f, 0.38f), () => { PlayerPrefs.Save(); Object.Destroy(canvasGo); });
         StyleLikeShumin(card, null);
-        // Slider in the same palette: brown track, green fill, round green knob.
-        var bg = slider.transform.Find("Background");
+        foreach (var t in card.GetComponentsInChildren<Slider>(true)) StyleSlider(t);   // after the card style, so the knob keeps its look
+    }
+
+    // One labelled slider row (finger-sized knob).
+    static void VolumeRow(Transform card, string label, float y, float value, UnityEngine.Events.UnityAction<float> changed)
+    {
+        Text(card, label, 32f, new Color(0.22f, 0.16f, 0.1f), new Vector2(-290f, y), new Vector2(250f, 60f));
+        var slider = DefaultControls.CreateSlider(new DefaultControls.Resources());
+        slider.transform.SetParent(card, false);
+        var srt = (RectTransform)slider.transform;
+        srt.anchoredPosition = new Vector2(120f, y);
+        srt.sizeDelta = new Vector2(520f, 50f);
+        var s = slider.GetComponent<Slider>();
+        s.minValue = 0f; s.maxValue = 1f; s.value = value;
+        s.onValueChanged.AddListener(changed);
+    }
+
+    // Shu Min's palette: brown track, green fill, round green knob.
+    static void StyleSlider(Slider s)
+    {
+        var handle = s.transform.Find("Handle Slide Area/Handle") as RectTransform;
+        if (handle != null) handle.sizeDelta = new Vector2(56f, 0f);
+        var fill = s.transform.Find("Fill Area/Fill");
+        if (fill != null) fill.GetComponent<Image>().color = new Color(0.3f, 0.62f, 0.38f);
+        var bg = s.transform.Find("Background");
         if (bg != null) bg.GetComponent<Image>().color = new Color(0.86f, 0.78f, 0.62f);
         if (handle != null)
         {
@@ -410,7 +447,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
 
         var dim = Rect(canvasGo.transform, "Resume", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.55f));
         var card = Rect(dim.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1160f, 420f), new Color(0.97f, 0.97f, 0.95f, 1f));
-        Text(card.transform, $"Continue {(GuidedChallenge.SavedStory == FamilyStory.SnowLeopard ? "Snowy" : "Milo")}'s story?\n<size=70%>You saved on Day {GuidedChallenge.SavedDay} of {GuidedChallenge.ChallengeDays}.</size>", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(1080f, 200f));
+        Text(card.transform, $"Continue {(GuidedChallenge.SavedStory == FamilyStory.SnowLeopard ? "Snowy" : "Miloy")}'s story?\n<size=70%>You saved on Day {GuidedChallenge.SavedDay}.</size>", 48f, new Color(0.12f, 0.16f, 0.2f), new Vector2(0f, 60f), new Vector2(1080f, 200f));
         Btn(card.transform, "Continue", new Vector2(-370f, -110f), new Color(0.3f, 0.62f, 0.38f), () =>
         {
             if (!GuidedChallenge.PrepareResume(out int sheep, out int leopards)) { StartSimulation(true); return; }

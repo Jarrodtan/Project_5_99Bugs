@@ -11,7 +11,7 @@
 | Plants/Resources System            | Wei Leong (T03) | Basic depletion/regeneration                         | Full resource loop integrated                   | Balanced/tuned                            |
 | Ecosystem Simulation Core          | Wei Leong, Reginald (T03) | Tick loop functional with mock data                  | Full integration across all systems             | Stable, performant                        |
 | Simulation Data Tracking           | Wei Leong (population history), Li Juan (T05 CSV export); display: Yan De, Dillon (T04) | Basic tick recording                                 | Per-day history recorded; feeds real UI graph (done: `PopulationHistory`) | Polished, CSV export (done in M2: `DataLogging`, one row per tick) |
-| Guided Exploration                 | Wei Leong (tech), Shu Min (design) | —                                                    | 20-day challenge, events, endings, gallery (done, on Shu Min's Guided HUD, ending and gallery screens) | More events, balanced endings             |
+| Guided Exploration                 | Wei Leong (tech), Shu Min (design), Dillon (endings, achievements) | —                                                    | 20-day challenge, events, endings, gallery (done, on Shu Min's Guided HUD, ending and gallery screens) | Done: 4 seasonal chapters, save/resume, event library missions, daily missions + achievements, endings + Retry |
 | Contextual Trigger System          | Wei Leong (engine), Dillon (UI), design (case content) | Basic threshold detection                            | Investigation cases unlock in Free Exploration (done: `CaseDetector`); fires real UI prompts | Tuned, full case list |
 | Simulation Time Control            | Reginald (T03) | Play/pause functional                                | Speed control added (done; 1 real minute per day, seasons of 5 days) | Full reset/reconfigure                    |
 | Visualization/Feedback System      | Wei Leong | Placeholder agents spawn/despawn by population count | Real 3D models (from UXGD design) + animations wired to AI state | Polished, environmental feedback complete |
@@ -20,9 +20,29 @@
 | Animal Models/Animations           | Models: Nomitha, Li Juan; animation: Wei Leong (SCRUM-267) | Placeholder models                                   | Real sheep/leopard models + core animation set (done: our procedural animation module `packages/procanim`: walk/run/flee/stalk, eat/drink, alert, swim (crossing fords, 3 Nov), legs/head/tail, child-friendly death) | Full animation set complete               |
 | CI/CD pipeline                     | Wei Leong (#4, #5) | Tests + Android build on every PR | Repo checks + tests (+ perf history) on PRs into `main`, no nightly run; APK on tags/manual to Gitea (`docs/infra/ci.md`) | Headless soak test on the VM, performance history |
 
+## M3 status and open tasks (updated Sat 28 Nov)
+
+**Schedule:** feature freeze **Fri 27 Nov, 11:59pm** → Sat 28 Nov: `M3-Integration` → `main` (one reviewed PR), final build + zip `GAM300_M3_Team21_...` → live presentation **Mon 30 Nov**.
+
+Integration build: branch `M3-Integration` (teammates' branches merged in, only the final PR to `main` is reviewed). Do **not** merge `Nomitha` / `Nomitha-new` / `Nomitha2` as whole branches: they contain a revert of `M3-Integration` that would delete M3 code; their assets were brought in by commit.
+
+**Done for M3:** Guided as the main mode with a named family (Miloy the Blue Sheep / Snowy the Snow Leopard), 4 seasonal chapters, Save & Exit / resume, 3 camera views, thought bubbles, player actions (fire, planting), weather (rain, snow, heatwave) with visuals, 6x real Khumbu map with UXGD trees by real land-cover, offline elevation tiles, faster load, recorded VO + AI placeholders, past runs with stars in the Field Journal, Sound Settings (Music / Voice / Sound Effects), demo hotkeys, focal animal protection (Miloy), Free Exploration wildlife checklist, pre-baked NavMesh (no loading card), 60 FPS + HDR off on tablets, honest Going to drink / Drinking labels. **Added 27–28 Nov:** Dillon's endings + Retry, 3 daily missions with achievements (Resource Explorer, Survival Guardian, Ecosystem Guardian) and animated graphs; Shu Min's event library missions BS01, BS02, BS03-F (Miloy) and SL01 (Snowy), where the child finds, taps or plants in the 3D world (M demo key); mission and decision cards are read, not voiced, and carry no mascot (Shu Min's design). Details: [architecture.md, section 3b](architecture.md).
+
+| Person | Role | Open for M3 |
+| --- | --- | --- |
+| Shu Min | UXGD, PM | Done 28 Nov: event library missions BS01–BS03-F, SL01 (tech: Wei Leong). Open: rename Milo → Miloy in AnimalSelection / MeetAnimal scenes; design doc PDF: ages 7–9, Miloy; event library feasibility with tech |
+| Nomitha | UXGD, Design Lead | Re-record "Milo" lines as "Miloy" if time; realistic grass / rock / snow textures (M4) |
+| Dillon | IMGD | Done 28 Nov: Endings + Retry (SCRUM-376), 3 achievements / daily missions (SCRUM-377), animated graphs, merged into `main`. M4: Field Journal alignment, more achievements once the design list is final |
+| Zhi Jie | IMGD | Done: named family, focal animal protection rule (SCRUM-381) |
+| Reginald | IMGD | Done: flocking, hotkeys 1–5; check hunting / pathing with trees (trunks are Not Walkable) |
+| Yan De | IMGD | Done: camera modes, thought bubbles, wildlife checklist (SCRUM-391, merged 26 Nov; PR #74 closed as it went in through `M3-Integration`) |
+| Yusuf | IMGD | Done: bigger map |
+| Li Juan | IMGD | Done: CSV outside Assets, past runs + stars, mascot button SFX, rain / snow effects, spatial audio |
+| Wei Leong | RTIS, Tech Lead | Done: chapters, save, fire, planting, family wiring, VO wiring, trees, offline tiles, NavMesh speed-up + pre-baked NavMesh, Sound Settings, 60 FPS on tablets, checklist + label fixes. Left: tablet test, PR → `main`, final build + zip |
+
 ## M2 status and open tasks (updated 7 Nov)
 
-**Schedule:** code freeze **Fri 6 Nov 23:59** → Sat 7 Nov: `M2-Integration` → `main` (reviewed PR), `M2-Submission` branch, tag `v0.2-m2` (APK), tablet test, recordings (demo 5 min, engine 5 min, presentation) → submission **Sun 8 Nov**.
+**Schedule:** code freeze **Fri 6 Nov, 11:59pm** → Sat 7 Nov: `M2-Integration` → `main` (reviewed PR), `M2-Submission` branch, tag `v0.2-m2` (APK), tablet test, recordings (demo 5 min, engine 5 min, presentation) → submission **Sun 8 Nov**.
 
 Team: 2 UXGD (Shu Min, PM; Nomitha, Design Lead), 6 IMGD programmers, 1 RTIS (Wei Leong, Tech Lead). Integration build: branch `M2-Integration` (merge into it, not `main`, until the submission).
 
@@ -39,3 +59,6 @@ Team: 2 UXGD (Shu Min, PM; Nomitha, Design Lead), 6 IMGD programmers, 1 RTIS (We
 | Yusuf | IMGD | Hunting camouflage done (merged 2 Nov); left: pink mountains (shows in Guided and Free, fix before the recording) |
 | Li Juan | IMGD | CSV data logging + animal / river audio merged 2 Nov (her own commits, not the old branch); left: Tree column is 0 on the Khumbu terrain, finish the stream audio. Start new work from `M2-Integration` |
 | Wei Leong | RTIS, Tech Lead | Done 7 Nov: polish from playtesting: Back before Start in both modes, Guided intro blocks the run until Start (mascot, Settings, Back still usable), animal icons in the HUD and Guided intro, Enough / Low / Very low pills with colours, 22 px minimum text (menus + Guided HUD, Mode Selection re-laid out), opening prediction CQ00 in every Free run, Free +/- fixed (was +2), Shu Min's 7 Nov UI edits merged. Done 5 Nov: merged Shu Min's buttons UI, Zhi Jie's mascot, Nomitha's leopard animation; river fords (SCRUM-320); crowded-run freeze fix + Free max 50 (SCRUM-321); reverted PR #61 on `main` (FAB emptied the world; Yande's water fix kept). Left: PR `M2-Integration` → `main`, `M2-Submission` + tag `v0.2-m2` (SCRUM-262), engine video |
+
+---
+*Drafted with AI assistance: Claude Code (Claude Opus 5.5, claude-opus-5-5). Reviewed and edited by Tan Wei Leong.*

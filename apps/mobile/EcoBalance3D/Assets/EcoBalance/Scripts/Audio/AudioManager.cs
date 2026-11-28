@@ -28,6 +28,7 @@ public class AudioManager : MonoBehaviour
 
     public void Start()
     {
+        AudioPrefs.Apply();   // saved Music / Sound Effects volumes on the BGM, ambience and click sources
         if (menu != null)
         {
             menu.TransitionTo(2.0f);

@@ -37,3 +37,5 @@
 *.r16  filter=lfs diff=lfs merge=lfs -text
 # TextMesh Pro font atlases baked from a font file are 8-13 MB each
 *SDF.asset filter=lfs diff=lfs merge=lfs -text
+# Pre-baked NavMesh (binary, ~9 MB per map setup); the text/eol rule for *.asset would corrupt it
+PrebakedNavMesh.asset filter=lfs diff=lfs merge=lfs -text

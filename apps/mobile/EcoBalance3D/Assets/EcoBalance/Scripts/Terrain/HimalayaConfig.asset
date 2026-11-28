@@ -22,15 +22,15 @@ MonoBehaviour:
   verticalExaggeration: 1
   areaSizeKm: 50
   landCover: {fileID: 2800000, guid: f6d98535ab794042979f0ae6f3694e82, type: 3}
-  treeLineMeters: 4200
+  treeLineMeters: 4800
   treeFadeMeters: 800
   maxTreeSlope: 35
   treeSpacing: 4
-  maxTrees: 0
+  maxTrees: 1500
   treesPerCount: 40
   treeDensity: 0.8
   snowLineMeters: 5200
-  rockSlope: 38
+  rockSlope: 30
   grassClasses: 1e00000014000000i
   grassPatches: 100
   maxWaterPatches: 160

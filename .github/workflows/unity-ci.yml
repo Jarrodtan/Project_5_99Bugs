@@ -177,6 +177,8 @@ jobs:
             # Development APKs get a -dev suffix so they're easy to tell apart.
             if [ "${{ github.event.inputs.buildType }}" = development ]; then VER="$VER-dev"; fi
           fi
+          # A tag that was moved (e.g. v0.3-m3 re-pointed at a fix) already has an APK: replace it (Gitea answers 409 otherwise).
+          curl -fsS -X DELETE --user "$AUTH" "$API/api/packages/$OWNER/generic/$PKG/$VER" || true
           curl -fsS --user "$AUTH" --upload-file "$APK"             "$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance.apk"
           URL="$API/api/packages/$OWNER/generic/$PKG/$VER/EcoBalance.apk"
           echo "### APK: [$VER]($URL)" >> "$GITHUB_STEP_SUMMARY"

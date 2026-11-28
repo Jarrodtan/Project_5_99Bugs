@@ -21,12 +21,17 @@ public static class FieldJournalInstaller
         var go = sim.gameObject;
         var recorder = go.GetComponent<PopulationHistoryRecorder>();
         if (recorder == null) recorder = go.AddComponent<PopulationHistoryRecorder>();
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): grass / water eaten, famine level. The starting state may
+        // already be recorded without them; the graph and the notes start those lines from the next sample.
+        var meter = go.GetComponent<ResourceUseMeter>();
+        if (meter == null) go.AddComponent<ResourceUseMeter>().recorder = recorder;
         var days = go.GetComponent<PopulationHistoryDays>();
         if (days == null) (days = go.AddComponent<PopulationHistoryDays>()).recorder = recorder;
-        FieldJournalObservations.Track(recorder, days, sim);
+        FieldJournalObservations.Track(recorder, days, sim, foodAndWater: true);
 
         // Investigations are a Free Exploration feature; Guided has its own events and endings.
         if (ScreenFlow.GuidedMode) return;
+        WildlifeChecklist.Install(go);
 
         var detector = go.GetComponent<CaseDetector>();
         if (detector == null) detector = go.AddComponent<CaseDetector>();
@@ -99,7 +104,7 @@ public class CaseDiscoveryToast : MonoBehaviour
         if (c != null) queue.Enqueue(c);
     }
 
-    static bool JournalOpen => SceneManager.GetSceneByName(ScreenFlow.Journal).isLoaded;
+    static bool JournalOpen => ScreenFlow.JournalOpen;
 
     void Update()
     {

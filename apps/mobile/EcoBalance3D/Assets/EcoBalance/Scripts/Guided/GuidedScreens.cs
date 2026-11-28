@@ -15,11 +15,20 @@ public static class GuidedScreens
 {
     public const string EndingScene = "EndingScreen", GalleryScene = "EndingGallery";
 
-    public struct Result { public int ending; public bool isNew; public int day, sheep, leopards; public float vegetation; }
+    public struct Result
+    {
+        public int ending; public bool isNew; public int day, sheep, leopards; public float vegetation;
+        /// <summary>Whether Miloy / Snowy survived (doc, Ending Presentation step 3).</summary>
+        public string focal;
+        public bool focalDied;   // Miloy / Snowy died before the last day (the story ended early)
+        /// <summary>Badges unlocked during this run (shown on the ending screen).</summary>
+        public string[] newBadges;
+    }
+    public static Result Last => last;
     static Result last;
 
-    // Gallery order: best to worst, as the children would read it (indexes into GuidedChallenge.Endings).
-    static readonly int[] GalleryOrder = { 3, 4, 1, 2, 0 };
+    // Gallery order: best to worst, as the children would read it (indexes into GuidedEndings.All).
+    static int[] GalleryOrder => GuidedEndings.GalleryOrder;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Hook()
@@ -96,13 +105,17 @@ public static class GuidedScreens
     static void FillEnding(Transform root)
     {
         if (root == null) return;
-        var (title, text, lesson) = GuidedChallenge.Endings[last.ending];
-        SetText(root, "EndingTitleTxt", title);
-        SetText(root, "CompletionSubtitleTxt", last.day >= GuidedChallenge.ChallengeDays
-            ? $"You finished all {GuidedChallenge.ChallengeDays} days!" + (last.isNew ? " New ending unlocked!" : "")
-            : $"The challenge ended on Day {last.day}." + (last.isNew ? " New ending unlocked!" : ""));
-        SetText(root, "OutcomeDescriptionTxt", text);
-        SetText(root, "LearningDescriptionTxt", lesson);
+        var e = GuidedEndings.All[last.ending];
+        SetText(root, "EndingTitleTxt", e.title);
+        // Doc, Ending Presentation: say whether Miloy / Snowy survived to the end or died earlier.
+        string focal = !string.IsNullOrEmpty(last.focal) ? last.focal
+            : last.day >= GuidedChallenge.ChallengeDays ? "You made it through all four seasons!" : $"The challenge ended on Day {last.day}.";
+        SetText(root, "CompletionSubtitleTxt", focal);
+        SetText(root, "OutcomeDescriptionTxt", e.description);
+        SetText(root, "LearningDescriptionTxt", e.takeaway);
+        FitBox(Find(root, "OutcomeDescriptionTxt"));
+        FitBox(Find(root, "LearningDescriptionTxt"));
+        FitOneLine(Find(root, "CompletionSubtitleTxt"));
         SetText(Find(root, "GrassCard"), "ValueTxt", $"{last.vegetation:0}%");
         SetText(Find(root, "AnimalCard01"), "ValueTxt", last.sheep.ToString());
         SetText(Find(root, "AnimalCard02"), "ValueTxt", last.leopards.ToString());
@@ -112,6 +125,7 @@ public static class GuidedScreens
         SimHud.SetIcon(Find(Find(root, "AnimalCard02"), "AnimalImage"), SimHud.AnimalIcon(true));
         FitOneLine(Find(root, "EndingTitleTxt"));
         SetText(root, "ProgressTxt", Progress());
+        EndingCelebration.Play(root, last, e);   // illustration, badges, "New ending!" burst, counters
         OnClick(root, "ExploreAgainBtn", ScreenFlow.RestartGuided);
         OnClick(root, "ViewEndingGalleryBtn", OpenGallery);
         OnClick(root, "BackToMenuBtn", ScreenFlow.GoHome);
@@ -124,19 +138,23 @@ public static class GuidedScreens
         if (root == null) return;
         var overview = Find(root, "GalleryOverviewPanel");
         var detail = Find(root, "GalleryDetailPanel");
-        int mask = PlayerPrefs.GetInt(GuidedChallenge.GalleryKey, 0);
         int shown = 0;
 
+        // Doc, Ending Gallery: only unlocked endings open; the arrows step between unlocked ones.
         void ShowDetail(int slot)
         {
-            shown = (slot + GalleryOrder.Length) % GalleryOrder.Length;
+            int n = GalleryOrder.Length;
+            shown = (slot % n + n) % n;
             int i = GalleryOrder[shown];
-            bool got = (mask & (1 << i)) != 0;
+            if (!GuidedEndings.IsUnlocked(i)) return;
+            var e = GuidedEndings.All[i];
             var box = Find(detail, "GalleryDetailBox");
-            SetText(box, "EndingTitleTxt", got ? GuidedChallenge.Endings[i].title : "???");
-            SetText(box, "EndingDescriptionTxt", got ? GuidedChallenge.Endings[i].text : $"Ending {shown + 1} of {GalleryOrder.Length}. Not discovered yet. Try different choices!");   // locked pages looked the same, so the arrows seemed dead
-            SetText(Find(box, "ExplanationBox01"), "WhatThisMeansTxt (1)", got ? GuidedChallenge.Endings[i].lesson : "");
-            SetText(Find(box, "ExplanationBox02"), "WhatThisMeansTxt (1)", got ? "Play again and try different choices to find the other endings." : "");
+            SetText(box, "EndingTitleTxt", e.title);
+            SetText(box, "EndingDescriptionTxt", e.description);
+            SetText(Find(box, "ExplanationBox01"), "WhatThisMeansTxt (1)", e.meaning);     // What this means
+            SetText(Find(box, "ExplanationBox02"), "WhatThisMeansTxt (1)", e.takeaway);    // What did we learn?
+            FitBox(Find(Find(box, "ExplanationBox02"), "WhatThisMeansTxt (1)"));
+            EndingCelebration.Illustrate(box, i, true);
             // [AI-GENERATED] Claude Code (Claude Opus 5.5): "Ecosystem Collapse" wrapped onto two lines over the
             // description, and long descriptions were cut off: title on one line, text shrinks to fit its box.
             FitOneLine(Find(box, "EndingTitleTxt"));
@@ -144,6 +162,17 @@ public static class GuidedScreens
             FitBox(Find(Find(box, "ExplanationBox01"), "WhatThisMeansTxt (1)"));
             overview.gameObject.SetActive(false);
             detail.gameObject.SetActive(true);
+        }
+
+        // Arrows on the detail page: the next unlocked ending that way (locked ones can't be opened).
+        void Step(int dir)
+        {
+            for (int k = 1; k <= GalleryOrder.Length; k++)
+            {
+                int slot = shown + dir * k;
+                int n = GalleryOrder.Length;
+                if (GuidedEndings.IsUnlocked(GalleryOrder[(slot % n + n) % n])) { ShowDetail(slot); return; }
+            }
         }
 
         void ShowOverview()
@@ -160,15 +189,17 @@ public static class GuidedScreens
                 var card = Find(overview, $"EndingCard0{slot + 1}");
                 if (card == null) continue;
                 int i = GalleryOrder[slot];
-                bool got = (mask & (1 << i)) != 0;
-                SetText(card, "EndingTitleTxt", got ? GuidedChallenge.Endings[i].title : "???");
-                SetText(card, "CardDescriptionTxt", got ? GuidedChallenge.Endings[i].lesson : "Not discovered yet");
+                bool got = GuidedEndings.IsUnlocked(i);
+                SetText(card, "EndingTitleTxt", got ? GuidedEndings.All[i].title : "???");
+                SetText(card, "CardDescriptionTxt", got ? GuidedEndings.All[i].card : "Not discovered yet. Keep exploring!");
+                EndingCelebration.Illustrate(card, i, got);
                 FitOneLine(Find(card, "EndingTitleTxt"));   // "Ecosystem Collapse" wrapped onto the description
                 FitBox(Find(card, "CardDescriptionTxt"));    // long lessons were cut off
                 var unlocked = Find(card, "UnlockedStatus"); if (unlocked != null) unlocked.gameObject.SetActive(got);
                 var locked = Find(card, "LockedStatus"); if (locked != null) locked.gameObject.SetActive(!got);
                 int s = slot;
-                OnClick(card, null, () => ShowDetail(s));
+                var cardRect = (RectTransform)card;
+                OnClick(card, null, () => { if (GuidedEndings.IsUnlocked(GalleryOrder[s])) ShowDetail(s); else EndingCelebration.Wiggle(cardRect); });
             }
             OnClick(overview, "BackBtn", CloseOrLeave);
             // Same as the detail page: keep Back and the arrows above the cards so every tap reaches them.
@@ -187,8 +218,8 @@ public static class GuidedScreens
             OnClick(detail, "RArrowBtn", () => { });
             var tap = detail.gameObject.GetComponent<TapZones>() ?? detail.gameObject.AddComponent<TapZones>();
             tap.zones.Clear();
-            tap.zones.Add((Find(detail, "LArrowBtn") as RectTransform, () => { UIClickSound.PlayClick(); ShowDetail(shown - 1); }));
-            tap.zones.Add((Find(detail, "RArrowBtn") as RectTransform, () => { UIClickSound.PlayClick(); ShowDetail(shown + 1); }));
+            tap.zones.Add((Find(detail, "LArrowBtn") as RectTransform, () => { UIClickSound.PlayClick(); Step(-1); }));
+            tap.zones.Add((Find(detail, "RArrowBtn") as RectTransform, () => { UIClickSound.PlayClick(); Step(1); }));
             foreach (var n in new[] { "LArrowBtn", "RArrowBtn" })   // their own click above, so the automatic one stays quiet
             { var a = Find(detail, n); if (a != null && !a.TryGetComponent(out NoAutoClick _)) a.gameObject.AddComponent<NoAutoClick>(); }
         }
@@ -281,12 +312,7 @@ public static class GuidedScreens
         else ScreenFlow.GoHome();
     }
 
-    static string Progress()
-    {
-        int mask = PlayerPrefs.GetInt(GuidedChallenge.GalleryKey, 0), found = 0;
-        for (int i = 0; i < GuidedChallenge.Endings.Length; i++) if ((mask & (1 << i)) != 0) found++;
-        return $"{found} / {GuidedChallenge.Endings.Length} endings found";
-    }
+    static string Progress() => GuidedEndings.Progress();
 
     // ---------- Helpers (names in the mock-ups sometimes carry quotes or trailing spaces) ----------
 
@@ -300,7 +326,7 @@ public static class GuidedScreens
         tmp.fontSizeMin = 14f;
     }
 
-    static void FitBox(Transform t)
+    internal static void FitBox(Transform t)
     {
         if (t == null || !t.TryGetComponent(out TextMeshProUGUI tmp)) return;
         tmp.textWrappingMode = TextWrappingModes.Normal;
@@ -310,7 +336,7 @@ public static class GuidedScreens
         tmp.overflowMode = TextOverflowModes.Ellipsis;
     }
 
-    static Transform Find(Transform under, string name)
+    internal static Transform Find(Transform under, string name)
     {
         if (under == null) return null;
         foreach (var t in under.GetComponentsInChildren<Transform>(true))

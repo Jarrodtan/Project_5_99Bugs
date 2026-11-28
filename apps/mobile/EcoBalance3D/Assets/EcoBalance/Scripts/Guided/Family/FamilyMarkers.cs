@@ -48,6 +48,11 @@ public class FamilyMarkers : MonoBehaviour
 
     void LateUpdate()
     {
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): no name tags or ring before Start (they flashed on load).
+        bool hide = GuidedChallenge.IntroPending;
+        if (canvas != null && canvas.enabled == hide) canvas.enabled = !hide;
+        if (ring != null && ring.enabled && hide) ring.enabled = false;
+        if (hide) return;
         var cam = Camera.main;
         UpdateTags(cam);
         UpdateRing();

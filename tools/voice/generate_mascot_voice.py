@@ -26,6 +26,7 @@ OUT = UNITY / "Resources/MascotVoice"
 OTHER_SOURCES = [
     (UNITY / "Scripts/EcoSim/SeasonWeather.cs", r'=>\s*"((?:[^"\\\n]|\\.)*)"|\?\s*"((?:[^"\\\n]|\\.)*)"|:\s*"((?:[^"\\\n]|\\.)*)"'),
     (UNITY / "Scripts/Guided/GuidedChallenge.cs", r'feedback\s*=\s*"((?:[^"\\\n]|\\.)*)"'),
+    (UNITY / "Scripts/Guided/GuidedDailyMissions.cs", r'(?:feedback\s*=\s*|Nature\(\s*)"((?:[^"\\\n]|\\.)*)"'),   # Dillon's mission choices
     (UNITY / "Scripts/Guided/GuidedFire.cs", r'Alert\(\s*"((?:[^"\\\n]|\\.)*)"'),   # SCRUM-390 fire lines
     (UNITY / "Scripts/Guided/GuidedPlant.cs", r'(?:Alert\(|\?|:)\s*"((?:[^"\\\n]|\\.)*)"'),   # plant-grass lines (incl. both halves of the ternary)
 ]
@@ -36,6 +37,33 @@ EXTRA = [
     "Can you find a Blue Sheep? Click on one when you spot it!",
     "Two blue sheep are starting a family! ♥",
     "Two snow leopards are starting a family! ♥",
+    # 28 Nov: Shumin's event missions (GuidedMissions.cs) and Dillon's badge lines (GuidedDailyMissions.cs)
+    "Can you discover what Miloy needs to grow and stay healthy?",
+    "Can you help Miloy's herd make the most of Summer while keeping the grassland healthy?",
+    "Can you discover how Blue Sheep and Snow Leopards depend on the highlands?",
+    "Can you find Snowy's family and discover where they get their food?",
+    "You found Miloy!",
+    "Blue Sheep eat grass to get energy.",
+    "There's no green grass right now, but Blue Sheep eat grass to get energy.",
+    "Miloy needs water to stay healthy.",
+    "Snow Leopards need to hunt other animals for food.",
+    "No Snow Leopards are left, but they need to hunt other animals for food.",
+    "Blue Sheep are an important food source for Snow Leopards.",
+    "You found Snowy! She is still growing and depends on her mother for food.",
+    "Snowy's mother hunts to feed the family.",
+    "Snowy and her sibling depend on their mother as they grow up together.",
+    "This family member is no longer with Snowy, but the family keeps going.",
+    "Snow Leopards hunt Blue Sheep for food. Both animals are important parts of the highlands.",
+    "Great job! You've discovered what Miloy needs to grow and thrive in the highlands!",
+    "You've helped more grass grow! Let's see how Miloy and his herd use it.",
+    "Summer already provides plenty of grass. Let's watch how nature takes care of itself!",
+    "Blue Sheep and Snow Leopards are connected through the food chain. Both play important roles in the highlands.",
+    "Snowy and her sibling depend on their mother for food. Their mother depends on the Blue Sheep living in the highlands. Let's follow Snowy's family and see how they survive together.",
+    "Let's keep watching the highlands!",
+    "You earned the Resource Explorer badge!",
+    "You earned the Survival Guardian badge!",
+    "You earned the Ecosystem Guardian badge!",
+    "Mission complete!",
 ]
 
 

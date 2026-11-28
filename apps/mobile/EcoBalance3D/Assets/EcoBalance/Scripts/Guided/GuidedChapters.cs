@@ -62,7 +62,7 @@ public partial class GuidedChallenge
         if (chapterOpen) return true;
         if (snapshots.Count == 0) snapshots.Add(Snapshot());   // chapter 1 starts when the intro closes
         int ch = ChapterForDay(day);
-        if (ch <= CurrentChapter || showing) return false;
+        if (ch <= CurrentChapter || showing || ScreenFlow.JournalOpen) return false;   // 28 Nov: the chapter card waits for the Field Journal (it paused the run under it)
         CurrentChapter = ch;
         ShowChapter(ch);
         return true;
@@ -87,6 +87,7 @@ public partial class GuidedChallenge
             $"Blue Sheep: {before.sheep} → {now.sheep}{Change(now.sheep - before.sheep)}\n" +
             $"Snow Leopards: {before.leopards} → {now.leopards}{Change(now.leopards - before.leopards)}\n" +
             $"Grass: {before.grass:0}% → {now.grass:0}%" + FireRecap() + PlantRecap();
+        HideSideUiNow();
         chapterPanel.SetActive(true);
     }
 

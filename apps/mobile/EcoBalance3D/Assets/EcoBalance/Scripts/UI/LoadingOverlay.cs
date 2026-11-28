@@ -11,7 +11,8 @@ using UnityEngine.UI;
 /// </summary>
 public class LoadingOverlay : MonoBehaviour
 {
-    const float MaxSeconds = 30f, FadeSeconds = 0.4f;
+    const float MaxSeconds = 30f, FadeSeconds = 0.4f, ShowAfterSeconds = 1f;
+    static readonly bool ShowCard = false;   // readonly, not const: no "unreachable code" warning
 
     HimalayaWorldBuilder builder;
     CanvasGroup group;
@@ -37,6 +38,9 @@ public class LoadingOverlay : MonoBehaviour
 
     static void OnLoaded(Scene scene, LoadSceneMode _)
     {
+        // Turned off 26 Nov: the NavMesh is pre-baked now, so the map loads fast enough without a card.
+        // Set ShowCard back to true to bring "Building the Himalayas" back.
+        if (!ShowCard) return;
         if (scene.name != ScreenFlow.Simulation) return;
         var b = FindFirstObjectByType<HimalayaWorldBuilder>();
         if (b == null || b.IsReady) return;
@@ -86,7 +90,13 @@ public class LoadingOverlay : MonoBehaviour
             shown = Mathf.Min(shown, 0.99f);
             dots.text = (shown < 0.5f ? "Growing grass" : shown < 0.8f ? "Filling the rivers" : "Waking up the animals") + new string('.', n);
             if (bar != null) bar.sizeDelta = new Vector2(760f * shown, 0f);
-            if (builder == null || builder.IsReady || t - started > MaxSeconds) fadeFrom = t;
+            // Quick builds: don't flash the card at all; only show it if the map takes longer than this.
+            group.alpha = t - started < ShowAfterSeconds ? 0f : 1f;
+            if (builder == null || builder.IsReady || t - started > MaxSeconds)
+            {
+                if (t - started < ShowAfterSeconds) { Destroy(gameObject); return; }   // never shown: just go
+                fadeFrom = t;
+            }
             return;
         }
         group.alpha = 1f - (t - fadeFrom) / FadeSeconds;

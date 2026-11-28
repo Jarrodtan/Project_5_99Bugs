@@ -480,11 +480,12 @@ public class SimHud : MonoBehaviour
         ? (a.CurrentAction == AnimalBrain.AnimalAction.Fleeing ? "Swimming away!" : "Swimming")
         : a.CurrentAction switch
     {
-        AnimalBrain.AnimalAction.EatingGrass => "Grazing",
-        AnimalBrain.AnimalAction.DrinkingWater => "Drinking",
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): only "Grazing"/"Drinking" once it is at the grass or water
+        AnimalBrain.AnimalAction.EatingGrass => a.IsHeadDown ? "Grazing" : "Going to eat",
+        AnimalBrain.AnimalAction.DrinkingWater => a.IsHeadDown ? "Drinking" : "Going to drink",
         AnimalBrain.AnimalAction.Hunting => a.IsStalking ? "Stalking" : "Hunting",
         AnimalBrain.AnimalAction.Fleeing => "Running away!",
-        AnimalBrain.AnimalAction.Reproducing => "Looking for a mate",
+        AnimalBrain.AnimalAction.Reproducing => a.IsMating ? "With a partner" : "Looking for a mate",
         _ => a.IsLookingAround ? "Looking around" : "Exploring",
     };
 
@@ -500,8 +501,10 @@ public class SimHud : MonoBehaviour
             };
         return a.CurrentAction switch
         {
-            AnimalBrain.AnimalAction.EatingGrass => $"{who} is eating grass to stay full.",
-            AnimalBrain.AnimalAction.DrinkingWater => $"{who} is drinking from the stream.",
+            AnimalBrain.AnimalAction.EatingGrass => a.IsHeadDown ? $"{who} is eating grass to stay full."
+                                                                 : $"{who} is hungry and walking to some grass.",
+            AnimalBrain.AnimalAction.DrinkingWater => a.IsHeadDown ? $"{who} is drinking from the stream."
+                                                                   : $"{who} is thirsty and walking to the stream.",
             AnimalBrain.AnimalAction.Hunting => a.IsStalking ? $"{who} is creeping up quietly on the herd." : $"{who} is chasing a Blue Sheep!",
             AnimalBrain.AnimalAction.Fleeing => $"{who} spotted a Snow Leopard and is running to safety.",
             AnimalBrain.AnimalAction.Reproducing => $"{who} is well fed and looking for a partner.",
@@ -534,7 +537,7 @@ public class SimHud : MonoBehaviour
         if (panel == null) return;
         float right = panel.anchoredPosition.x + (1f - panel.pivot.x) * panel.sizeDelta.x;
         panel.pivot = new Vector2(1f, panel.pivot.y);
-        panel.sizeDelta = new Vector2(Mathf.Max(panel.sizeDelta.x, 480f), panel.sizeDelta.y);
+        panel.sizeDelta = new Vector2(Mathf.Max(panel.sizeDelta.x, 620f), panel.sizeDelta.y);   // 28 Nov: 480 still squeezed "Summer · Snow · -8°C"
         panel.anchoredPosition = new Vector2(right, panel.anchoredPosition.y);
         if (!panel.TryGetComponent(out Image bg)) bg = panel.gameObject.AddComponent<Image>();
         ScreenFlow.CreamPanel(bg);   // M3: cream like the rest of the HUD

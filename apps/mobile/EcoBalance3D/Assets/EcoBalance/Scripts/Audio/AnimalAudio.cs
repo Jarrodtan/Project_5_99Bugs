@@ -323,7 +323,7 @@ public class AnimalAudio : MonoBehaviour
         {
             float fadeIn = Mathf.Clamp01(elapsed / 0.1f);
             float fadeOut = Mathf.Clamp01((len - elapsed) / 0.4f);
-            source.volume = targetVolume * Mathf.Min(fadeIn, fadeOut);
+            source.volume = targetVolume * Mathf.Min(fadeIn, fadeOut) * AudioPrefs.Sounds;
             UpdateMuffle();
 
             elapsed += Time.deltaTime;
