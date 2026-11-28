@@ -369,7 +369,7 @@ public class Mascot : MonoBehaviour
     // Other popups come first: no mascot over the Guided intro/event cards, a question, or the journal.
     static bool ModalOpen() =>
         ContextualQuestions.Showing || GuidedChallenge.PopupOpen ||
-        SceneManager.GetSceneByName(ScreenFlow.Journal).isLoaded ||
+        ScreenFlow.JournalOpen ||
         SceneManager.GetSceneByName(GuidedScreens.GalleryScene).isLoaded;
 
     // ---------- Triggers called from the rest of the game ----------
@@ -377,7 +377,9 @@ public class Mascot : MonoBehaviour
     void PlayFreeIntro()
     {
         if (introPlayed) return;
-        if (LoadingOverlay.Active) { Invoke(nameof(PlayFreeIntro), 0.5f); return; }   // wait: no talking over "Building the Himalayas"
+        // Wait: no talking over "Building the Himalayas", or hidden under the Field Journal / a question (the intro
+        // pauses the run, so under the journal the graph would just stop).
+        if (LoadingOverlay.Active || ModalOpen()) { Invoke(nameof(PlayFreeIntro), 0.5f); return; }
         introPlayed = true;
         Say(FreeIntro, true);
     }

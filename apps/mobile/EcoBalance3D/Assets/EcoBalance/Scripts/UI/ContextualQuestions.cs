@@ -244,8 +244,7 @@ public class ContextualQuestions : MonoBehaviour
         else { vegWasLow = false; lowVegSinceDay = -1f; }
     }
 
-    static bool OtherPopupOpen() =>
-        UnityEngine.SceneManagement.SceneManager.GetSceneByName(ScreenFlow.Journal).isLoaded;
+    static bool OtherPopupOpen() => ScreenFlow.JournalOpen;   // open or still loading
 
     // ---------- Flow: question -> prediction feedback -> (watch) -> what happened ----------
 

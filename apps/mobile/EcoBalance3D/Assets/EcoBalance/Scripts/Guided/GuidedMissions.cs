@@ -33,8 +33,8 @@ public partial class GuidedChallenge
     float missionStartedAt;
     string missionCompletion;
 
-    GameObject missionCard, missionTracker, missionDone, trackerBack, trackerSkip;
-    TextMeshProUGUI missionTitle, missionText, trackerTitle, trackerList, doneTitle, doneText;
+    GameObject eventCardGo, missionTracker, missionDone, trackerBack, trackerSkip;
+    TextMeshProUGUI eventCardTitle, missionText, trackerTitle, trackerList, doneTitle, doneText;
     GameObject missionGoBtn, missionGrowBtn, missionNatureBtn;
 
     /// <summary>A mission's small tracker is up and the player is looking around the world (camera buttons stay usable).</summary>
@@ -155,7 +155,7 @@ public partial class GuidedChallenge
     {
         mission = e;
         missionPlanting = false;
-        missionTitle.text = e.title;
+        eventCardTitle.text = e.title;
         string goals = "";
         foreach (var o in objectives) goals += $"\n-  {o.label}";
         missionText.text = $"{e.text}\n\n<b>{challenge}</b>" + (decision ? "" : $"\n<size=85%>{goals}</size>");
@@ -164,12 +164,12 @@ public partial class GuidedChallenge
         missionNatureBtn.SetActive(decision);
         missionTracker.SetActive(false);
         missionDone.SetActive(false);
-        missionCard.SetActive(true);
+        eventCardGo.SetActive(true);
     }
 
     void BeginInvestigation()
     {
-        missionCard.SetActive(false);
+        eventCardGo.SetActive(false);
         missionStartedAt = Time.unscaledTime;
         trackerBack.SetActive(false);
         RefreshTracker();
@@ -179,7 +179,7 @@ public partial class GuidedChallenge
 
     void ChooseGrowGrass()
     {
-        missionCard.SetActive(false);
+        eventCardGo.SetActive(false);
         missionPlanting = true;
         missionStartedAt = Time.unscaledTime;
         trackerBack.SetActive(true);
@@ -190,7 +190,7 @@ public partial class GuidedChallenge
     void ChooseLetNatureGrow()
     {
         missionPlanting = false;
-        missionCard.SetActive(false);
+        eventCardGo.SetActive(false);
         missionTracker.SetActive(false);
         CompleteMission(missionPlanted > 0
             ? $"You planted {missionPlanted} patch{(missionPlanted == 1 ? "" : "es")} of grass, and now nature can do the rest. Let's watch how the grass grows!"
@@ -201,7 +201,7 @@ public partial class GuidedChallenge
     {
         missionPlanting = false;
         missionTracker.SetActive(false);
-        missionCard.SetActive(true);
+        eventCardGo.SetActive(true);
     }
 
     /// <summary>Called every frame from Update; true while a mission is running (nothing else happens).</summary>
@@ -282,6 +282,9 @@ public partial class GuidedChallenge
     void CloseMission()
     {
         missionDone.SetActive(false);
+        eventCardGo.SetActive(false);
+        missionTracker.SetActive(false);
+        missionPlanting = false;
         if (mission != null) resolved.Add(mission.id);
         mission = null;
         objectives.Clear();
@@ -294,7 +297,7 @@ public partial class GuidedChallenge
 
     void HideMissionUI()
     {
-        if (missionCard != null) missionCard.SetActive(false);
+        if (eventCardGo != null) eventCardGo.SetActive(false);
         if (missionTracker != null) missionTracker.SetActive(false);
         if (missionDone != null) missionDone.SetActive(false);
         mission = null;
@@ -369,7 +372,7 @@ public partial class GuidedChallenge
 
     // ---------- UI (code-built, styled like Shumin's cards) ----------
 
-    void BuildMissionUI(Transform root)
+    void BuildEventMissionUI(Transform root)
     {
         var ink = new Color(0.12f, 0.16f, 0.2f);
         var body = new Color(0.2f, 0.24f, 0.28f);
@@ -378,15 +381,15 @@ public partial class GuidedChallenge
         var grey = new Color(0.55f, 0.55f, 0.55f);
 
         // Mission card: what is happening, the challenge, and how to start.
-        missionCard = Dim(root, "Mission");
-        var card = Box(missionCard.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1200f, 820f), new Color(0.97f, 0.97f, 0.95f, 1f));
-        missionTitle = Label(card.transform, "", 56f, ink, 60f, 40f, 700f, TextAlignmentOptions.Top);
+        eventCardGo = Dim(root, "Mission");
+        var card = Box(eventCardGo.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1200f, 820f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        eventCardTitle = Label(card.transform, "", 56f, ink, 60f, 40f, 700f, TextAlignmentOptions.Top);
         missionText = Label(card.transform, "", 34f, body, 70f, 140f, 190f, TextAlignmentOptions.Top);
         missionGoBtn = ButtonGo(card.transform, "Let's go!", new Vector2(0f, 50f), green, BeginInvestigation);
         missionGrowBtn = ButtonGo(card.transform, "Grow More Grass", new Vector2(-230f, 50f), green, ChooseGrowGrass, 420f);
         missionNatureBtn = ButtonGo(card.transform, "Let Nature Grow", new Vector2(230f, 50f), blue, ChooseLetNatureGrow, 420f);
         ScreenFlow.StyleLikeShumin(card, null);
-        missionCard.SetActive(false);
+        eventCardGo.SetActive(false);
 
         // Tracker: a small card at the top while the player looks around and taps (no dim: the world must be tappable).
         missionTracker = Box(root, "Mission tracker", new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(860f, 330f), new Color(0.97f, 0.97f, 0.95f, 0.95f), new Vector2(0.5f, 1f));

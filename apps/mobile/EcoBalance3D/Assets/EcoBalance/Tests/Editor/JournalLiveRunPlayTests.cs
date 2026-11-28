@@ -12,7 +12,8 @@ using UnityEngine.UI;
 // during the run fails the test (Unity Test Framework does that by default).
 public class JournalLiveRunPlayTests
 {
-    static readonly string[] StringKeys = { "EcoBalance.CaseJournal", CaseSeenTracker.PrefsKey };
+    static readonly string[] StringKeys = { "EcoBalance.CaseJournal", CaseSeenTracker.PrefsKey, GuidedSaveKey };
+    const string GuidedSaveKey = "EcoBalance.GuidedSave";   // a saved story would open "Continue?" instead of the family picker
     const string GalleryKey = "EcoBalance.GuidedEndings";
     string[] savedStrings;
     int savedGallery;
@@ -26,6 +27,7 @@ public class JournalLiveRunPlayTests
         for (int i = 0; i < StringKeys.Length; i++) savedStrings[i] = PlayerPrefs.HasKey(StringKeys[i]) ? PlayerPrefs.GetString(StringKeys[i]) : null;
         hadGallery = PlayerPrefs.HasKey(GalleryKey);
         savedGallery = PlayerPrefs.GetInt(GalleryKey, 0);
+        PlayerPrefs.DeleteKey(GuidedSaveKey);
     }
 
     [UnityTearDown]
@@ -55,13 +57,17 @@ public class JournalLiveRunPlayTests
         Object.FindAnyObjectByType<ConfigurationScreen>().StartSimulation();
         yield return Until(() => SimHud.Active, 30f, "simulation HUD");
 
+        // M3: after the loading screen the mascot's welcome pauses the world until the child taps through it.
+        // Wait for it and tap through it like a child would.
+        yield return Until(() => Mascot.Showing, 30f, "the mascot's welcome");
+        Mascot.Hide();
         var speed = Object.FindAnyObjectByType<SimulationSpeedController>();
         speed.Play();
         speed.SetSpeed(8f);
         Time.timeScale = 4f;   // 32x: a new day on the graph every ~0.06 s of real time
 
         yield return OpenJournalFromHud();
-        Assert.IsTrue(speed.IsRunning, "opening the journal must not pause the run");
+        Assert.IsTrue(speed.IsRunning, "opening the journal must not pause the run (even if the mascot was talking)");
         Assert.IsFalse(FieldJournalObservations.WasGuided);
 
         var history = FieldJournalObservations.History;
@@ -95,8 +101,13 @@ public class JournalLiveRunPlayTests
     public IEnumerator GuidedRun_KeepsMoving_PopupsWaitForTheJournal_EndingClosesIt()
     {
         yield return new EnterPlayMode();
-        // The Guided button now opens the family picker (or Continue / New Story): start a fresh story directly.
-        ScreenFlow.RestartGuided();
+        SceneManager.LoadScene(ScreenFlow.Modes);
+        yield return Until(() => Btn(ScreenFlow.Modes, "StartGuidedBtn") != null, 20f, "mode selection screen");
+        Btn(ScreenFlow.Modes, "StartGuidedBtn").onClick.Invoke();
+
+        // M3: the child picks whose story to follow first.
+        yield return Until(() => AnyButton("Choose Miloy") != null, 20f, "family picker");
+        AnyButton("Choose Miloy").onClick.Invoke();
         yield return Until(() => SimHud.Active && Object.FindAnyObjectByType<GuidedChallenge>() != null, 30f, "Guided simulation + HUD");
         // The run waits, paused, on the intro card until Start.
         yield return Until(() => Btn(SimHud.SceneName, "StartBtn") != null || !GuidedChallenge.IntroPending, 30f, "Guided intro card");
@@ -104,7 +115,18 @@ public class JournalLiveRunPlayTests
         yield return Until(() => !GuidedChallenge.IntroPending, 10f, "the Guided story to start");
 
         var challenge = Object.FindAnyObjectByType<GuidedChallenge>();
-        var popup = (GameObject)typeof(GuidedChallenge).GetField("popup", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(challenge);
+        var flags = BindingFlags.NonPublic | BindingFlags.Instance;
+        var introDone = typeof(GuidedChallenge).GetField("introDone", flags);
+        var showing = typeof(GuidedChallenge).GetField("showing", flags);
+        var chapterOpen = typeof(GuidedChallenge).GetField("chapterOpen", flags);
+        bool CardShown() => (bool)showing.GetValue(challenge) || (bool)chapterOpen.GetValue(challenge);
+
+        // The intro card blocks the run (and the journal button) until Start.
+        yield return Until(() => (bool)introDone.GetValue(challenge) || AnyButton("StartBtn") != null, 30f, "Guided intro card");
+        if (!(bool)introDone.GetValue(challenge)) AnyButton("StartBtn").onClick.Invoke();
+        yield return Until(() => (bool)introDone.GetValue(challenge), 10f, "intro to close");
+        Mascot.Hide();   // the welcome lines (they pause the run while the mascot talks)
+
         var speed = Object.FindAnyObjectByType<SimulationSpeedController>();
         speed.Play();
         speed.SetSpeed(8f);
@@ -114,22 +136,21 @@ public class JournalLiveRunPlayTests
         Assert.IsTrue(FieldJournalObservations.WasGuided);
         var history = FieldJournalObservations.History;
         int before = history.Count;
+        // CI has no GPU and runs slowly: wait for real progress instead of a fixed number of days in 15 s.
         yield return Until(() => history.Count >= before + 3, 90f, "the graph to keep getting new days while the journal is open");
-        yield return Wait(5f);   // Guided events come due meanwhile; they must wait for the journal
-        Assert.IsFalse(popup.activeSelf, "a Guided decision must wait while the journal is open");
+        yield return Wait(5f);   // Guided events / a chapter card come due meanwhile; they must wait for the journal
+        Assert.IsFalse(CardShown(), "Guided cards must wait while the journal is open");
         Assert.IsTrue(speed.IsRunning);
         Debug.Log($"[JournalLiveRunPlayTests] Guided run, {history.Count} days recorded. Summary card:\n{SummaryText()}");
 
         Btn(ScreenFlow.Journal, "BackBtn").onClick.Invoke();
         yield return Until(() => !ScreenFlow.JournalOpen, 20f, "journal to close");
-        // After Back the waiting card shows (a decision, or the season's chapter card that also waited) and pauses the run.
-        yield return Until(() => GuidedChallenge.PopupOpen, 120f, "the waiting Guided card to show after Back");
+        yield return Until(CardShown, 120f, "the waiting Guided card to show after Back");
         Assert.IsFalse(speed.IsRunning, "the card pauses the run as before");
 
         // The ending must not stay hidden under an open journal.
-        popup.SetActive(false);
         yield return OpenJournalFromHud();
-        typeof(GuidedChallenge).GetMethod("Finish", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(challenge, null);
+        typeof(GuidedChallenge).GetMethod("Finish", flags).Invoke(challenge, null);
         yield return Until(() => !ScreenFlow.JournalOpen, 20f, "the ending to close the journal");
     }
 
@@ -150,6 +171,14 @@ public class JournalLiveRunPlayTests
         var card = GameObject.Find("SummaryCard");
         Assert.IsNotNull(card, "no SummaryCard on the Observations page");
         return card.GetComponentInChildren<TextMeshProUGUI>().text;
+    }
+
+    // A button in any loaded scene or overlay canvas (the family picker and the intro card are not in one fixed scene).
+    static Button AnyButton(string name)
+    {
+        foreach (var b in Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude))
+            if (b.name == name && b.gameObject.activeInHierarchy && b.interactable) return b;
+        return null;
     }
 
     static Button Btn(string sceneName, string name)

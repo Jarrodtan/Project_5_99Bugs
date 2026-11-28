@@ -367,6 +367,27 @@ public static class PopulationGraphMath
     }
 
     /// <summary>
+    /// The part of a line left of <paramref name="maxX"/> (points sorted by x), ending exactly at maxX: the graph's
+    /// lines draw themselves in from the left with it.
+    /// </summary>
+    public static List<Vector2> ClipX(IReadOnlyList<Vector2> points, float maxX)
+    {
+        var result = new List<Vector2>(points.Count);
+        for (int i = 0; i < points.Count; i++)
+        {
+            if (points[i].x <= maxX) { result.Add(points[i]); continue; }
+            if (i > 0)
+            {
+                var a = points[i - 1]; var b = points[i];
+                float t = (maxX - a.x) / Mathf.Max(1e-5f, b.x - a.x);
+                result.Add(Vector2.Lerp(a, b, Mathf.Clamp01(t)));
+            }
+            break;
+        }
+        return result;
+    }
+
+    /// <summary>
     /// A smooth curve through <paramref name="points"/> (Catmull-Rom, <paramref name="steps"/> pieces between two
     /// points). It passes through every point and stays between <paramref name="minY"/> and <paramref name="maxY"/>,
     /// so a line never dips below zero between two days.

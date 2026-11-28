@@ -139,6 +139,23 @@ public class FoodWaterGraphTests
     }
 
     [Test]
+    public void Patch_BurnedByFire_EmptiesButIsNotCountedAsEaten()
+    {
+        var patch = MakePatch("Grass", 100f);
+        int reports = 0;
+        void On(ResourcePatch p, float a) { if (p == patch) reports++; }
+        ResourcePatch.Consumed += On;
+        try
+        {
+            Assert.AreEqual(40f, patch.Remove(40f));   // a grass fire / the demo key
+            Assert.AreEqual(0f, patch.Remove(-10f), "never adds grass");
+        }
+        finally { ResourcePatch.Consumed -= On; }
+        Assert.AreEqual(60f, patch.Amount, 0.001f, "the grass is gone (Grass left drops)");
+        Assert.AreEqual(0, reports, "but no animal ate it (Grass eaten stays the same)");
+    }
+
+    [Test]
     public void Meter_RecordsGrassAndWaterLeft_EatenAndDrunk_EveryDay()
     {
         var (sim, rec) = MakeSim();

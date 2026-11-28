@@ -30,6 +30,7 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         // from the last run: start fresh.
         GuidedMode = false;
         journalReturn = Home;
+        journalLoading = closeJournalWhenLoaded = false;
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
@@ -86,6 +87,13 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
                 Mascot.SetMenuLine(scene, Mascot.ConfigureLine);
                 break;
             case Journal:
+                journalLoading = false;
+                if (mode == LoadSceneMode.Additive && closeJournalWhenLoaded)   // closed (e.g. a Guided ending) while it was loading
+                {
+                    closeJournalWhenLoaded = false;
+                    SceneManager.UnloadSceneAsync(scene);
+                    break;
+                }
                 if (mode == LoadSceneMode.Additive) { SetUpJournalOverlay(scene); On("BackBtn", CloseJournalOverlay); }
                 else On("BackBtn", () => Load(journalReturn));
                 FieldJournalScreen.Attach(scene);   // tabs, Investigations and Observations pages
@@ -153,6 +161,16 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
         Btn(card.transform, "Stay", new Vector2(-x, -110f), new Color(0.3f, 0.62f, 0.38f), () => { confirm.SetActive(false); if (wasRunning && speed != null) speed.Play(); });
         if (canSave) Btn(card.transform, "Save & Exit", new Vector2(0f, -110f), new Color(0.28f, 0.5f, 0.75f), () => { GuidedChallenge.SaveNow(); Load(Modes); });
         Btn(card.transform, "Leave", new Vector2(x, -110f), new Color(0.55f, 0.55f, 0.55f), () => Load(Modes));
+        // [AI-GENERATED] Claude Code (Claude Opus 5.5): doc, Reset & Replay Rules, "Restart Story": the same story from
+        // Day 1 (starting animals, grass, needs, time and season); endings and badges already found are kept.
+        if (canSave)
+        {
+            ((RectTransform)card.transform).sizeDelta = new Vector2(1160f, 560f);
+            var restart = Btn(card.transform, "Start over", new Vector2(0f, -225f), new Color(0.95f, 0.55f, 0.2f), RestartGuided);
+            ((RectTransform)restart.transform).sizeDelta = new Vector2(1060f, 90f);
+            foreach (Transform t in card.transform)
+                if (t != restart.transform && t.TryGetComponent(out RectTransform r)) r.anchoredPosition += new Vector2(0f, 70f);
+        }
         StyleLikeShumin(card, "Leave");
         confirm.SetActive(false);
         leaveConfirm = confirm;
@@ -224,8 +242,10 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
 
     // ---------- Field Journal on top of a running simulation ----------
 
-    /// <summary>The Field Journal is open (on top of a simulation or on its own).</summary>
-    public static bool JournalOpen => SceneManager.GetSceneByName(Journal).isLoaded;
+    /// <summary>The Field Journal is open (on top of a simulation or on its own), or opening: it loads over a few
+    /// frames, and nothing should start talking or pop up under it meanwhile.</summary>
+    public static bool JournalOpen => journalLoading || SceneManager.GetSceneByName(Journal).isLoaded;
+    static bool journalLoading, closeJournalWhenLoaded;
 
     /// <summary>
     /// Opens the Field Journal over the simulation; its Back button returns to the same run. The run keeps
@@ -235,7 +255,9 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
     {
         if (JournalOpen) return;
         Mascot.NoteJournalOpened();
+        Mascot.Hide();   // like the Leave box: a mascot line may have paused the run, and it would be hidden under the journal
         OverlayAudio.Hush();   // same as the Ending Gallery: music on, river and animals quiet (restored when it closes)
+        journalLoading = true;
         SceneManager.LoadSceneAsync(Journal, LoadSceneMode.Additive);
     }
 
@@ -254,7 +276,8 @@ public static partial class ScreenFlow   // [AI-GENERATED] Claude Code (Claude O
     /// <summary>Closes the journal opened over the simulation (Back, or the Guided challenge ending).</summary>
     public static void CloseJournalOverlay()
     {
-        if (JournalOpen) SceneManager.UnloadSceneAsync(Journal);
+        if (SceneManager.GetSceneByName(Journal).isLoaded) SceneManager.UnloadSceneAsync(Journal);
+        else if (journalLoading) closeJournalWhenLoaded = true;
     }
 
     // ---------- Volume: Music / Voice / Sounds sliders (AudioPrefs), kept between runs ----------

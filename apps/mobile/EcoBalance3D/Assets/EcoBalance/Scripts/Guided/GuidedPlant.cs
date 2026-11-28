@@ -38,7 +38,7 @@ public partial class GuidedChallenge
             var p = GrassFire.PickStartPatch();
             if (p != null)
             {
-                p.Consume(p.Amount - p.MaxAmount * 0.15f);   // leave 15%: brown, ready to plant
+                p.Remove(p.Amount - p.MaxAmount * 0.15f);   // leave 15%: brown, ready to plant (not eaten by an animal)
                 helpHintShown = true;
                 Mascot.Alert("The grass is getting low! Tap a brown patch to plant new grass for the sheep.", p.transform);
             }

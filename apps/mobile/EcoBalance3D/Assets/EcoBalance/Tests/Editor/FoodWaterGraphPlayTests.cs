@@ -45,6 +45,10 @@ public class FoodWaterGraphPlayTests
         Object.FindAnyObjectByType<ConfigurationScreen>().StartSimulation();
         yield return Until(() => SimHud.Active, 30f, "simulation HUD");
 
+        // M3: after the loading screen the mascot's welcome pauses the world until the child taps through it.
+        // Wait for it and tap through it like a child would.
+        yield return Until(() => Mascot.Showing, 30f, "the mascot's welcome");
+        Mascot.Hide();
         var speed = Object.FindAnyObjectByType<SimulationSpeedController>();
         speed.Play();
         speed.SetSpeed(8f);
@@ -82,6 +86,7 @@ public class FoodWaterGraphPlayTests
                   $"Eaten: {meter.GrassEatenTotal:0.00} grass patches ({last.Get(FoodWater.GrassEaten):0.0}% in the last day), drunk: {meter.WaterDrunkTotal:0.00} water pools ({last.Get(FoodWater.WaterDrunk):0.0}% in the last day)");
         StringAssert.Contains("Grass left", summary);
         StringAssert.Contains("What we noticed", summary);
+        StringAssert.DoesNotContain("Clue to watch for", summary, "the Food & Water card stays short enough to read");
         StringAssert.Contains("%", Text("FamineMeterBand"), "the famine meter shows a level");
         StringAssert.Contains("%", Text("ThirstMeterBand"));
         var tile = GameObject.Find("GrassTile");

@@ -103,13 +103,21 @@ public class ResourcePatch : MonoBehaviour
     public float Capacity => MaxAmount;
     // [AI-GENERATED END]
 
-    // Takes up to `requested` from the patch, returns how much was actually taken.
+    // An animal eats / drinks: takes up to `requested` from the patch, returns how much was actually taken.
     public float Consume(float requested)
     {
-        float taken = Mathf.Min(requested, amount);
+        float taken = Remove(requested);
+        if (taken > 0f) Consumed?.Invoke(this, taken);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Field Journal food & water graph
+        return taken;
+    }
+
+    /// <summary>[AI-GENERATED] Claude Code (Claude Opus 5.5): takes grass / water away without an animal eating it
+    /// (a fire burning it, a demo key): the patch empties the same, but the journal doesn't count it as eaten.</summary>
+    public float Remove(float requested)
+    {
+        float taken = Mathf.Clamp(requested, 0f, amount);
         amount -= taken;
         UpdateVisual();
-        if (taken > 0f) Consumed?.Invoke(this, taken);   // [AI-GENERATED] Claude Code (Claude Opus 5.5): Field Journal food & water graph
         return taken;
     }
 

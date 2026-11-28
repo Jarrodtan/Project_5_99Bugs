@@ -204,7 +204,7 @@ public class GrassFire : MonoBehaviour
 
         // Burn: eats the whole patch in BurnDays game days (scaled time, so it stops while paused).
         float day = Mathf.Max(1f, ClockService.DaySeconds);
-        patch.Consume(100f * Time.deltaTime / (BurnDays * day));
+        patch.Remove(100f * Time.deltaTime / (BurnDays * day));   // burned, not eaten (the journal counts only eating)
         if (patch.Amount <= 0.5f)
         {
             GuidedChallenge.NoteBurned();

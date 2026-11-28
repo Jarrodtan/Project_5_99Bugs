@@ -104,7 +104,7 @@ public class CaseDiscoveryToast : MonoBehaviour
         if (c != null) queue.Enqueue(c);
     }
 
-    static bool JournalOpen => SceneManager.GetSceneByName(ScreenFlow.Journal).isLoaded;
+    static bool JournalOpen => ScreenFlow.JournalOpen;
 
     void Update()
     {

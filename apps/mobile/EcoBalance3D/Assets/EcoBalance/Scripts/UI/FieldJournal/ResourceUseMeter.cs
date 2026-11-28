@@ -167,7 +167,7 @@ public class ResourceUseMeter : MonoBehaviour
         get
         {
             if (clock == null) clock = FindAnyObjectByType<ClockService>();
-            return clock != null ? clock.Day + clock.TimeOfDay01 : Time.time / 120f;
+            return clock != null ? clock.Day + clock.TimeOfDay01 : Time.time / Mathf.Max(1f, ClockService.DaySeconds);
         }
     }
 
