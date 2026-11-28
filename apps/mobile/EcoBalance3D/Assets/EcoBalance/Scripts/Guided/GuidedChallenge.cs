@@ -725,19 +725,35 @@ public partial class GuidedChallenge : MonoBehaviour
     {
         if (!(text is RectTransform r) || box == null || r.parent == null) return;
         if (!r.TryGetComponent(out TMP_Text t)) return;
-        if (!t.enableAutoSizing) { t.fontSizeMax = t.fontSize; t.fontSizeMin = t.fontSize * 0.6f; t.enableAutoSizing = true; }
+        if (!baseFontSize.TryGetValue(t, out float baseSize)) baseFontSize[t] = baseSize = t.fontSize;
+        t.enableAutoSizing = false;
+        t.fontSize = baseSize;
         var bc = new Vector3[4]; var rc = new Vector3[4];
         box.GetWorldCorners(bc); r.GetWorldCorners(rc);
         var parent = (RectTransform)r.parent;
-        float boxBottom = parent.InverseTransformPoint(bc[0]).y + 10f;
+        float boxBottom = parent.InverseTransformPoint(bc[0]).y + 8f;
+        float textTop = parent.InverseTransformPoint(rc[1]).y;
         float textBottom = parent.InverseTransformPoint(rc[0]).y;
         if (textBottom < boxBottom) r.offsetMin += new Vector2(0f, boxBottom - textBottom);   // raise only its bottom edge
         // It only used a third of the box's width (long effects wrapped to 4 lines): use the box's width.
-        if (!widen) return;
-        float boxRight = parent.InverseTransformPoint(bc[2]).x - 24f;
-        float textRight = parent.InverseTransformPoint(rc[2]).x;
-        if (textRight < boxRight) r.offsetMax += new Vector2(boxRight - textRight, 0f);
+        if (widen)
+        {
+            float boxRight = parent.InverseTransformPoint(bc[2]).x - 24f;
+            float textRight = parent.InverseTransformPoint(rc[2]).x;
+            if (textRight < boxRight) r.offsetMax += new Vector2(boxRight - textRight, 0f);
+        }
+        // 28 Nov: auto-size didn't shrink it (the text area was already "big enough"): measure the wrapped text and
+        // step the font down until it really fits between its top and the bottom of the box.
+        float room = textTop - boxBottom;
+        float width = r.rect.width - t.margin.x - t.margin.z;
+        if (room <= 0f || width <= 0f) return;
+        for (float size = baseSize; size >= baseSize * 0.6f; size -= 0.5f)
+        {
+            t.fontSize = size;
+            if (t.GetPreferredValues(t.text, width, 0f).y <= room) break;
+        }
     }
+    readonly Dictionary<TMP_Text, float> baseFontSize = new Dictionary<TMP_Text, float>();
 
     readonly HashSet<Transform> gapsClosed = new HashSet<Transform>();
     /// <summary>Centres <paramref name="desc"/> in the space between <paramref name="title"/> and <paramref name="below"/>
