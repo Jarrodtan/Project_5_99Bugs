@@ -169,6 +169,10 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Mobile smoothness | `UI/MobileFrameRate.cs` asks for 60 FPS on phones / tablets (Android ran at its 30 FPS default); HDR off in `Settings/Mobile_RPAsset` (PC asset unchanged) | Wei Leong | Done 26 Nov |
 | Wildlife checklist (Free) | `UI/WildlifeChecklist.cs`: "Spot these animals!" 8 behaviours (eat, drink, flee, hunt, mate, hungry, thirsty); ticks when an animal within 90 m is on screen, or the tapped / followed one at any zoom, and only while it is really eating, drinking or mating (`AnimalBrain.IsHeadDown`, `IsMating`); HUD card style | Yan De (SCRUM-391), Wei Leong (integration fixes) | Done 26 Nov |
 | Honest action labels | `UI/SimHud.cs`, `EcoSim/AnimalInfoUI.cs`: "Going to drink / eat" while walking, "Drinking / Grazing" only at the water or grass, "With a partner" while mating (a sheep used to show "drinking from the stream" on dry ground) | Wei Leong | Done 26 Nov |
+| Event library missions (Guided) | `Guided/GuidedMissions.cs`: Shu Min's Blue Sheep / Snow Leopard event library, M3 subset: BS01 Miloy's First Summer, BS02 A Season of Plenty (decision + planting), BS03-F A Predator's Home, SL01 Snowy's First Summer. The child finds and taps animals, grass and water, or plants grass, instead of only picking a button; a small tracker lists the finds. Summer events (Days 2–4), skipped if Summer ends first; M demo key starts the next one | Shu Min (design), Wei Leong | Done 28 Nov |
+| Daily missions + achievements | `Guided/GuidedAchievements.cs` (rules + saved unlocks), `Guided/GuidedDailyMissions.cs` (tracker card, decisions as Guided events, badge card, Day 3 question with a hint, never a fail): Day 1 Resource Explorer, Day 2 Survival Guardian, Day 3 Ecosystem Guardian; unlocks kept across runs, Retry and Restart | Dillon (SCRUM-377), Wei Leong (merge) | Done 28 Nov |
+| Endings + Retry | `Guided/GuidedEndings.cs` (5 endings END01–END05 with the research doc's text, shared by the ending screen and gallery), `Guided/EndingCelebration.cs` (illustration, count-up stats, confetti, or gentle snow if the ending is sad or the focal animal died), Retry / Restart Story; animated population graphs | Dillon (SCRUM-376), Wei Leong (merge) | Done 28 Nov |
+| Card rules | Mission start, finds, completion and badge cards are read, not voiced, and show no mascot (Shu Min's VO script has none); side UI (mission tracker, live weather) hides the frame a card opens, so nothing overlaps it; card text shrinks until it fits its box | Wei Leong (design: Shu Min) | Done 28 Nov |
 
 ## 4. Data stores
 
@@ -180,6 +184,8 @@ Owners follow the M1 Technical Deliverable plan. *Primary* owners are listed fir
 | Population history | Per-day species and resource values (in memory, newest 1,000 days) | `PopulationHistoryRecorder.History` |
 | Field Journal progress | Unlocked investigation case ids | Device `PlayerPrefs` (`EcoBalance.CaseJournal`) |
 | Guided Ending Gallery | Endings found (bit mask) | Device `PlayerPrefs` (`EcoBalance.GuidedEndings`) |
+| Guided achievements | Unlocked badges (bit mask), kept across runs | Device `PlayerPrefs` (`EcoBalance.GuidedAchievements`) |
+| Guided save | One Save & Exit slot (JSON) | Device `PlayerPrefs` (`EcoBalance.GuidedSave`) |
 | Exported metrics (T05) | Population per tick as CSV | `Run_<date>.csv` + `Runs_Summary.csv` (Editor: `EcoBalance3D/DataLogging/`, gitignored; device: `Application.persistentDataPath/DataLogging`) |
 | Sound Settings | Music, Voice, Sound Effects, 0–1 each | Device `PlayerPrefs` (`EcoBalance.Volume.Music` / `.Voice` / `.Sounds`; old `EcoBalance.Volume` is the start value) |
 
@@ -247,7 +253,7 @@ Project_5_99Bugs/
 │           │       │   ├── Camera/            # orbit camera
 │           │       │   ├── Creatures/         # CreatureSpawner
 │           │       │   ├── EcoSim/            # SimulationClock, speed controller, AnimalBrain, AnimalPerception, DangerMemory, SeasonWeather, AnimalMotionBridge
-│           │       │   ├── Guided/            # GuidedChallenge (events, endings), GuidedEffects (buffs / debuffs), GuidedScreens (Shu Min's ending + gallery scenes)
+│           │       │   ├── Guided/            # GuidedChallenge (events, Update loop, endings), GuidedChapters, GuidedSave, GuidedEffects (buffs / debuffs), GuidedFire, GuidedPlant, GuidedMissions (event library), GuidedDailyMissions + GuidedAchievements, GuidedEndings + EndingCelebration, GuidedScreens (Shu Min's ending + gallery scenes), Family/
 │           │       │   ├── Terrain/           # Himalaya world: terrain, river + glacier streams, meadows, TerrainEditTool (dev)
 │           │       │   ├── DevTools/          # SimDebugOverlay + SpatialGridView (Editor/dev builds), HeadlessSoakRunner (-soakDays)
 │           │       │   ├── Editor/            # BuildScript, EcoBalanceCIBuild, AnimalCreator window
