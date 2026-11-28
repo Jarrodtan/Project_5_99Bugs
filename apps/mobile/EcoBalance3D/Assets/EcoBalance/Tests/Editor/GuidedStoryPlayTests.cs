@@ -115,6 +115,32 @@ public class GuidedStoryPlayTests
         Assert.IsTrue(askedWrong, "the Day 3 question was asked");
         Assert.IsTrue(resolved.Contains(GuidedAchievements.SafetyDecision), "Mission 2's survival decision was made");
 
+        // Shumin's event missions (BS01, BS02, BS03-F): screenshot the card, the find-and-tap tracker and the
+        // completion card of each, for the visual check (no overlapping UI).
+        {
+            var flags = BindingFlags.NonPublic | BindingFlags.Instance;
+            var events = (System.Collections.IEnumerable)Field(challenge, "events");
+            for (int guard = 0; guard < 10 && (bool)Field(challenge, "missionCardOpen"); guard++) { AnyButton("Answer 1").onClick.Invoke(); yield return null; }   // close Dillon's badge card first
+            int n = 0;
+            foreach (var e in events)
+            {
+                if (e.GetType().GetField("mission").GetValue(e) == null) continue;
+                if (!((string)e.GetType().GetField("id").GetValue(e)).StartsWith("BS")) continue;
+                if (Mascot.Showing) Mascot.Hide();
+                typeof(GuidedChallenge).GetMethod("Show", flags).Invoke(challenge, new[] { e });
+                yield return Wait(0.6f); Shot($"16_mission{++n}_card");
+                var go = typeof(GuidedChallenge).GetMethod("BeginInvestigation", flags);
+                if (n == 2) go = typeof(GuidedChallenge).GetMethod("ChooseGrowGrass", flags);
+                go.Invoke(challenge, null);
+                yield return Wait(0.6f); Shot($"16_mission{n}_tracker");
+                typeof(GuidedChallenge).GetMethod("SkipMission", flags).Invoke(challenge, null);
+                yield return Wait(0.6f); Shot($"16_mission{n}_complete");
+                typeof(GuidedChallenge).GetMethod("CloseMission", flags).Invoke(challenge, null);
+                yield return null;
+            }
+            Assert.AreEqual(3, n, "Miloy's three event missions were shown");
+        }
+
         // The ending (evaluated now, as at the last day): Shu Min's ending screen with the doc's text.
         typeof(GuidedChallenge).GetMethod("Finish", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(challenge, null);
         yield return Until(() => SceneManager.GetSceneByName(GuidedScreens.EndingScene).isLoaded, 20f, "ending screen");
@@ -472,6 +498,7 @@ public class GuidedStoryPlayTests
     static bool FinishEventMission(GuidedChallenge challenge)
     {
         if (Field(challenge, "mission") == null) return false;
+        ScreenshotUtil.Capture("mission_" + Time.frameCount);   // Shumin's mission card, for the visual check
         var flags = BindingFlags.NonPublic | BindingFlags.Instance;
         typeof(GuidedChallenge).GetMethod("SkipMission", flags).Invoke(challenge, null);
         typeof(GuidedChallenge).GetMethod("CloseMission", flags).Invoke(challenge, null);

@@ -159,7 +159,7 @@ public partial class GuidedChallenge
     {
         if (trackerBox == null) return;
         var m = introDone ? GuidedAchievements.Current(day, resolved, MissionBlocked) : null;
-        bool show = m != null && !finished && !missionCardOpen && !showing && !chapterOpen;
+        bool show = m != null && !finished && !missionCardOpen && !showing && !chapterOpen && !ScreenFlow.LeaveOpen;   // 28 Nov: not behind the Leave box
         if (trackerBox.activeSelf != show) trackerBox.SetActive(show);
         if (!show) return;
 
@@ -197,6 +197,7 @@ public partial class GuidedChallenge
     void OpenMissionCard(string header, string title, string body, GuidedAchievements.Mission medal, params (string label, UnityEngine.Events.UnityAction onClick)[] buttons)
     {
         missionCardOpen = true;
+        HideSideUiNow();   // 28 Nov: no tracker / weather box at the card's edge on its first frame
         PopupOpen = true;
         if (speed != null) speed.Pause();
         Mascot.Hide();

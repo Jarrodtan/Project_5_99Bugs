@@ -225,7 +225,7 @@ public partial class GuidedChallenge : MonoBehaviour
         // camera buttons hidden: they flashed on load (also while the animals are still spawning) before the intro card.
         IntroPending = !introDone;
         // 28 Nov (Shumin): the weather box was drawn over event cards and popups: hide it while any card is up too.
-        bool weatherWanted = introDone && !showing && !chapterOpen;
+        bool weatherWanted = introDone && !showing && !chapterOpen && !missionCardOpen && !ScreenFlow.LeaveOpen;   // no weather box behind any card or the Leave box
         if (!weatherWanted) { SimHud.SetWeatherVisible(false); weatherShown = false; }   // every frame: it can appear a moment later
         else if (!weatherShown) { SimHud.SetWeatherVisible(true); weatherShown = true; }
         int day = Day;
@@ -252,6 +252,7 @@ public partial class GuidedChallenge : MonoBehaviour
         if (!introDone) { ShowIntro(); return; }
         TrackMissionSteps(day);                                      // Badges and Achievement: Day 1-3 missions
         if (UpdateMission()) return;                                 // M3: a BS/SL event mission is running (GuidedMissions.cs)
+        if (Mascot.Showing) return;                                  // 28 Nov: let the mascot finish its line (e.g. the intro) before a new card
         if (UpdateChapters(day)) return;                             // SCRUM-374: new season = chapter card
         if (UpdateMissionCards()) return;                            // a mission decision, badge or question
         if (!showing) UpdateFire(day);                               // SCRUM-390: grass fire player action
@@ -276,6 +277,7 @@ public partial class GuidedChallenge : MonoBehaviour
         showing = true;
         PopupOpen = true;
         if (speed != null) speed.Pause();
+        HideSideUiNow();
         if (e.mission != null) { Mascot.Hide(); e.mission(e); return; }   // BS missions: their own cards (GuidedMissions.cs)
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): Shumin's event card has its own mascot beside it (GE-M05);
         // the HUD mascot would sit under the card, so it closes. The code-built popup keeps the HUD line.
@@ -655,11 +657,36 @@ public partial class GuidedChallenge : MonoBehaviour
     }
 
     // Event card (wireframes 18-19): pick one of three options, then Confirm; the feedback card follows.
+    // 28 Nov: the decision card left a big empty band between its title and the description: move the description
+    // (keeping its size) up to sit just under the title. Done once; a later card reuses the moved text.
+    bool titleGapClosed;
+    void CloseTitleGap(Transform title, Transform desc)
+    {
+        if (titleGapClosed || !(title is RectTransform t) || !(desc is RectTransform d) || d.parent == null) return;
+        titleGapClosed = true;
+        var tc = new Vector3[4]; var dc = new Vector3[4];
+        t.GetWorldCorners(tc); d.GetWorldCorners(dc);
+        var parent = (RectTransform)d.parent;
+        float titleBottom = parent.InverseTransformPoint(tc[0]).y, descTop = parent.InverseTransformPoint(dc[1]).y;
+        float gap = descTop - titleBottom;   // negative: the description starts below the title
+        const float Margin = 24f;
+        if (gap < -Margin * 2f) d.anchoredPosition += new Vector2(0f, -gap - Margin);
+    }
+
     void ShowShumin(GuidedEvent e)
     {
         Choice picked = null;
         SetText(eventCard, "FeedbackTitleTxt", e.title);
+        // 28 Nov: long titles ("Mission 1: Find What You Need") wrapped onto two lines: shrink to fit one line instead.
+        var titleTf = Find(eventCard, "FeedbackTitleTxt");
+        if (titleTf != null && titleTf.TryGetComponent(out TMP_Text titleTxt))
+        {
+            if (!titleTxt.enableAutoSizing) { titleTxt.fontSizeMax = titleTxt.fontSize; titleTxt.fontSizeMin = titleTxt.fontSize * 0.6f; }
+            titleTxt.enableAutoSizing = true;
+            titleTxt.textWrappingMode = TextWrappingModes.NoWrap;
+        }
         SetText(eventCard, "EventDescriptionTxt", e.text);
+        CloseTitleGap(titleTf, Find(eventCard, "EventDescriptionTxt"));
         var confirm = Find(eventCard, "ConfirmBtn");
         Button confirmButton = confirm != null ? confirm.GetComponent<Button>() : null;
         if (confirmButton != null) confirmButton.interactable = false;

@@ -31,7 +31,7 @@ public partial class GuidedChallenge
     bool missionPlanting;      // BS02 "Grow More Grass" in progress
     int missionPlanted;
     float missionStartedAt;
-    string missionCompletion;
+    string missionCompletion, missionChallenge;
 
     GameObject eventCardGo, missionTracker, missionDone, trackerBack, trackerSkip;
     TextMeshProUGUI eventCardTitle, missionText, trackerTitle, trackerList, doneTitle, doneText;
@@ -39,6 +39,15 @@ public partial class GuidedChallenge
 
     /// <summary>A mission's small tracker is up and the player is looking around the world (camera buttons stay usable).</summary>
     public static bool MissionSearching => instance != null && instance.missionTracker != null && instance.missionTracker.activeInHierarchy;
+
+    /// <summary>A card is opening: hide the side UI (Dillon's mission tracker, the live weather box) this frame,
+    /// not one frame later, so nothing is drawn over the card's edge (28 Nov visual check).</summary>
+    void HideSideUiNow()
+    {
+        if (trackerBox != null) trackerBox.SetActive(false);
+        SimHud.SetWeatherVisible(false);
+        weatherShown = false;
+    }
 
     static bool BlueSheepStory => FamilyManager.SelectedStory == FamilyStory.BlueSheep;
 
@@ -164,7 +173,11 @@ public partial class GuidedChallenge
         missionNatureBtn.SetActive(decision);
         missionTracker.SetActive(false);
         missionDone.SetActive(false);
+        HideSideUiNow();
         eventCardGo.SetActive(true);
+        missionChallenge = challenge;
+        ShowCardMascot(eventCardGo, challenge);
+        Mascot.Speak(challenge);   // Shumin's "Personal Challenge (Mascot Dialogue)" line
     }
 
     void BeginInvestigation()
@@ -174,6 +187,7 @@ public partial class GuidedChallenge
         trackerBack.SetActive(false);
         RefreshTracker();
         missionTracker.SetActive(true);
+        MascotSaysChallenge();
         if (AllObjectivesDone()) CompleteMission(missionCompletion);   // nothing left to find (e.g. no animals alive)
     }
 
@@ -185,6 +199,37 @@ public partial class GuidedChallenge
         trackerBack.SetActive(true);
         RefreshTracker();
         missionTracker.SetActive(true);
+        MascotSaysChallenge();
+    }
+
+    // 28 Nov: the mascot stays with the player while they search: it shows up with the challenge (same voiced line as
+    // the card) and then says each "You found…" line as the player finds things.
+    // 28 Nov: Shumin's mascot stands beside the mission and completion cards with the line in its bubble, as on her
+    // decision cards (a copy of her event card's MascotPanel, moved to whichever card is open).
+    Transform cardMascot;
+    void ShowCardMascot(GameObject dimRoot, string line)
+    {
+        if (eventMascot == null) FindShuminUI();
+        if (eventMascot == null) return;   // no Shumin UI in this build: the cards work without it
+        if (cardMascot == null)
+        {
+            cardMascot = Instantiate(eventMascot.gameObject).transform;
+            cardMascot.name = "MissionCardMascot";
+            foreach (var b in cardMascot.GetComponentsInChildren<Button>(true)) b.gameObject.SetActive(false);   // no Got It here
+        }
+        var src = (RectTransform)eventMascot;
+        var rt = (RectTransform)cardMascot;
+        rt.SetParent(dimRoot.transform, false);
+        rt.anchorMin = src.anchorMin; rt.anchorMax = src.anchorMax; rt.pivot = src.pivot;
+        rt.anchoredPosition = src.anchoredPosition; rt.sizeDelta = src.sizeDelta; rt.localScale = src.localScale;
+        SetText(cardMascot, "DynamicTxt", line);
+        cardMascot.gameObject.SetActive(true);
+        cardMascot.SetAsLastSibling();
+    }
+
+    void MascotSaysChallenge()
+    {
+        if (!string.IsNullOrEmpty(missionChallenge)) Mascot.Announce(missionChallenge);
     }
 
     void ChooseLetNatureGrow()
@@ -208,7 +253,7 @@ public partial class GuidedChallenge
     bool UpdateMission()
     {
         // Demo / test key: M starts the next mission now (BS01 -> BS02 -> BS03-F), whatever the day (M3 presentation).
-        if (mission == null && !showing && !ScreenFlow.JournalOpen
+        if (mission == null && !showing && !missionCardOpen && !ScreenFlow.JournalOpen
             && Keyboard.current != null && Keyboard.current.mKey.wasPressedThisFrame)
         {
             string lib = BlueSheepStory ? "BS" : "SL";   // only this story's missions
@@ -219,6 +264,7 @@ public partial class GuidedChallenge
         if (!missionTracker.activeSelf) return true;   // a card is up: its buttons drive the flow
 
         trackerSkip.SetActive(Time.unscaledTime - missionStartedAt > MissionSkipAfterSeconds);
+        FitTracker();
 
         var cam = Camera.main;
         var pointer = Pointer.current;
@@ -277,6 +323,9 @@ public partial class GuidedChallenge
         foreach (var o in objectives) if (o.done) found += $"\n- {o.feedback}";
         doneText.text = text + (found.Length > 0 ? $"\n<size=80%>{found}</size>" : "");
         missionDone.SetActive(true);
+        Mascot.Hide();   // its bubble would sit under the completion card's dim layer
+        ShowCardMascot(missionDone, text.Split('\n')[0]);
+        Mascot.Speak(text.Split('\n')[0]);   // the completion line (not the "50% faster" note under it)
     }
 
     void CloseMission()
@@ -309,8 +358,22 @@ public partial class GuidedChallenge
         return true;
     }
 
+    // 28 Nov visual check: no empty band under the goals when the tracker has no buttons (Back / Skip).
+    void FitTracker()
+    {
+        var rt = (RectTransform)missionTracker.transform;
+        bool buttons = trackerBack.activeSelf || trackerSkip.activeSelf;
+        float h = buttons ? 330f : 230f;
+        var lr = trackerList.rectTransform;
+        lr.offsetMin = new Vector2(lr.offsetMin.x, buttons ? 110f : 20f);   // the goal list uses the space the buttons would take
+        var tr = trackerTitle.rectTransform;
+        tr.offsetMin = new Vector2(tr.offsetMin.x, h - 70f);   // title keeps its 52 px line under an 18 px top margin
+        if (!Mathf.Approximately(rt.sizeDelta.y, h)) rt.sizeDelta = new Vector2(rt.sizeDelta.x, h);
+    }
+
     void RefreshTracker()
     {
+        FitTracker();
         trackerTitle.text = mission != null ? mission.title : "";
         if (missionPlanting)
         {
@@ -382,7 +445,7 @@ public partial class GuidedChallenge
 
         // Mission card: what is happening, the challenge, and how to start.
         eventCardGo = Dim(root, "Mission");
-        var card = Box(eventCardGo.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1200f, 820f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        var card = Box(eventCardGo.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(-190f, 0f), new Vector2(1080f, 820f), new Color(0.97f, 0.97f, 0.95f, 1f));
         eventCardTitle = Label(card.transform, "", 56f, ink, 60f, 40f, 700f, TextAlignmentOptions.Top);
         missionText = Label(card.transform, "", 34f, body, 70f, 140f, 190f, TextAlignmentOptions.Top);
         missionGoBtn = ButtonGo(card.transform, "Let's go!", new Vector2(0f, 50f), green, BeginInvestigation);
@@ -403,7 +466,7 @@ public partial class GuidedChallenge
 
         // Completion card.
         missionDone = Dim(root, "Mission complete");
-        var doneCard = Box(missionDone.transform, "Card", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 700f), new Color(0.97f, 0.97f, 0.95f, 1f));
+        var doneCard = Box(missionDone.transform, "Card", new Vector2(0.5f, 0.5f), new Vector2(-190f, 0f), new Vector2(1040f, 700f), new Color(0.97f, 0.97f, 0.95f, 1f));
         doneTitle = Label(doneCard.transform, "", 54f, ink, 60f, 40f, 580f, TextAlignmentOptions.Top);
         doneText = Label(doneCard.transform, "", 34f, body, 70f, 150f, 180f, TextAlignmentOptions.Top);
         ButtonGo(doneCard.transform, "Continue", new Vector2(0f, 50f), green, CloseMission);

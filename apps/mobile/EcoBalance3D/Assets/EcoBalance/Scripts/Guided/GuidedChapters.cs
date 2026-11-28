@@ -87,6 +87,7 @@ public partial class GuidedChallenge
             $"Blue Sheep: {before.sheep} → {now.sheep}{Change(now.sheep - before.sheep)}\n" +
             $"Snow Leopards: {before.leopards} → {now.leopards}{Change(now.leopards - before.leopards)}\n" +
             $"Grass: {before.grass:0}% → {now.grass:0}%" + FireRecap() + PlantRecap();
+        HideSideUiNow();
         chapterPanel.SetActive(true);
     }
 

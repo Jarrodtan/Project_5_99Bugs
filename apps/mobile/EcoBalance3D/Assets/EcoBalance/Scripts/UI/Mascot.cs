@@ -86,6 +86,8 @@ public class Mascot : MonoBehaviour
         if (p == null) return;
         // 28 Nov: Free's mascot stood 147 further left than Guided's, over the left camera buttons: same spot as Guided.
         if (!ScreenFlow.GuidedMode && p is RectTransform prt) prt.anchoredPosition = new Vector2(-523f, -415.92f);
+        // 28 Nov visual check: the mascot covered the right half of the Help button: move it clear (both modes).
+        if (p is RectTransform moved) moved.anchoredPosition += new Vector2(80f, 0f);
         current = hud.gameObject.AddComponent<Mascot>();
         current.panel = p.gameObject;
     }
@@ -368,7 +370,7 @@ public class Mascot : MonoBehaviour
 
     // Other popups come first: no mascot over the Guided intro/event cards, a question, or the journal.
     static bool ModalOpen() =>
-        ContextualQuestions.Showing || GuidedChallenge.PopupOpen ||
+        ContextualQuestions.Showing || (GuidedChallenge.PopupOpen && !GuidedChallenge.MissionSearching) ||   // 28 Nov: the mascot talks while a mission has the player finding things
         ScreenFlow.JournalOpen ||
         SceneManager.GetSceneByName(GuidedScreens.GalleryScene).isLoaded;
 
