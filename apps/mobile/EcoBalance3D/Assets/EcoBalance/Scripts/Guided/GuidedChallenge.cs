@@ -716,7 +716,14 @@ public partial class GuidedChallenge : MonoBehaviour
     // Shumin put it, end it inside the box (the heading's parent), and let it shrink to fit.
     void FitInside(Transform text, Transform effectHeadingBox)
     {
-        if (!(text is RectTransform r) || effectHeadingBox == null || !(effectHeadingBox.parent is RectTransform box)) return;
+        if (effectHeadingBox != null) FitTextInBox(text, effectHeadingBox.parent as RectTransform, widen: true);
+    }
+
+    /// <summary>Ends <paramref name="text"/> inside <paramref name="box"/> (and shrinks it to fit). widen: also use
+    /// the box's width (not for option boxes: their radio button sits on the right).</summary>
+    void FitTextInBox(Transform text, RectTransform box, bool widen)
+    {
+        if (!(text is RectTransform r) || box == null || r.parent == null) return;
         if (!r.TryGetComponent(out TMP_Text t)) return;
         if (!t.enableAutoSizing) { t.fontSizeMax = t.fontSize; t.fontSizeMin = t.fontSize * 0.6f; t.enableAutoSizing = true; }
         var bc = new Vector3[4]; var rc = new Vector3[4];
@@ -726,6 +733,7 @@ public partial class GuidedChallenge : MonoBehaviour
         float textBottom = parent.InverseTransformPoint(rc[0]).y;
         if (textBottom < boxBottom) r.offsetMin += new Vector2(0f, boxBottom - textBottom);   // raise only its bottom edge
         // It only used a third of the box's width (long effects wrapped to 4 lines): use the box's width.
+        if (!widen) return;
         float boxRight = parent.InverseTransformPoint(bc[2]).x - 24f;
         float textRight = parent.InverseTransformPoint(rc[2]).x;
         if (textRight < boxRight) r.offsetMax += new Vector2(boxRight - textRight, 0f);
@@ -787,13 +795,8 @@ public partial class GuidedChallenge : MonoBehaviour
             SetText(box, "Option Title", c.label);
             SetText(box, "EffectDescriptionTxt (1)", c.feedback);
             // 28 Nov: two-line effects ran out of the bottom of their option box: shrink to fit instead.
-            var effect = Find(box, "EffectDescriptionTxt (1)");
-            if (effect != null && effect.TryGetComponent(out TMP_Text effectTxt) && !effectTxt.enableAutoSizing)
-            {
-                effectTxt.fontSizeMax = effectTxt.fontSize;
-                effectTxt.fontSizeMin = effectTxt.fontSize * 0.7f;
-                effectTxt.enableAutoSizing = true;
-            }
+            // The text's own area reached below the box, so it never shrank: end it inside the box first.
+            FitTextInBox(Find(box, "EffectDescriptionTxt (1)"), box as RectTransform, widen: false);
             if (box.TryGetComponent(out Image boxImage)) boxImage.color = Color.white;
             SelectedDot.Set(Find(box, "SelectionBtn"), false);
             OnClick(box, "SelectionBtn", () =>
