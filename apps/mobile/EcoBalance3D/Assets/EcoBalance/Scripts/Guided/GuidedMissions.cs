@@ -233,6 +233,11 @@ public partial class GuidedChallenge
 
         trackerSkip.SetActive(Time.unscaledTime - missionStartedAt > MissionSkipAfterSeconds);
         FitTracker();
+        // 28 Nov visual check: the tracker covered the left edge of the Animal Inspection panel (right side):
+        // slide it left while that panel is open.
+        var trt = (RectTransform)missionTracker.transform;
+        float wantX = SimHud.InspectionOpen ? -260f : 0f;
+        if (!Mathf.Approximately(trt.anchoredPosition.x, wantX)) trt.anchoredPosition = new Vector2(wantX, trt.anchoredPosition.y);
 
         var cam = Camera.main;
         var pointer = Pointer.current;

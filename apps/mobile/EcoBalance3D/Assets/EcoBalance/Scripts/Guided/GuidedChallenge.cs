@@ -675,7 +675,39 @@ public partial class GuidedChallenge : MonoBehaviour
         // [AI-GENERATED] Claude Code (Claude Opus 5.5): the card dims while the mascot speaks; Got It brings it back.
         OnClick(introMascot, "GotItBtn", () => { Mascot.StopVoice(); Spotlight.Hide(introMascot); introMascot.gameObject.SetActive(false); });
         introMascot.gameObject.SetActive(true);
+        FitIntroMascot();
         Spotlight.Show(introMascot);
+    }
+
+    // 28 Nov visual check: the intro mascot was cut off at the screen's right edge and its bubble + Got It sat on the
+    // Ecosystem Overview. Shrink it a little and move it so everything it draws (body, bubble, button) is on screen
+    // and above the bottom panels. Done once.
+    bool introMascotFitted;
+    void FitIntroMascot()
+    {
+        if (introMascotFitted || !(introMascot is RectTransform rt)) return;
+        var canvas = rt.GetComponentInParent<Canvas>();
+        if (canvas == null) return;
+        introMascotFitted = true;
+        rt.localScale *= 0.85f;
+        Canvas.ForceUpdateCanvases();
+        var screen = (RectTransform)canvas.rootCanvas.transform;
+        var parent = (RectTransform)rt.parent;
+        // Bounds of everything visible under the mascot panel, in its parent's space.
+        float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue;
+        var c = new Vector3[4];
+        foreach (var g in rt.GetComponentsInChildren<Graphic>(false))
+        {
+            g.rectTransform.GetWorldCorners(c);
+            foreach (var p in c) { var l = parent.InverseTransformPoint(p); minX = Mathf.Min(minX, l.x); maxX = Mathf.Max(maxX, l.x); minY = Mathf.Min(minY, l.y); }
+        }
+        if (minX == float.MaxValue) return;
+        screen.GetWorldCorners(c);
+        float screenRight = parent.InverseTransformPoint(c[2]).x, screenBottom = parent.InverseTransformPoint(c[0]).y;
+        float lowest = screenBottom + 280f;   // keep clear of the Play bar and Ecosystem Overview along the bottom
+        float dx = Mathf.Min(0f, screenRight - 20f - maxX);
+        float dy = Mathf.Max(0f, lowest - minY);
+        rt.anchoredPosition += new Vector2(dx, dy);
     }
 
     // GE-M05 beside the event card, GE-M06 beside the feedback card (Shumin's two panels inside EventPanel).
@@ -701,18 +733,32 @@ public partial class GuidedChallenge : MonoBehaviour
     // Event card (wireframes 18-19): pick one of three options, then Confirm; the feedback card follows.
     // 28 Nov: the decision card left a big empty band between its title and the description: move the description
     // (keeping its size) up to sit just under the title. Done once; a later card reuses the moved text.
-    bool titleGapClosed;
-    void CloseTitleGap(Transform title, Transform desc)
+    readonly HashSet<Transform> gapsClosed = new HashSet<Transform>();
+    /// <summary>Centres <paramref name="desc"/> in the space between <paramref name="title"/> and <paramref name="below"/>
+    /// (decision card: "Choose an Option"; feedback card: the effect box). Once per text object.</summary>
+    void CloseTitleGap(Transform title, Transform desc, Transform below)
     {
-        if (titleGapClosed || !(title is RectTransform t) || !(desc is RectTransform d) || d.parent == null) return;
-        titleGapClosed = true;
-        var tc = new Vector3[4]; var dc = new Vector3[4];
-        t.GetWorldCorners(tc); d.GetWorldCorners(dc);
+        if (desc == null || gapsClosed.Contains(desc) || !(title is RectTransform t) || !(desc is RectTransform d) || d.parent == null) return;
+        gapsClosed.Add(desc);
+        // 28 Nov (2nd look): moving it up just moved the empty band below it. Instead the description fills the whole
+        // space between the title and "Choose an Option" (OptionTxt), with its text centred vertically in it, so the
+        // space is even above and below whatever the text length.
         var parent = (RectTransform)d.parent;
-        float titleBottom = parent.InverseTransformPoint(tc[0]).y, descTop = parent.InverseTransformPoint(dc[1]).y;
-        float gap = descTop - titleBottom;   // negative: the description starts below the title
-        const float Margin = 24f;
-        if (gap < -Margin * 2f) d.anchoredPosition += new Vector2(0f, -gap - Margin);
+        var option = below as RectTransform;
+        if (option == null) return;
+        var tc = new Vector3[4]; var dc = new Vector3[4]; var oc = new Vector3[4];
+        t.GetWorldCorners(tc); d.GetWorldCorners(dc); option.GetWorldCorners(oc);
+        const float Margin = 20f;
+        float top = parent.InverseTransformPoint(tc[0]).y - Margin;      // under the title
+        float bottom = parent.InverseTransformPoint(oc[1]).y + Margin;   // above "Choose an Option"
+        float left = parent.InverseTransformPoint(dc[0]).x, right = parent.InverseTransformPoint(dc[2]).x;
+        if (top - bottom < 60f) return;   // unexpected layout: leave it as Shumin placed it
+        var pc = parent.rect.center;
+        d.anchorMin = d.anchorMax = new Vector2(0.5f, 0.5f);
+        d.pivot = new Vector2(0.5f, 0.5f);
+        d.sizeDelta = new Vector2(right - left, top - bottom);
+        d.anchoredPosition = new Vector2((left + right) * 0.5f - pc.x, (top + bottom) * 0.5f - pc.y);
+        if (d.TryGetComponent(out TMP_Text txt)) txt.verticalAlignment = VerticalAlignmentOptions.Middle;
     }
 
     void ShowShumin(GuidedEvent e)
@@ -728,7 +774,7 @@ public partial class GuidedChallenge : MonoBehaviour
             titleTxt.textWrappingMode = TextWrappingModes.NoWrap;
         }
         SetText(eventCard, "EventDescriptionTxt", e.text);
-        CloseTitleGap(titleTf, Find(eventCard, "EventDescriptionTxt"));
+        CloseTitleGap(titleTf, Find(eventCard, "EventDescriptionTxt"), Find(eventCard, "OptionTxt"));
         var confirm = Find(eventCard, "ConfirmBtn");
         Button confirmButton = confirm != null ? confirm.GetComponent<Button>() : null;
         if (confirmButton != null) confirmButton.interactable = false;
@@ -742,6 +788,14 @@ public partial class GuidedChallenge : MonoBehaviour
             var c = e.choices[i];
             SetText(box, "Option Title", c.label);
             SetText(box, "EffectDescriptionTxt (1)", c.feedback);
+            // 28 Nov: two-line effects ran out of the bottom of their option box: shrink to fit instead.
+            var effect = Find(box, "EffectDescriptionTxt (1)");
+            if (effect != null && effect.TryGetComponent(out TMP_Text effectTxt) && !effectTxt.enableAutoSizing)
+            {
+                effectTxt.fontSizeMax = effectTxt.fontSize;
+                effectTxt.fontSizeMin = effectTxt.fontSize * 0.7f;
+                effectTxt.enableAutoSizing = true;
+            }
             if (box.TryGetComponent(out Image boxImage)) boxImage.color = Color.white;
             SelectedDot.Set(Find(box, "SelectionBtn"), false);
             OnClick(box, "SelectionBtn", () =>
@@ -764,10 +818,16 @@ public partial class GuidedChallenge : MonoBehaviour
             if (feedbackCard == null) { eventPanel.gameObject.SetActive(false); Choose(e, chosen); return; }
             ShowEventMascot(true);   // GE-M06 beside the feedback card
             SetText(feedbackCard, "FeedbackTitleTxt", chosen.label);
-            SetText(feedbackCard, "FeedbackDescriptionTxt", chosen.feedback);
+            // 28 Nov: the effect was in the middle AND in the box, and the box heading still said "Option Name"
+            // (Shumin's placeholder): the middle asks the player to watch, the box holds the effect.
+            const string WatchLine = "Watch the animals and the grass over the next few days. What changes?";
+            SetText(feedbackCard, "FeedbackDescriptionTxt", WatchLine);
+            SetText(feedbackCard, "EffectDurationTxt", "Today's effect");
             SetText(feedbackCard, "EffectDescriptionTxt (1)", chosen.feedback);
-            SetText(feedbackCard, "ObservationDescriptionTxt (1)", "Watch the animals and the grass over the next few days. What changes?");
+            SetText(feedbackCard, "ObservationDescriptionTxt (1)", WatchLine);
             feedbackCard.gameObject.SetActive(true);
+            var effectHeading = Find(feedbackCard, "EffectDurationTxt");
+            CloseTitleGap(Find(feedbackCard, "FeedbackTitleTxt"), Find(feedbackCard, "FeedbackDescriptionTxt"), effectHeading != null ? effectHeading.parent : null);
             OnClick(feedbackCard, "ContinueBtn", () =>
             {
                 feedbackCard.gameObject.SetActive(false);
