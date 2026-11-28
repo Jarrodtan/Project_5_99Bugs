@@ -20,6 +20,7 @@ public static class GuidedScreens
         public int ending; public bool isNew; public int day, sheep, leopards; public float vegetation;
         /// <summary>Whether Miloy / Snowy survived (doc, Ending Presentation step 3).</summary>
         public string focal;
+        public bool focalDied;   // Miloy / Snowy died before the last day (the story ended early)
         /// <summary>Badges unlocked during this run (shown on the ending screen).</summary>
         public string[] newBadges;
     }

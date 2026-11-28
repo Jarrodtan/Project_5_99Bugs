@@ -22,6 +22,10 @@ public static class EndingCelebration
     /// <summary>Endings that read as good news get confetti; the others get slow snowflakes (never a "you failed").</summary>
     public static bool IsHappy(int ending) => ending == 3 || ending == 4;
 
+    /// <summary>Confetti only when it is good news for the child too: a thriving / fragile ending with Miloy or Snowy
+    /// still alive. If the focal animal died, the ending is gentle snow even when the ecosystem is fine.</summary>
+    public static bool Celebrate(GuidedScreens.Result r) => IsHappy(r.ending) && !r.focalDied;
+
     // ---------- Ending screen ----------
 
     /// <summary>The ending screen comes alive: illustration, title pop, counting stats, "New ending!" sticker, badges, confetti.</summary>
@@ -56,7 +60,7 @@ public static class EndingCelebration
         CountUp(runner, GuidedScreens.Find(GuidedScreens.Find(root, "AnimalCard02"), "ValueTxt"), result.leopards, "", 0.7f);
         if (result.isNew && title != null) Sticker(runner, title, "NEW ENDING!", 1.0f);
         BadgeRow(runner, badges, result);
-        runner.StartCoroutine(Later(0.3f, () => Burst(root, IsHappy(result.ending) || result.isNew ? 120 : 0, !IsHappy(result.ending))));
+        runner.StartCoroutine(Later(0.3f, () => Burst(root, 120, !Celebrate(result))));
     }
 
     // The badges panel: a heading, the three medals (earned in colour, new ones pop and sparkle), and the progress.

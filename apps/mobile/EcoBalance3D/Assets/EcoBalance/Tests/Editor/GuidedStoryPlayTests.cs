@@ -184,6 +184,58 @@ public class GuidedStoryPlayTests
         Assert.IsTrue(GuidedEndings.IsUnlocked(result.ending), "endings kept after Start over");
     }
 
+    // ---------- Guided: Snowy's story, the focal animal dies early ----------
+
+    [UnityTest, Timeout(300000)]
+    public IEnumerator SnowyStory_FocalDeath_EndsEarly_KindLine_Snow_StartOver()
+    {
+        yield return new EnterPlayMode();
+        yield return StartGuided("Snowy");
+        var challenge = Object.FindAnyObjectByType<GuidedChallenge>();
+        Assert.AreEqual(FamilyStory.SnowLeopard, FamilyManager.SelectedStory);
+        Assert.AreEqual("Snowy", GuidedChallenge.FocalName);
+
+        // Mission 1 talks about Snowy's family (her story's wording, not Miloy's herd).
+        yield return Until(() => (bool)Field(challenge, "showing"), 30f, "Mission 1 decision");
+        StringAssert.Contains("Mission 1", ShownEventTitle());
+        var card = (Transform)Field(challenge, "eventCard");
+        StringAssert.Contains("Snowy and her family", TextUnder(card, "EventDescriptionTxt", "EventDescriptionTxt"));
+        yield return AnswerEventCard();
+        yield return Wait(0.5f);
+
+        // Snowy runs out of food: the story ends now, by itself (doc: evaluated when the focal animal dies).
+        var snowy = FamilyManager.MainAnimal;
+        Assert.IsNotNull(snowy, "Snowy is alive at the start");
+        snowy.Brain.curr_hunger = 0f;
+        typeof(FamilyManager).GetMethod("OnStarved", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(FamilyManager.Instance, new object[] { snowy.Brain });
+        Assert.IsTrue(FamilyManager.MainAnimalDead);
+        yield return Until(() => SceneManager.GetSceneByName(GuidedScreens.EndingScene).isLoaded, 20f, "the early ending");
+        yield return Wait(0.6f);
+        Shot("60_snowy_early_ending");
+        var result = GuidedChallenge.LastResult;
+        Assert.LessOrEqual(result.day, 2, "ended early, not at the last day");
+        string line = SceneText(GuidedScreens.EndingScene, "CompletionSubtitleTxt");
+        StringAssert.Contains("Snowy could not find enough food", line);
+        StringAssert.Contains("ended early", line);
+        StringAssert.DoesNotContain("you", line.ToLowerInvariant(), "never blames the player");
+        Assert.AreEqual(GuidedEndings.All[result.ending].description, SceneText(GuidedScreens.EndingScene, "OutcomeDescriptionTxt"));
+        Assert.IsTrue(GuidedEndings.IsUnlocked(result.ending), "the ending is in the gallery");
+        Assert.IsTrue(result.focalDied);
+        Assert.IsNotNull(GameObject.Find("Snowfall"), "Snowy died: gentle snow, never a confetti party");
+        Assert.IsNull(GameObject.Find("Confetti"));
+        yield return Wait(2f);
+        Shot("61_snowy_early_ending");
+
+        // Explore again: Snowy's story from Day 1 again, her ending kept.
+        SceneButton(GuidedScreens.EndingScene, "ExploreAgainBtn").onClick.Invoke();
+        yield return Until(() => SimHud.Active && Object.FindAnyObjectByType<GuidedChallenge>() != null && Object.FindAnyObjectByType<GuidedChallenge>() != challenge, 40f, "the story to start again");
+        Assert.AreEqual(FamilyStory.SnowLeopard, FamilyManager.SelectedStory, "same story");
+        Assert.AreEqual(1, Object.FindAnyObjectByType<ClockService>().Day, "back to Day 1");
+        Assert.IsTrue(GuidedEndings.IsUnlocked(result.ending), "ending kept after Replay");
+        yield return Until(() => FamilyManager.MainAnimal != null, 40f, "a new, living Snowy");
+        Assert.IsFalse(FamilyManager.MainAnimalDead, "Snowy is back");
+    }
+
     // ---------- Graphs ----------
 
     [UnityTest, Timeout(300000)]
@@ -252,15 +304,15 @@ public class GuidedStoryPlayTests
 
     // ---------- Flow helpers ----------
 
-    IEnumerator StartGuided()
+    IEnumerator StartGuided(string animal = "Miloy")
     {
         SceneManager.LoadScene(ScreenFlow.Modes);
         yield return Until(() => SceneButton(ScreenFlow.Modes, "StartGuidedBtn") != null, 20f, "mode selection");
         SceneButton(ScreenFlow.Modes, "StartGuidedBtn").onClick.Invoke();
-        yield return Until(() => AnyButton("Choose Miloy") != null, 20f, "family picker");
+        yield return Until(() => AnyButton("Choose " + animal) != null, 20f, "family picker");
         yield return Wait(0.5f);
         Shot("01_family_picker");
-        AnyButton("Choose Miloy").onClick.Invoke();
+        AnyButton("Choose " + animal).onClick.Invoke();
         yield return Until(() => SimHud.Active && Object.FindAnyObjectByType<GuidedChallenge>() != null, 40f, "Guided run");
         var challenge = Object.FindAnyObjectByType<GuidedChallenge>();
         yield return Until(() => (bool)Field(challenge, "introDone") || AnyButton("StartBtn") != null, 40f, "intro card");

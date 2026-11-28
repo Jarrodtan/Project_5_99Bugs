@@ -324,7 +324,7 @@ public partial class GuidedChallenge : MonoBehaviour
         var result = new GuidedScreens.Result {
             ending = i, isNew = isNew, day = Mathf.Min(Day, ChallengeDays),
             sheep = Sheep, leopards = Leopards, vegetation = Vegetation,
-            focal = FocalLine(), newBadges = newBadgesThisRun };
+            focal = FocalLine(), focalDied = FamilyManager.MainAnimalDead, newBadges = newBadgesThisRun };
         LastResult = result;
 
         // Shumin's Ending screen when it's in the build; otherwise the card below.
