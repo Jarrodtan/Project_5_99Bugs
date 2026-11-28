@@ -679,35 +679,14 @@ public partial class GuidedChallenge : MonoBehaviour
         Spotlight.Show(introMascot);
     }
 
-    // 28 Nov visual check: the intro mascot was cut off at the screen's right edge and its bubble + Got It sat on the
-    // Ecosystem Overview. Shrink it a little and move it so everything it draws (body, bubble, button) is on screen
-    // and above the bottom panels. Done once.
+    // 28 Nov visual check: the intro mascot's bubble + Got It sat on the Ecosystem Overview. Done once.
     bool introMascotFitted;
     void FitIntroMascot()
     {
         if (introMascotFitted || !(introMascot is RectTransform rt)) return;
-        var canvas = rt.GetComponentInParent<Canvas>();
-        if (canvas == null) return;
         introMascotFitted = true;
-        rt.localScale *= 0.85f;
-        Canvas.ForceUpdateCanvases();
-        var screen = (RectTransform)canvas.rootCanvas.transform;
-        var parent = (RectTransform)rt.parent;
-        // Bounds of everything visible under the mascot panel, in its parent's space.
-        float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue;
-        var c = new Vector3[4];
-        foreach (var g in rt.GetComponentsInChildren<Graphic>(false))
-        {
-            g.rectTransform.GetWorldCorners(c);
-            foreach (var p in c) { var l = parent.InverseTransformPoint(p); minX = Mathf.Min(minX, l.x); maxX = Mathf.Max(maxX, l.x); minY = Mathf.Min(minY, l.y); }
-        }
-        if (minX == float.MaxValue) return;
-        screen.GetWorldCorners(c);
-        float screenRight = parent.InverseTransformPoint(c[2]).x, screenBottom = parent.InverseTransformPoint(c[0]).y;
-        float lowest = screenBottom + 280f;   // keep clear of the Play bar and Ecosystem Overview along the bottom
-        float dx = Mathf.Min(0f, screenRight - 20f - maxX);
-        float dy = Mathf.Max(0f, lowest - minY);
-        rt.anchoredPosition += new Vector2(dx, dy);
+        // Keep Shumin's spot and size; only lift it so the bubble and Got It sit above the Ecosystem Overview.
+        rt.anchoredPosition += new Vector2(0f, 70f);
     }
 
     // GE-M05 beside the event card, GE-M06 beside the feedback card (Shumin's two panels inside EventPanel).
