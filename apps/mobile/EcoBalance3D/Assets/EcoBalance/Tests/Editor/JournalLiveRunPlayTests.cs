@@ -119,7 +119,10 @@ public class JournalLiveRunPlayTests
         var introDone = typeof(GuidedChallenge).GetField("introDone", flags);
         var showing = typeof(GuidedChallenge).GetField("showing", flags);
         var chapterOpen = typeof(GuidedChallenge).GetField("chapterOpen", flags);
-        bool CardShown() => (bool)showing.GetValue(challenge) || (bool)chapterOpen.GetValue(challenge);
+        var missionCardOpen = typeof(GuidedChallenge).GetField("missionCardOpen", flags);   // Dillon's mission / badge cards
+        // Any Guided card: an event, a chapter card, a daily-mission card or one of Shumin's event missions.
+        bool CardShown() => (bool)showing.GetValue(challenge) || (bool)chapterOpen.GetValue(challenge)
+                            || (missionCardOpen != null && (bool)missionCardOpen.GetValue(challenge)) || GuidedChallenge.PopupOpen;
 
         // The intro card blocks the run (and the journal button) until Start.
         yield return Until(() => (bool)introDone.GetValue(challenge) || AnyButton("StartBtn") != null, 30f, "Guided intro card");
